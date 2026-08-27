@@ -1,5 +1,6 @@
 import 'package:convertly/core/enums/audio_format.dart';
 import 'package:convertly/core/enums/audio_quality.dart';
+import 'package:convertly/core/enums/export_speed.dart';
 import 'package:convertly/features/converter/data/ffmpeg_command_builder.dart';
 import 'package:convertly/features/converter/domain/entities/conversion_request.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 int indexOf(List<String> args, String value) => args.indexOf(value);
 
 void main() {
+  speedTests();
+
   group('codec selection', () {
     test('maps each format to its encoder', () {
       expect(FfmpegCommandBuilder.codecFor(AudioFormat.mp3), 'libmp3lame');
@@ -168,5 +171,96 @@ void main() {
         expect(request.expectedDuration, isNull);
       },
     );
+  });
+}
+
+// --- Export speed -----------------------------------------------------------
+
+void speedTests() {
+  group('export speed', () {
+    test('normal speed adds no tempo filter', () {
+      final List<String> args = FfmpegCommandBuilder.build(
+        const ConversionRequest(
+          inputPaths: <String>['/in/song.mp3'],
+          outputPath: '/out/song.mp3',
+          format: AudioFormat.mp3,
+          speed: ExportSpeed.normal,
+        ),
+      );
+
+      expect(args, isNot(contains('-filter:a')));
+    });
+
+    test('a slower speed applies atempo', () {
+      final List<String> args = FfmpegCommandBuilder.build(
+        const ConversionRequest(
+          inputPaths: <String>['/in/song.mp3'],
+          outputPath: '/out/song.mp3',
+          format: AudioFormat.mp3,
+          speed: ExportSpeed.threeQuarter,
+        ),
+      );
+
+      expect(args[args.indexOf('-filter:a') + 1], 'atempo=0.75');
+    });
+
+    test('every offered speed stays inside atempo\'s single-pass range', () {
+      for (final ExportSpeed speed in ExportSpeed.values) {
+        expect(speed.value, greaterThanOrEqualTo(0.5));
+        expect(speed.value, lessThanOrEqualTo(2.0));
+      }
+    });
+
+    test('a merge chains the tempo change after the concat', () {
+      final List<String> args = FfmpegCommandBuilder.build(
+        const ConversionRequest(
+          inputPaths: <String>['/in/a.mp3', '/in/b.mp3'],
+          outputPath: '/out/merged.mp3',
+          format: AudioFormat.mp3,
+          speed: ExportSpeed.double_,
+        ),
+      );
+
+      expect(
+        args[args.indexOf('-filter_complex') + 1],
+        '[0:a][1:a]concat=n=2:v=0:a=1[joined];[joined]atempo=2.0[out]',
+      );
+      // -filter:a and -filter_complex cannot both be used.
+      expect(args, isNot(contains('-filter:a')));
+    });
+
+    test('a faster export shortens the expected duration', () {
+      const ConversionRequest request = ConversionRequest(
+        inputPaths: <String>['/in/song.mp3'],
+        outputPath: '/out/song.mp3',
+        format: AudioFormat.mp3,
+        totalDuration: Duration(minutes: 4),
+        speed: ExportSpeed.double_,
+      );
+
+      expect(request.selectedDuration, const Duration(minutes: 4));
+      expect(request.expectedDuration, const Duration(minutes: 2));
+    });
+
+    test('a slower export lengthens the expected duration', () {
+      const ConversionRequest request = ConversionRequest(
+        inputPaths: <String>['/in/song.mp3'],
+        outputPath: '/out/song.mp3',
+        format: AudioFormat.mp3,
+        trimStart: Duration(seconds: 10),
+        trimEnd: Duration(seconds: 40),
+        speed: ExportSpeed.half,
+      );
+
+      expect(request.selectedDuration, const Duration(seconds: 30));
+      expect(request.expectedDuration, const Duration(seconds: 60));
+    });
+
+    test('labels read the way the player shows them', () {
+      expect(ExportSpeed.half.label, '0.5x');
+      expect(ExportSpeed.normal.label, '1x');
+      expect(ExportSpeed.oneAndQuarter.label, '1.25x');
+      expect(ExportSpeed.double_.label, '2x');
+    });
   });
 }

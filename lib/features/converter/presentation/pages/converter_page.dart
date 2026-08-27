@@ -5,10 +5,13 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
 import '../../../../core/enums/compression_level.dart';
+import '../../../../core/enums/export_speed.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/media_info.dart';
+import '../../../files/domain/entities/media_file.dart';
 import '../controllers/converter_controller.dart';
+import '../controllers/trim_preview_controller.dart';
 import '../widgets/option_chips.dart';
 import '../widgets/source_summary_card.dart';
 import 'conversion_progress_view.dart';
@@ -107,6 +110,10 @@ class _ConfigurationView extends StatelessWidget {
                     media: sources.first,
                     onRemove: () => controller.removeSourceAt(0),
                   ),
+                if (controller.mode.supportsTrim) ...<Widget>[
+                  const SizedBox(height: AppDimens.spaceMd),
+                  _SourcePickerActions(controller: controller, compact: true),
+                ],
                 if (controller.mode.picksMultiple) ...<Widget>[
                   const SizedBox(height: AppDimens.spaceMd),
                   OutlinedButton.icon(
@@ -176,13 +183,172 @@ class _EmptySelection extends StatelessWidget {
         message: controller.errorMessage.value.isNotEmpty
             ? controller.errorMessage.value
             : controller.mode.description,
-        action: FilledButton.icon(
-          onPressed: controller.isPicking.value ? null : controller.pickSource,
-          icon: const Icon(Icons.folder_open_rounded),
-          label: Text(controller.mode.actionLabel),
-        ),
+        action: controller.mode.supportsTrim
+            ? _SourcePickerActions(controller: controller)
+            : FilledButton.icon(
+                onPressed: controller.isPicking.value
+                    ? null
+                    : controller.pickSource,
+                icon: const Icon(Icons.folder_open_rounded),
+                label: Text(controller.mode.actionLabel),
+              ),
       ),
     );
+  }
+}
+
+class _SourcePickerActions extends StatelessWidget {
+  const _SourcePickerActions({required this.controller, this.compact = false});
+
+  final ConverterController controller;
+  final bool compact;
+
+  Future<void> _showLibraryPicker(BuildContext context) async {
+    controller.loadLibraryFiles();
+
+    final MediaFile? picked = await showModalBottomSheet<MediaFile>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Obx(() {
+            final List<MediaFile> files = controller.libraryFiles;
+            final String error = controller.libraryErrorMessage.value;
+
+            return SizedBox(
+              height: MediaQuery.of(sheetContext).size.height * 0.7,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.pagePadding,
+                  0,
+                  AppDimens.pagePadding,
+                  AppDimens.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Select from app files',
+                      style: Theme.of(sheetContext).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppDimens.spaceXs),
+                    Text(
+                      'Previously converted audio saved inside Convertly.',
+                      style: Theme.of(sheetContext).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: AppDimens.spaceLg),
+                    if (controller.isLoadingLibrary.value && files.isEmpty)
+                      const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (error.isNotEmpty && files.isEmpty)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            error,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(sheetContext).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (files.isEmpty)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'No saved audio found yet. Converted files will appear here.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(sheetContext).textTheme.bodyMedium,
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: files.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppDimens.spaceSm),
+                          itemBuilder: (BuildContext context, int index) {
+                            final MediaFile file = files[index];
+                            return Card(
+                              child: ListTile(
+                                leading: const CircleAvatar(
+                                  child: Icon(Icons.library_music_rounded),
+                                ),
+                                title: Text(
+                                  file.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  <String>[
+                                    file.format.toUpperCase(),
+                                    Formatters.fileSize(file.sizeInBytes),
+                                    if (file.duration != null)
+                                      Formatters.duration(file.duration!),
+                                  ].join(' • '),
+                                ),
+                                onTap: () =>
+                                    Navigator.of(sheetContext).pop(file),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+
+    if (picked != null) {
+      await controller.pickFromLibrary(picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final List<Widget> buttons = <Widget>[
+        FilledButton.icon(
+          onPressed: controller.isPicking.value ? null : controller.pickSource,
+          icon: const Icon(Icons.folder_open_rounded),
+          label: const Text('Phone files'),
+        ),
+        OutlinedButton.icon(
+          onPressed: controller.isPicking.value
+              ? null
+              : () => _showLibraryPicker(context),
+          icon: const Icon(Icons.audio_file_rounded),
+          label: const Text('App files'),
+        ),
+      ];
+
+      if (compact) {
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: AppDimens.spaceSm,
+            runSpacing: AppDimens.spaceSm,
+            children: buttons,
+          ),
+        );
+      }
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          buttons.first,
+          const SizedBox(height: AppDimens.spaceMd),
+          buttons.last,
+        ],
+      );
+    });
   }
 }
 
@@ -229,6 +395,9 @@ class _TrimSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TrimPreviewController previewController =
+        Get.find<TrimPreviewController>();
+
     return Obx(() {
       final Duration total =
           controller.primarySource?.duration ?? Duration.zero;
@@ -277,6 +446,103 @@ class _TrimSection extends StatelessWidget {
             onPressed: () => controller.setTrimRange(Duration.zero, total),
             icon: const Icon(Icons.restart_alt_rounded),
             label: const Text('Reset'),
+          ),
+          const SizedBox(height: AppDimens.spaceLg),
+          _TrimPreviewSection(
+            controller: controller,
+            previewController: previewController,
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _TrimPreviewSection extends StatelessWidget {
+  const _TrimPreviewSection({
+    required this.controller,
+    required this.previewController,
+  });
+
+  final ConverterController controller;
+  final TrimPreviewController previewController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final Duration start = controller.trimStart.value;
+      final Duration end = controller.trimEnd.value;
+      final Duration selected = end > start ? end - start : Duration.zero;
+      final MediaInfo? source = controller.primarySource;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          OptionChips<ExportSpeed>(
+            title: 'Speed',
+            options: ExportSpeed.values,
+            selected: controller.speed.value,
+            labelBuilder: (ExportSpeed speed) => speed.label,
+            onSelected: controller.setSpeed,
+          ),
+          const SizedBox(height: AppDimens.spaceLg),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimens.spaceLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Preview before export',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppDimens.spaceXs),
+                  Text(
+                    'Selected clip: ${Formatters.duration(selected)}'
+                    ' at ${controller.speed.value.label}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: AppDimens.spaceMd),
+                  FilledButton.icon(
+                    onPressed:
+                        source == null || previewController.isPreparing.value
+                        ? null
+                        : () => previewController.toggle(
+                            source: source.playableSource,
+                            start: start,
+                            end: end,
+                            speed: controller.speed.value.value,
+                          ),
+                    icon: Icon(
+                      previewController.isPlaying.value
+                          ? Icons.stop_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    label: Text(
+                      previewController.isPlaying.value
+                          ? 'Stop preview'
+                          : 'Play selected part',
+                    ),
+                  ),
+                  if (previewController.isPreparing.value) ...<Widget>[
+                    const SizedBox(height: AppDimens.spaceMd),
+                    const LinearProgressIndicator(),
+                  ],
+                  if (previewController
+                      .errorMessage
+                      .value
+                      .isNotEmpty) ...<Widget>[
+                    const SizedBox(height: AppDimens.spaceMd),
+                    Text(
+                      previewController.errorMessage.value,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       );

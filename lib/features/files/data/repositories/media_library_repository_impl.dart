@@ -118,6 +118,51 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
   }
 
   @override
+  Future<Result<int>> deleteMany(List<MediaFile> files) async {
+    if (files.isEmpty) {
+      return const Result<int>.success(0);
+    }
+
+    try {
+      final List<int> deletedIds = <int>[];
+
+      for (final MediaFile file in files) {
+        try {
+          final File target = File(file.path);
+          if (target.existsSync()) {
+            await target.delete();
+          }
+          // Entries already missing from disk are still cleared from the
+          // library, which is what the user asked for.
+          if (file.id case final int id) {
+            deletedIds.add(id);
+          }
+        } on FileSystemException {
+          // One locked file must not abandon the rest of the selection.
+          continue;
+        }
+      }
+
+      await _localDataSource.deleteByIds(deletedIds);
+
+      if (deletedIds.isEmpty) {
+        return const Result<int>.failure(
+          FileFailure(message: 'Those files could not be deleted.'),
+        );
+      }
+
+      return Result<int>.success(deletedIds.length);
+    } catch (error) {
+      return Result<int>.failure(
+        FileFailure(
+          message: 'Those files could not be deleted.',
+          debugMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  @override
   Future<Result<int>> pruneMissing() async {
     try {
       final List<MediaFile> all = await _localDataSource.readAll();

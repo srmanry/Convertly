@@ -27,6 +27,7 @@ class ShellBinding extends Bindings {
         GetMediaFiles(repository),
         RenameMediaFile(repository),
         DeleteMediaFile(repository),
+        DeleteMediaFiles(repository),
         PruneMissingMediaFiles(repository),
         Get.find<ShareService>(),
       ),

@@ -11,6 +11,7 @@ class MediaInfo extends Equatable {
     required this.hasVideo,
     this.duration,
     this.audioCodec,
+    this.playbackUri,
   });
 
   final String path;
@@ -21,6 +22,16 @@ class MediaInfo extends Equatable {
   final bool hasVideo;
   final Duration? duration;
   final String? audioCodec;
+
+  /// Source the audio player should open.
+  ///
+  /// [path] is whatever FFmpeg can read, which for a device pick is a SAF
+  /// descriptor rather than a real file. Playback needs the original URI, so
+  /// it is kept alongside instead of overwriting [path].
+  final String? playbackUri;
+
+  /// What to hand the player, preferring the URI when there is one.
+  String get playableSource => playbackUri ?? path;
 
   /// Name without its extension, used to seed the output filename.
   String get baseName {
@@ -38,5 +49,6 @@ class MediaInfo extends Equatable {
     hasVideo,
     duration,
     audioCodec,
+    playbackUri,
   ];
 }

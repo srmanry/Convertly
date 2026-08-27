@@ -33,3 +33,13 @@ class PickAudioFiles implements UseCase<List<MediaInfo>, NoParams> {
   Future<Result<List<MediaInfo>>> call(NoParams params) =>
       _repository.pickAudioFiles();
 }
+
+/// Loads a file that is already in the app's library.
+class InspectMedia implements UseCase<MediaInfo, String> {
+  const InspectMedia(this._repository);
+
+  final MediaRepository _repository;
+
+  @override
+  Future<Result<MediaInfo>> call(String params) => _repository.inspect(params);
+}

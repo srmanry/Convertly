@@ -1,4 +1,5 @@
 import '../../../../core/enums/audio_format.dart';
+import '../../../../core/enums/export_speed.dart';
 import '../domain/entities/conversion_request.dart';
 
 /// Translates a [ConversionRequest] into FFmpeg arguments.
@@ -42,6 +43,10 @@ abstract final class FfmpegCommandBuilder {
       ],
       // Drop any video stream: every output format here is audio-only.
       '-vn',
+      if (!request.speed.isNormal) ...<String>[
+        '-filter:a',
+        _tempoFilter(request.speed),
+      ],
     ];
   }
 
@@ -56,13 +61,21 @@ abstract final class FfmpegCommandBuilder {
       (int index) => '[$index:a]',
     ).join();
 
-    return <String>[
-      '-filter_complex',
-      '${inputs}concat=n=$count:v=0:a=1[out]',
-      '-map',
-      '[out]',
-    ];
+    // A tempo change becomes a second stage in the same filter graph, since
+    // -filter:a cannot be combined with -filter_complex.
+    final String graph = request.speed.isNormal
+        ? '${inputs}concat=n=$count:v=0:a=1[out]'
+        : '${inputs}concat=n=$count:v=0:a=1[joined];'
+              '[joined]${_tempoFilter(request.speed)}[out]';
+
+    return <String>['-filter_complex', graph, '-map', '[out]'];
   }
+
+  /// Tempo change that preserves pitch.
+  ///
+  /// `atempo` only accepts 0.5 to 2.0 per instance; every speed offered is
+  /// inside that range, so one filter is always enough.
+  static String _tempoFilter(ExportSpeed speed) => 'atempo=${speed.value}';
 
   static List<String> _encoderArguments(ConversionRequest request) {
     return <String>[

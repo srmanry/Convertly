@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
+import '../../../../core/enums/export_speed.dart';
 
 /// What the conversion engine should produce.
 ///
@@ -17,6 +18,7 @@ class ConversionRequest extends Equatable {
     this.trimStart,
     this.trimEnd,
     this.totalDuration,
+    this.speed = ExportSpeed.normal,
   });
 
   /// Whether this request has everything the engine needs.
@@ -43,12 +45,15 @@ class ConversionRequest extends Equatable {
   /// Media length, used to turn FFmpeg's position reports into a percentage.
   final Duration? totalDuration;
 
+  /// Tempo the output is rendered at. Pitch is preserved.
+  final ExportSpeed speed;
+
   bool get isMerge => inputPaths.length > 1;
 
   bool get isTrim => trimStart != null || trimEnd != null;
 
-  /// Length of the output, which is what progress should be measured against.
-  Duration? get expectedDuration {
+  /// Length of the source section being read.
+  Duration? get selectedDuration {
     if (!isTrim) {
       return totalDuration;
     }
@@ -61,6 +66,23 @@ class ConversionRequest extends Equatable {
     return span.isNegative ? null : span;
   }
 
+  /// Length of the output, which is what progress is measured against.
+  ///
+  /// Speeding up shortens the result, so the percentage would run past 100%
+  /// if the source length were used instead.
+  Duration? get expectedDuration {
+    final Duration? selected = selectedDuration;
+    if (selected == null) {
+      return null;
+    }
+    if (speed.isNormal) {
+      return selected;
+    }
+    return Duration(
+      milliseconds: (selected.inMilliseconds / speed.value).round(),
+    );
+  }
+
   @override
   List<Object?> get props => <Object?>[
     inputPaths,
@@ -70,5 +92,6 @@ class ConversionRequest extends Equatable {
     trimStart,
     trimEnd,
     totalDuration,
+    speed,
   ];
 }

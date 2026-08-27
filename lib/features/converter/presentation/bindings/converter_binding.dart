@@ -13,6 +13,7 @@ import '../../domain/repositories/media_repository.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
 import '../controllers/converter_controller.dart';
+import '../controllers/trim_preview_controller.dart';
 
 class ConverterBinding extends Bindings {
   @override
@@ -30,6 +31,10 @@ class ConverterBinding extends Bindings {
       Get.find<OutputDirectoryService>(),
     );
 
+    if (mode.supportsTrim && !Get.isRegistered<TrimPreviewController>()) {
+      Get.lazyPut<TrimPreviewController>(TrimPreviewController.new);
+    }
+
     Get.lazyPut<ConverterController>(
       () => ConverterController(
         mode,
@@ -40,6 +45,8 @@ class ConverterBinding extends Bindings {
         CancelConversion(conversionRepository),
         AddMediaFile(Get.find<MediaLibraryRepository>()),
         Get.find<OutputDirectoryService>(),
+        GetMediaFiles(Get.find<MediaLibraryRepository>()),
+        InspectMedia(mediaRepository),
       ),
     );
   }

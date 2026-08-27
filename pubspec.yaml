@@ -45,6 +45,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Runs the real SQLite engine on the host, so database behaviour is tested
+  # for real instead of against a mock.
+  sqflite_common_ffi: ^2.4.2+1
+
   flutter_lints: ^6.0.0
 
 flutter:

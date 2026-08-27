@@ -48,6 +48,17 @@ class DeleteMediaFile implements UseCase<void, MediaFile> {
   Future<Result<void>> call(MediaFile params) => _repository.delete(params);
 }
 
+/// Deletes a whole selection in one action.
+class DeleteMediaFiles implements UseCase<int, List<MediaFile>> {
+  const DeleteMediaFiles(this._repository);
+
+  final MediaLibraryRepository _repository;
+
+  @override
+  Future<Result<int>> call(List<MediaFile> params) =>
+      _repository.deleteMany(params);
+}
+
 class PruneMissingMediaFiles implements UseCase<int, NoParams> {
   const PruneMissingMediaFiles(this._repository);
 

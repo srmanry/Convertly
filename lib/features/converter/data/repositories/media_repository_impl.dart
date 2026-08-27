@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../../core/errors/failure.dart';
 import '../../../../core/services/ffmpeg_service.dart';
 import '../../../../core/types/result.dart';
@@ -60,6 +62,15 @@ class MediaRepositoryImpl implements MediaRepository {
   @override
   Future<Result<MediaInfo>> inspect(String path) async {
     try {
+      final File file = File(path);
+      if (!file.existsSync()) {
+        return const Result<MediaInfo>.failure(
+          FileFailure(
+            message: 'This file is no longer available on your device.',
+          ),
+        );
+      }
+
       final MediaProbeResult? probe = await _ffmpeg.probe(path);
       if (probe == null) {
         return const Result<MediaInfo>.failure(
@@ -67,16 +78,24 @@ class MediaRepositoryImpl implements MediaRepository {
         );
       }
 
+      if (!probe.hasAudio) {
+        return const Result<MediaInfo>.failure(
+          FileFailure(message: 'This file has no audio to convert.'),
+        );
+      }
+
       return Result<MediaInfo>.success(
         MediaInfo(
           path: path,
           name: FileUtils.basename(path),
-          sizeInBytes: 0,
+          sizeInBytes: await file.length(),
           extension: FileUtils.extensionOf(path),
           hasAudio: probe.hasAudio,
           hasVideo: probe.hasVideo,
           duration: probe.duration,
           audioCodec: probe.audioCodec,
+          // A library file is a real file, so it plays directly.
+          playbackUri: path,
         ),
       );
     } catch (error) {
@@ -164,6 +183,7 @@ class MediaRepositoryImpl implements MediaRepository {
         hasVideo: probe.hasVideo,
         duration: probe.duration,
         audioCodec: probe.audioCodec,
+        playbackUri: picked.uri.toString(),
       ),
     );
   }

@@ -15,6 +15,7 @@ class FilesController extends GetxController {
     this._getMediaFiles,
     this._renameMediaFile,
     this._deleteMediaFile,
+    this._deleteMediaFiles,
     this._pruneMissingMediaFiles,
     this._shareService,
   );
@@ -22,6 +23,7 @@ class FilesController extends GetxController {
   final GetMediaFiles _getMediaFiles;
   final RenameMediaFile _renameMediaFile;
   final DeleteMediaFile _deleteMediaFile;
+  final DeleteMediaFiles _deleteMediaFiles;
   final PruneMissingMediaFiles _pruneMissingMediaFiles;
   final ShareService _shareService;
 
@@ -29,6 +31,86 @@ class FilesController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final Rx<MediaSortOrder> sortOrder = MediaSortOrder.newest.obs;
+
+  /// Ids the user has ticked. Selection mode is on whenever this is non-empty.
+  final RxSet<int> selectedIds = <int>{}.obs;
+
+  bool get isSelectionMode => selectedIds.isNotEmpty;
+
+  int get selectedCount => selectedIds.length;
+
+  /// True when every visible file is ticked, which drives the select-all
+  /// toggle rather than a separate flag that could drift out of sync.
+  bool get isAllSelected {
+    final List<MediaFile> visible = visibleFiles;
+    return visible.isNotEmpty && selectedIds.length == visible.length;
+  }
+
+  bool isSelected(MediaFile file) =>
+      file.id != null && selectedIds.contains(file.id);
+
+  /// The selected files, in the order currently shown.
+  List<MediaFile> get selectedFiles => visibleFiles
+      .where(
+        (MediaFile file) => file.id != null && selectedIds.contains(file.id),
+      )
+      .toList();
+
+  void toggleSelection(MediaFile file) {
+    final int? id = file.id;
+    // A row with no id was never persisted, so it cannot be batch deleted.
+    if (id == null) {
+      return;
+    }
+    if (selectedIds.contains(id)) {
+      selectedIds.remove(id);
+    } else {
+      selectedIds.add(id);
+    }
+  }
+
+  void selectAll() {
+    selectedIds.assignAll(
+      visibleFiles.map((MediaFile file) => file.id).whereType<int>(),
+    );
+  }
+
+  void clearSelection() => selectedIds.clear();
+
+  /// Deletes everything ticked.
+  ///
+  /// Returns the outcome rather than showing it: presenting a message is the
+  /// page's job, which also keeps this testable without a widget binding.
+  /// Selection is cleared either way, so the UI cannot keep pointing at rows
+  /// that no longer exist.
+  Future<DeleteSelectionOutcome> deleteSelected() async {
+    final List<MediaFile> targets = selectedFiles;
+    if (targets.isEmpty) {
+      return const DeleteSelectionOutcome(deletedCount: 0);
+    }
+
+    final Result<int> result = await _deleteMediaFiles(targets);
+    final Set<int> targetIds = targets
+        .map((MediaFile file) => file.id)
+        .whereType<int>()
+        .toSet();
+
+    final DeleteSelectionOutcome outcome = result.fold(
+      (Failure failure) => DeleteSelectionOutcome(
+        deletedCount: 0,
+        errorMessage: failure.message,
+      ),
+      (int count) {
+        files.removeWhere(
+          (MediaFile item) => item.id != null && targetIds.contains(item.id),
+        );
+        return DeleteSelectionOutcome(deletedCount: count);
+      },
+    );
+
+    clearSelection();
+    return outcome;
+  }
 
   @override
   void onInit() {
@@ -74,10 +156,17 @@ class FilesController extends GetxController {
       const NoParams(),
     );
 
-    result.fold(
-      (Failure failure) => errorMessage.value = failure.message,
-      (List<MediaFile> loaded) => files.assignAll(loaded),
-    );
+    result.fold((Failure failure) => errorMessage.value = failure.message, (
+      List<MediaFile> loaded,
+    ) {
+      files.assignAll(loaded);
+      // Drop ticks for rows that disappeared while the list was refreshing.
+      final Set<int> availableIds = loaded
+          .map((MediaFile file) => file.id)
+          .whereType<int>()
+          .toSet();
+      selectedIds.removeWhere((int id) => !availableIds.contains(id));
+    });
 
     isLoading.value = false;
   }
@@ -161,4 +250,14 @@ class FilesController extends GetxController {
       snackPosition: SnackPosition.BOTTOM,
     );
   }
+}
+
+/// What a batch delete did, for the page to report.
+class DeleteSelectionOutcome {
+  const DeleteSelectionOutcome({required this.deletedCount, this.errorMessage});
+
+  final int deletedCount;
+  final String? errorMessage;
+
+  bool get isFailure => errorMessage != null;
 }

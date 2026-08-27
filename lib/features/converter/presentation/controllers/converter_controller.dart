@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
 import '../../../../core/enums/compression_level.dart';
+import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
@@ -20,6 +21,7 @@ import '../../domain/entities/conversion_result.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
+import 'trim_preview_controller.dart';
 
 /// Where the user is in the conversion flow.
 enum ConverterStage { configuring, converting, completed, failed }
@@ -38,6 +40,8 @@ class ConverterController extends GetxController {
     this._cancelConversion,
     this._addMediaFile,
     this._outputDirectories,
+    this._getMediaFiles,
+    this._inspectMedia,
   );
 
   final ToolMode _mode;
@@ -48,6 +52,8 @@ class ConverterController extends GetxController {
   final CancelConversion _cancelConversion;
   final AddMediaFile _addMediaFile;
   final OutputDirectoryService _outputDirectories;
+  final GetMediaFiles _getMediaFiles;
+  final InspectMedia _inspectMedia;
 
   ToolMode get mode => _mode;
 
@@ -59,6 +65,14 @@ class ConverterController extends GetxController {
 
   final Rx<Duration> trimStart = Duration.zero.obs;
   final Rx<Duration> trimEnd = Duration.zero.obs;
+
+  /// Tempo the export is rendered at.
+  final Rx<ExportSpeed> speed = ExportSpeed.normal.obs;
+
+  /// Files already converted in this app, offered as an input source.
+  final RxList<MediaFile> libraryFiles = <MediaFile>[].obs;
+  final RxBool isLoadingLibrary = false.obs;
+  final RxString libraryErrorMessage = ''.obs;
 
   final Rx<ConverterStage> stage = ConverterStage.configuring.obs;
   final RxDouble progress = 0.0.obs;
@@ -134,6 +148,8 @@ class ConverterController extends GetxController {
   }
 
   void _applyPicked(Object? value) {
+    _stopPreviewIfPresent();
+
     if (value is List<MediaInfo>) {
       if (value.isEmpty) {
         return;
@@ -170,6 +186,7 @@ class ConverterController extends GetxController {
     if (index < 0 || index >= sources.length) {
       return;
     }
+    _stopPreviewIfPresent();
     sources.removeAt(index);
     if (sources.isEmpty) {
       fileName.value = '';
@@ -190,6 +207,58 @@ class ConverterController extends GetxController {
 
   void setFormat(AudioFormat value) => format.value = value;
 
+  void setSpeed(ExportSpeed value) {
+    speed.value = value;
+    _stopPreviewIfPresent();
+  }
+
+  /// Loads the app's own converted files so they can be used as input.
+  Future<void> loadLibraryFiles() async {
+    isLoadingLibrary.value = true;
+    libraryErrorMessage.value = '';
+    final Result<List<MediaFile>> result = await _getMediaFiles(
+      const NoParams(),
+    );
+    result.fold(
+      (Failure failure) => libraryErrorMessage.value = failure.message,
+      (List<MediaFile> files) {
+        libraryFiles.assignAll(
+          // Only audio can be fed to these tools.
+          files.where((MediaFile file) => file.type == MediaFileType.audio),
+        );
+        libraryErrorMessage.value = '';
+      },
+    );
+    isLoadingLibrary.value = false;
+  }
+
+  /// Adds a file from the app's library as an input.
+  Future<void> pickFromLibrary(MediaFile file) async {
+    if (isPicking.value) {
+      return;
+    }
+    isPicking.value = true;
+    errorMessage.value = '';
+
+    final Result<MediaInfo> result = await _inspectMedia(file.path);
+
+    isPicking.value = false;
+
+    result.fold((Failure failure) => errorMessage.value = failure.message, (
+      MediaInfo info,
+    ) {
+      _stopPreviewIfPresent();
+      if (_mode.picksMultiple) {
+        sources.add(info);
+      } else {
+        sources
+          ..clear()
+          ..add(info);
+      }
+      _resetOutputForSelection();
+    });
+  }
+
   void setQuality(AudioQuality value) => quality.value = value;
 
   void setCompressionLevel(CompressionLevel value) =>
@@ -200,6 +269,16 @@ class ConverterController extends GetxController {
   void setTrimRange(Duration start, Duration end) {
     trimStart.value = start;
     trimEnd.value = end;
+    _stopPreviewIfPresent();
+  }
+
+  void _stopPreviewIfPresent() {
+    if (!Get.isRegistered<TrimPreviewController>()) {
+      return;
+    }
+    final TrimPreviewController preview = Get.find<TrimPreviewController>();
+    preview.errorMessage.value = '';
+    unawaited(preview.stop());
   }
 
   /// Builds the request and runs it, then records the output in the library.
@@ -237,6 +316,7 @@ class ConverterController extends GetxController {
       trimStart: _mode.supportsTrim ? trimStart.value : null,
       trimEnd: _mode.supportsTrim ? trimEnd.value : null,
       totalDuration: sourceDuration,
+      speed: speed.value,
     );
 
     final Result<ConversionResult> outcome = await _convertMedia(

@@ -12,6 +12,8 @@ abstract interface class MediaLibraryLocalDataSource {
   Future<void> updateFile(MediaFile file);
 
   Future<void> deleteById(int id);
+
+  Future<void> deleteByIds(List<int> ids);
 }
 
 class MediaLibraryLocalDataSourceImpl implements MediaLibraryLocalDataSource {
@@ -60,6 +62,23 @@ class MediaLibraryLocalDataSourceImpl implements MediaLibraryLocalDataSource {
       MediaFileMapper.table,
       where: '${MediaFileMapper.columnId} = ?',
       whereArgs: <Object?>[id],
+    );
+  }
+
+  @override
+  Future<void> deleteByIds(List<int> ids) async {
+    if (ids.isEmpty) {
+      return;
+    }
+
+    final Database db = await _database.open();
+    // One statement rather than a delete per row, so a large selection stays
+    // a single transaction.
+    final String placeholders = List<String>.filled(ids.length, '?').join(', ');
+    await db.delete(
+      MediaFileMapper.table,
+      where: '${MediaFileMapper.columnId} IN ($placeholders)',
+      whereArgs: ids,
     );
   }
 }
