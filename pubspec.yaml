@@ -2,7 +2,7 @@ name: convertly
 description: "Convertly - Media Converter & Audio Toolkit. Offline-first media conversion."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.12.1
@@ -50,6 +50,12 @@ dev_dependencies:
   sqflite_common_ffi: ^2.4.2+1
 
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logo/audio.png
