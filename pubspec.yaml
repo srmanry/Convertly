@@ -1,0 +1,51 @@
+name: convertly
+description: "Convertly - Media Converter & Audio Toolkit. Offline-first media conversion."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management, dependency injection and routing.
+  get: ^4.7.3
+
+  # Key-value persistence for onboarding flag and user settings.
+  shared_preferences: ^2.5.5
+
+  # Value equality for domain entities and data models.
+  equatable: ^2.1.0
+
+  # Media processing. The original ffmpeg_kit_flutter was retired in 2023;
+  # this is the maintained community fork.
+  ffmpeg_kit_flutter_new: ^4.6.2
+
+  # Picking source media from device storage.
+  file_picker: ^12.1.1
+
+  # Playback for the built-in audio player.
+  just_audio: ^0.10.6
+
+  # Sharing converted output to other apps.
+  share_plus: ^13.3.0
+
+  # Resolving app-specific storage directories.
+  path_provider: ^2.1.6
+
+  # Local metadata database for the media library.
+  sqflite: ^2.4.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
