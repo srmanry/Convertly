@@ -4,8 +4,11 @@ import 'package:get/get.dart';
 
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
+import '../../../../core/enums/cleanup_mode.dart';
 import '../../../../core/enums/compression_level.dart';
 import '../../../../core/enums/export_speed.dart';
+import '../../../../core/enums/mix_length_mode.dart';
+import '../../../../core/enums/noise_strength.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
@@ -16,11 +19,16 @@ import '../../../../core/utils/file_utils.dart';
 import '../../../files/domain/entities/media_file.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
+import '../../domain/entities/cleanup_settings.dart';
 import '../../domain/entities/conversion_request.dart';
 import '../../domain/entities/conversion_result.dart';
 import '../../domain/entities/media_info.dart';
+import '../../domain/entities/mix_settings.dart';
+import '../../domain/entities/mix_track.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
+import 'mix_preview_controller.dart';
+import 'timeline_preview_controller.dart';
 import 'trim_preview_controller.dart';
 
 /// Where the user is in the conversion flow.
@@ -69,6 +77,16 @@ class ConverterController extends GetxController {
   /// Tempo the export is rendered at.
   final Rx<ExportSpeed> speed = ExportSpeed.normal.obs;
 
+  /// Per-clip level, position and trim, held in step with [sources] so index
+  /// `n` in one always describes the same clip as index `n` in the other.
+  final RxList<MixTrack> clips = <MixTrack>[].obs;
+
+  final Rx<MixLengthMode> mixLength = MixLengthMode.longestTrack.obs;
+  final RxBool loopShorterTracks = false.obs;
+
+  final Rx<CleanupMode> cleanupMode = CleanupMode.backgroundNoise.obs;
+  final Rx<NoiseStrength> noiseStrength = NoiseStrength.medium.obs;
+
   /// Files already converted in this app, offered as an input source.
   final RxList<MediaFile> libraryFiles = <MediaFile>[].obs;
   final RxBool isLoadingLibrary = false.obs;
@@ -83,6 +101,8 @@ class ConverterController extends GetxController {
   /// True once there is enough input to start.
   bool get canConvert =>
       sources.isNotEmpty &&
+      (!_mode.needsTwoSources || sources.length >= 2) &&
+      !isCleanupUnsupported &&
       fileName.value.trim().isNotEmpty &&
       stage.value != ConverterStage.converting;
 
@@ -90,16 +110,76 @@ class ConverterController extends GetxController {
 
   /// Length the output is expected to have, used for progress and estimates.
   Duration? get sourceDuration {
+    final Iterable<Duration> known = <Duration?>[
+      for (int index = 0; index < sources.length; index++) usedLengthOf(index),
+    ].whereType<Duration>();
+
+    if (_mode.combinesTracks) {
+      // A track ends at its own start plus its length, so the arrangement is
+      // as long as whichever track the length mode says it ends with.
+      if (_effectiveMixLength == MixLengthMode.mainTrack) {
+        return _trackEnd(0);
+      }
+      final List<Duration> ends = <Duration>[
+        for (int index = 0; index < sources.length; index++)
+          if (_trackEnd(index) case final Duration end) end,
+      ];
+      return ends.isEmpty
+          ? null
+          : ends.reduce((Duration a, Duration b) => a > b ? a : b);
+    }
+
     if (_mode.picksMultiple) {
       // A merge has no single length; sum what is known.
-      final Iterable<Duration> known = sources
-          .map((MediaInfo info) => info.duration)
-          .whereType<Duration>();
       return known.isEmpty
           ? null
           : known.reduce((Duration a, Duration b) => a + b);
     }
     return primarySource?.duration;
+  }
+
+  /// Point on the timeline where the track at [index] finishes.
+  ///
+  /// Null when the track's own length could not be read, which keeps an
+  /// unknown out of the total rather than counting it as zero.
+  Duration? _trackEnd(int index) {
+    if (index < 0 || index >= sources.length) {
+      return null;
+    }
+    final Duration? length = usedLengthOf(index);
+    return length == null ? null : startOfTrack(index) + length;
+  }
+
+  MixTrack clipAt(int index) =>
+      index >= 0 && index < clips.length ? clips[index] : const MixTrack();
+
+  Duration startOfTrack(int index) => clipAt(index).start;
+
+  /// How much of the clip at [index] is actually used.
+  ///
+  /// A clip the user has trimmed contributes only the selected span; an
+  /// untrimmed one contributes its whole length.
+  Duration? usedLengthOf(int index) {
+    if (index < 0 || index >= sources.length) {
+      return null;
+    }
+    return clipAt(index).usedLength ?? sources[index].duration;
+  }
+
+  /// Length mode actually applied, which looping forces to the main track.
+  MixLengthMode get _effectiveMixLength =>
+      loopShorterTracks.value ? MixLengthMode.mainTrack : mixLength.value;
+
+  /// True when the selected cleanup cannot work on the chosen file.
+  ///
+  /// Cancelling the centre of a mono track subtracts it from itself, which
+  /// leaves silence, so the export is blocked instead of producing that.
+  bool get isCleanupUnsupported {
+    if (!_mode.isCleanup || !cleanupMode.value.requiresStereo) {
+      return false;
+    }
+    final int? channels = primarySource?.channels;
+    return channels != null && channels < 2;
   }
 
   /// Bitrate actually applied, which compression drives from its preset.
@@ -135,7 +215,9 @@ class ConverterController extends GetxController {
 
     final Result<Object?> picked = switch (_mode) {
       ToolMode.videoToAudio => await _pickVideo(const NoParams()),
-      ToolMode.merge => await _pickAudioFiles(const NoParams()),
+      ToolMode.merge ||
+      ToolMode.mix ||
+      ToolMode.arrange => await _pickAudioFiles(const NoParams()),
       _ => await _pickAudio(const NoParams()),
     };
 
@@ -154,11 +236,9 @@ class ConverterController extends GetxController {
       if (value.isEmpty) {
         return;
       }
-      sources.addAll(value);
+      _appendSources(value);
     } else if (value is MediaInfo) {
-      sources
-        ..clear()
-        ..add(value);
+      _replaceSources(<MediaInfo>[value]);
     } else {
       // Null means the picker was dismissed, which needs no feedback.
       return;
@@ -167,15 +247,71 @@ class ConverterController extends GetxController {
     _resetOutputForSelection();
   }
 
+  /// Gain a newly added track starts at.
+  ///
+  /// The first track is the main one, so it comes in untouched; anything
+  /// added after it starts lower, which is the level a background layer
+  /// wants and an easy drag away from equal.
+  static const double _mainTrackVolume = 1;
+  static const double _layerTrackVolume = 0.6;
+
+  void _appendSources(List<MediaInfo> added) {
+    for (final MediaInfo info in added) {
+      clips.add(
+        MixTrack(
+          // On the timeline nothing is stacked, so no clip needs to duck out
+          // of another's way and every one comes in at full level.
+          volume: _mode.isTimeline || sources.isEmpty
+              ? _mainTrackVolume
+              : _layerTrackVolume,
+          // A clip starts out whole. Leaving trimEnd null rather than filling
+          // in the source length keeps "untrimmed" distinguishable from a
+          // selection that happens to cover everything.
+        ),
+      );
+      sources.add(info);
+    }
+    _reflowTimeline();
+  }
+
+  /// Lays the clips out so each one begins exactly where the last ended.
+  ///
+  /// Positions are derived rather than chosen: a clip cannot be left stranded
+  /// after a stretch of silence, and removing or reordering clips closes up
+  /// behind them. Playback runs straight through, the way a single recording
+  /// would.
+  void _reflowTimeline() {
+    if (!_mode.isTimeline) {
+      return;
+    }
+    Duration cursor = Duration.zero;
+    for (int index = 0; index < clips.length; index++) {
+      clips[index] = clips[index].copyWith(start: cursor);
+      // Only the selected part of a clip takes up room, so trimming one pulls
+      // everything after it earlier. A clip whose length could not be read
+      // adds nothing rather than pushing the rest to a guessed position.
+      cursor += usedLengthOf(index) ?? Duration.zero;
+    }
+  }
+
+  void _replaceSources(List<MediaInfo> next) {
+    sources.clear();
+    clips.clear();
+    _appendSources(next);
+  }
+
   void _resetOutputForSelection() {
     final MediaInfo? first = primarySource;
     if (first == null) {
       return;
     }
 
-    fileName.value = _mode.picksMultiple
-        ? 'merged_audio'
-        : '${first.baseName}${_mode.outputSuffix}';
+    fileName.value = switch (_mode) {
+      ToolMode.merge => 'merged_audio',
+      ToolMode.mix => 'mixed_audio',
+      ToolMode.arrange => 'timeline_audio',
+      _ => '${first.baseName}${_mode.outputSuffix}',
+    };
 
     trimStart.value = Duration.zero;
     trimEnd.value = first.duration ?? Duration.zero;
@@ -188,6 +324,10 @@ class ConverterController extends GetxController {
     }
     _stopPreviewIfPresent();
     sources.removeAt(index);
+    if (index < clips.length) {
+      clips.removeAt(index);
+    }
+    _reflowTimeline();
     if (sources.isEmpty) {
       fileName.value = '';
     }
@@ -202,10 +342,87 @@ class ConverterController extends GetxController {
       return;
     }
     final MediaInfo moved = sources.removeAt(oldIndex);
-    sources.insert(newIndex.clamp(0, sources.length), moved);
+    final int target = newIndex.clamp(0, sources.length);
+    sources.insert(target, moved);
+
+    // The volumes ride along, otherwise dragging a track would hand it the
+    // level of whatever used to sit at its new position.
+    if (oldIndex < clips.length) {
+      final MixTrack moved = clips.removeAt(oldIndex);
+      clips.insert(target.clamp(0, clips.length), moved);
+    }
+    // Dragging a clip changes what follows what, so the whole run is laid out
+    // again rather than leaving a hole where the clip used to be.
+    _reflowTimeline();
   }
 
   void setFormat(AudioFormat value) => format.value = value;
+
+  void setTrackVolume(int index, double value) {
+    if (index < 0 || index >= clips.length) {
+      return;
+    }
+    clips[index] = clips[index].copyWith(volume: value);
+    // A running preview follows the slider rather than waiting for a restart.
+    if (Get.isRegistered<MixPreviewController>()) {
+      unawaited(
+        Get.find<MixPreviewController>().applyVolumes(<double>[
+          for (final MixTrack clip in clips) clip.volume,
+        ]),
+      );
+    }
+  }
+
+  /// Keeps only [start] to [end] of the clip at [index].
+  ///
+  /// The clips after it move up, so trimming never opens a gap.
+  void setClipTrim(int index, Duration start, Duration end) {
+    if (index < 0 || index >= clips.length) {
+      return;
+    }
+    final Duration? sourceLength = sources[index].duration;
+    final Duration safeStart = start.isNegative ? Duration.zero : start;
+    final Duration safeEnd = sourceLength != null && end > sourceLength
+        ? sourceLength
+        : end;
+    if (safeEnd <= safeStart) {
+      return;
+    }
+
+    clips[index] = clips[index].copyWith(
+      trimStart: safeStart,
+      trimEnd: safeEnd,
+    );
+    _reflowTimeline();
+    _stopPreviewIfPresent();
+  }
+
+  /// The selection shown on the clip at [index], defaulting to the whole file.
+  (Duration start, Duration end) trimRangeOf(int index) {
+    final MixTrack clip = clipAt(index);
+    final Duration end =
+        clip.trimEnd ??
+        (index < sources.length ? sources[index].duration : null) ??
+        Duration.zero;
+    return (clip.trimStart, end);
+  }
+
+  void setMixLength(MixLengthMode value) {
+    mixLength.value = value;
+    _stopPreviewIfPresent();
+  }
+
+  void setLoopShorterTracks(bool value) {
+    loopShorterTracks.value = value;
+    _stopPreviewIfPresent();
+  }
+
+  void setCleanupMode(CleanupMode value) {
+    cleanupMode.value = value;
+    errorMessage.value = '';
+  }
+
+  void setNoiseStrength(NoiseStrength value) => noiseStrength.value = value;
 
   void setSpeed(ExportSpeed value) {
     speed.value = value;
@@ -249,11 +466,9 @@ class ConverterController extends GetxController {
     ) {
       _stopPreviewIfPresent();
       if (_mode.picksMultiple) {
-        sources.add(info);
+        _appendSources(<MediaInfo>[info]);
       } else {
-        sources
-          ..clear()
-          ..add(info);
+        _replaceSources(<MediaInfo>[info]);
       }
       _resetOutputForSelection();
     });
@@ -273,12 +488,22 @@ class ConverterController extends GetxController {
   }
 
   void _stopPreviewIfPresent() {
-    if (!Get.isRegistered<TrimPreviewController>()) {
-      return;
+    if (Get.isRegistered<TrimPreviewController>()) {
+      final TrimPreviewController preview = Get.find<TrimPreviewController>();
+      preview.errorMessage.value = '';
+      unawaited(preview.stop());
     }
-    final TrimPreviewController preview = Get.find<TrimPreviewController>();
-    preview.errorMessage.value = '';
-    unawaited(preview.stop());
+    if (Get.isRegistered<MixPreviewController>()) {
+      final MixPreviewController preview = Get.find<MixPreviewController>();
+      preview.errorMessage.value = '';
+      unawaited(preview.stop());
+    }
+    if (Get.isRegistered<TimelinePreviewController>()) {
+      final TimelinePreviewController preview =
+          Get.find<TimelinePreviewController>();
+      preview.errorMessage.value = '';
+      unawaited(preview.stop());
+    }
   }
 
   /// Builds the request and runs it, then records the output in the library.
@@ -298,11 +523,37 @@ class ConverterController extends GetxController {
       return;
     }
 
+    if (_mode.needsTwoSources && sources.length < 2) {
+      errorMessage.value = 'Add at least two tracks to mix them together.';
+      return;
+    }
+
+    if (isCleanupUnsupported) {
+      errorMessage.value =
+          'This track is mono, so there is no separate centre channel to '
+          'remove. Try another cleanup option.';
+      return;
+    }
+
     stage.value = ConverterStage.converting;
     progress.value = 0;
     errorMessage.value = '';
 
-    final String outputDirectory = (await _outputDirectories.resolve()).path;
+    // Anything thrown between here and the engine would otherwise escape as an
+    // unhandled async error, leaving the progress screen spinning with no way
+    // back. A failure has to reach the user instead.
+    final String outputDirectory;
+    try {
+      outputDirectory = (await _outputDirectories.resolve()).path;
+    } catch (error) {
+      await _onConversionFailed(
+        StorageFailure(
+          message: 'Could not find a place to save the converted file.',
+          debugMessage: error.toString(),
+        ),
+      );
+      return;
+    }
 
     final ConversionRequest request = ConversionRequest(
       inputPaths: sources.map((MediaInfo info) => info.path).toList(),
@@ -317,6 +568,19 @@ class ConverterController extends GetxController {
       trimEnd: _mode.supportsTrim ? trimEnd.value : null,
       totalDuration: sourceDuration,
       speed: speed.value,
+      mix: _mode.combinesTracks
+          ? MixSettings(
+              tracks: List<MixTrack>.of(clips),
+              loopShorterTracks: loopShorterTracks.value,
+              lengthMode: mixLength.value,
+            )
+          : null,
+      cleanup: _mode.isCleanup
+          ? CleanupSettings(
+              mode: cleanupMode.value,
+              strength: noiseStrength.value,
+            )
+          : null,
     );
 
     final Result<ConversionResult> outcome = await _convertMedia(
@@ -364,6 +628,9 @@ class ConverterController extends GetxController {
     ToolMode.cut => MediaSourceType.cut,
     ToolMode.merge => MediaSourceType.merge,
     ToolMode.compress => MediaSourceType.compress,
+    ToolMode.mix => MediaSourceType.mix,
+    ToolMode.arrange => MediaSourceType.arrange,
+    ToolMode.cleanup => MediaSourceType.cleanup,
   };
 
   /// Stops a running conversion. The partial output is removed by the

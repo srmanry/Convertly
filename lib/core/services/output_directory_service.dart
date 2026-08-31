@@ -20,10 +20,12 @@ class OutputDirectoryService {
       return cached;
     }
 
-    // getExternalStorageDirectory is Android-only and can return null; the
-    // documents directory is a valid fallback on every platform.
+    // getExternalStorageDirectory is Android-only. Everywhere else
+    // path_provider *throws* rather than returning null, so it cannot be
+    // called and absorbed by a null fallback — the platform has to be checked
+    // first. On Android it can still return null, which the fallback covers.
     final Directory base =
-        await getExternalStorageDirectory() ??
+        (Platform.isAndroid ? await getExternalStorageDirectory() : null) ??
         await getApplicationDocumentsDirectory();
 
     final Directory output = Directory(

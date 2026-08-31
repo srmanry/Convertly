@@ -31,6 +31,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Brings [finder] into view.
+  ///
+  /// The tools grid fills the first screen, so anything below it is not built
+  /// until the list is scrolled down to it.
+  Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+    await tester.scrollUntilVisible(finder, 200);
+    await tester.pumpAndSettle();
+  }
+
   /// Renders at a given logical screen size for the duration of the test.
   void useScreenSize(WidgetTester tester, Size size) {
     tester.view
@@ -56,12 +65,16 @@ void main() {
     expect(find.text('Audio Cutter'), findsOneWidget);
     expect(find.text('Audio Merger'), findsOneWidget);
     expect(find.text('Audio Compressor'), findsOneWidget);
+    expect(find.text('Audio Mixer'), findsOneWidget);
+    expect(find.text('Noise Remover'), findsOneWidget);
+    expect(find.text('Audio Timeline'), findsOneWidget);
   });
 
   testWidgets('shows the empty state when nothing has been converted', (
     WidgetTester tester,
   ) async {
     await pumpHome(tester);
+    await scrollTo(tester, find.text('Your converted files will appear here.'));
 
     expect(find.text('Your converted files will appear here.'), findsOneWidget);
   });
@@ -79,6 +92,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await pumpHome(tester);
+    await scrollTo(tester, find.text('See all'));
 
     await tester.tap(find.text('See all'));
     await tester.pump();
@@ -133,5 +147,8 @@ void main() {
     expect(find.text('Audio Cutter'), findsOneWidget);
     expect(find.text('Audio Merger'), findsOneWidget);
     expect(find.text('Audio Compressor'), findsOneWidget);
+    expect(find.text('Audio Mixer'), findsOneWidget);
+    expect(find.text('Noise Remover'), findsOneWidget);
+    expect(find.text('Audio Timeline'), findsOneWidget);
   });
 }

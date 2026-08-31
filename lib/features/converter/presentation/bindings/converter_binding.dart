@@ -13,6 +13,8 @@ import '../../domain/repositories/media_repository.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
 import '../controllers/converter_controller.dart';
+import '../controllers/mix_preview_controller.dart';
+import '../controllers/timeline_preview_controller.dart';
 import '../controllers/trim_preview_controller.dart';
 
 class ConverterBinding extends Bindings {
@@ -31,8 +33,21 @@ class ConverterBinding extends Bindings {
       Get.find<OutputDirectoryService>(),
     );
 
-    if (mode.supportsTrim && !Get.isRegistered<TrimPreviewController>()) {
+    // The cutter previews its selection; the timeline previews the selection
+    // on each of its clips. Same player, same job.
+    if ((mode.supportsTrim || mode.isTimeline) &&
+        !Get.isRegistered<TrimPreviewController>()) {
       Get.lazyPut<TrimPreviewController>(TrimPreviewController.new);
+    }
+
+    // The two previews work differently: the mixer sounds its clips together,
+    // the timeline runs them straight through as one playlist.
+    if (mode.isMix && !Get.isRegistered<MixPreviewController>()) {
+      Get.lazyPut<MixPreviewController>(MixPreviewController.new);
+    }
+
+    if (mode.isTimeline && !Get.isRegistered<TimelinePreviewController>()) {
+      Get.lazyPut<TimelinePreviewController>(TimelinePreviewController.new);
     }
 
     Get.lazyPut<ConverterController>(

@@ -11,6 +11,7 @@ class MediaInfo extends Equatable {
     required this.hasVideo,
     this.duration,
     this.audioCodec,
+    this.channels,
     this.playbackUri,
   });
 
@@ -22,6 +23,13 @@ class MediaInfo extends Equatable {
   final bool hasVideo;
   final Duration? duration;
   final String? audioCodec;
+
+  /// Channel count, when it could be read. Null means unknown, which callers
+  /// treat as "do not block" rather than as mono.
+  final int? channels;
+
+  /// True only when the track is known to have more than one channel.
+  bool get isStereo => (channels ?? 0) > 1;
 
   /// Source the audio player should open.
   ///
@@ -49,6 +57,7 @@ class MediaInfo extends Equatable {
     hasVideo,
     duration,
     audioCodec,
+    channels,
     playbackUri,
   ];
 }
