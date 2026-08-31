@@ -49,6 +49,27 @@ class ToolsPage extends StatelessWidget {
         color: AppColors.accentTools,
         mode: ToolMode.compress,
       ),
+      const _Tool(
+        icon: Icons.layers_rounded,
+        title: 'Audio Mixer',
+        description: 'Layer several tracks so they play together',
+        color: AppColors.accentAudio,
+        mode: ToolMode.mix,
+      ),
+      const _Tool(
+        icon: Icons.view_timeline_rounded,
+        title: 'Audio Timeline',
+        description: 'Add clips one after another into a single file',
+        color: AppColors.accentAudio,
+        mode: ToolMode.arrange,
+      ),
+      const _Tool(
+        icon: Icons.auto_fix_high_rounded,
+        title: 'Noise Remover',
+        description: 'Clean background noise out of an audio file',
+        color: AppColors.accentAudio,
+        mode: ToolMode.cleanup,
+      ),
     ];
 
     return Scaffold(

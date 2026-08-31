@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 
+import 'playable_audio_source.dart';
+
 /// Plays just the selected section, at the chosen export speed.
 ///
 /// Kept separate from [ConverterController] so the player and its
@@ -12,6 +14,14 @@ class TrimPreviewController extends GetxController {
 
   final RxBool isPlaying = false.obs;
   final RxBool isPreparing = false.obs;
+
+  /// Identifies what is being previewed, so a screen showing several clips can
+  /// tell which row the running preview belongs to. Empty when nothing plays.
+  final RxString playingTag = ''.obs;
+
+  /// Which row [errorMessage] belongs to, so a failure is reported against the
+  /// clip that could not play rather than against all of them.
+  final RxString errorTag = ''.obs;
   final Rx<Duration> position = Duration.zero.obs;
   final RxString errorMessage = ''.obs;
 
@@ -20,7 +30,6 @@ class TrimPreviewController extends GetxController {
 
   /// Source currently loaded, so re-previewing the same file does not reload.
   String? _loadedSource;
-  Duration _clipStart = Duration.zero;
 
   @override
   void onInit() {
@@ -42,10 +51,16 @@ class TrimPreviewController extends GetxController {
     required Duration start,
     required Duration end,
     required double speed,
+    String tag = '',
   }) async {
+    // Tapping the row that is playing stops it; tapping a different row
+    // switches to that one rather than doing nothing.
     if (isPlaying.value) {
+      final bool sameRow = playingTag.value == tag;
       await stop();
-      return;
+      if (sameRow) {
+        return;
+      }
     }
 
     if (end <= start) {
@@ -55,46 +70,40 @@ class TrimPreviewController extends GetxController {
 
     isPreparing.value = true;
     errorMessage.value = '';
+    errorTag.value = '';
 
     try {
       // setClip bounds playback to the selection, so the preview matches the
       // exported range without cutting a temporary file first.
       if (_loadedSource != source) {
-        await _player.setAudioSource(_resolveSource(source));
+        await _player.setAudioSource(playableAudioSource(source));
         _loadedSource = source;
       }
       await _player.setClip(start: start, end: end);
-      _clipStart = start;
       await _player.setSpeed(speed);
-      await _player.seek(start);
+      // setClip rebases the selection to zero, so the clip runs from 0 to
+      // (end - start). Seeking to the selection's position in the source
+      // would land past the end of any clip that does not start at zero, and
+      // playback would finish before a sound came out.
+      await _player.seek(Duration.zero);
+      playingTag.value = tag;
       await _player.play();
     } catch (error) {
       _loadedSource = null;
       errorMessage.value = 'This section could not be played.';
+      errorTag.value = tag;
+      playingTag.value = '';
     } finally {
       isPreparing.value = false;
     }
   }
 
-  /// A device pick is a `content://` URI; a library file is a real path.
-  ///
-  /// setClip requires exactly one UriAudioSource, which both factories return.
-  AudioSource _resolveSource(String source) {
-    final Uri? uri = Uri.tryParse(source);
-    if (uri == null || !uri.hasScheme) {
-      return AudioSource.file(source);
-    }
-    // A file:// URI must be converted back to a path rather than passed whole.
-    if (uri.scheme == 'file') {
-      return AudioSource.file(uri.toFilePath());
-    }
-    return AudioSource.uri(uri);
-  }
-
   Future<void> stop() async {
     await _player.pause();
-    await _player.seek(_clipStart);
+    // Back to the start of the selection, which is zero on the clipped source.
+    await _player.seek(Duration.zero);
     isPlaying.value = false;
+    playingTag.value = '';
   }
 
   @override

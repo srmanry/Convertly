@@ -94,6 +94,7 @@ class MediaRepositoryImpl implements MediaRepository {
           hasVideo: probe.hasVideo,
           duration: probe.duration,
           audioCodec: probe.audioCodec,
+          channels: probe.channels,
           // A library file is a real file, so it plays directly.
           playbackUri: path,
         ),
@@ -183,6 +184,7 @@ class MediaRepositoryImpl implements MediaRepository {
         hasVideo: probe.hasVideo,
         duration: probe.duration,
         audioCodec: probe.audioCodec,
+        channels: probe.channels,
         playbackUri: picked.uri.toString(),
       ),
     );

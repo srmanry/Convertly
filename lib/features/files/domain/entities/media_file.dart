@@ -1,7 +1,16 @@
 import 'package:equatable/equatable.dart';
 
 /// What produced a file in the library.
-enum MediaSourceType { videoToAudio, audioConvert, cut, merge, compress }
+enum MediaSourceType {
+  videoToAudio,
+  audioConvert,
+  cut,
+  merge,
+  compress,
+  mix,
+  arrange,
+  cleanup,
+}
 
 /// Whether an entry is audio or video.
 enum MediaFileType { audio, video }

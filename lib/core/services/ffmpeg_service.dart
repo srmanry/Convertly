@@ -34,6 +34,7 @@ class MediaProbeResult {
     required this.hasAudio,
     required this.hasVideo,
     this.audioCodec,
+    this.channels,
   });
 
   final Duration? duration;
@@ -41,6 +42,9 @@ class MediaProbeResult {
   final bool hasAudio;
   final bool hasVideo;
   final String? audioCodec;
+
+  /// Channel count of the first audio stream, when FFprobe reported one.
+  final int? channels;
 }
 
 /// The only place in the app that talks to FFmpeg.
@@ -89,15 +93,17 @@ class FfmpegService {
       (StreamInformation stream) => stream.getType() == 'video',
     );
 
+    final StreamInformation? audioStream = streams
+        .where((StreamInformation stream) => stream.getType() == 'audio')
+        .firstOrNull;
+
     return MediaProbeResult(
       duration: _parseDuration(information.getDuration()),
       formatName: information.getFormat(),
       hasAudio: hasAudio,
       hasVideo: hasVideo,
-      audioCodec: streams
-          .where((StreamInformation stream) => stream.getType() == 'audio')
-          .map((StreamInformation stream) => stream.getCodec())
-          .firstOrNull,
+      audioCodec: audioStream?.getCodec(),
+      channels: _parseChannels(audioStream),
     );
   }
 
@@ -187,6 +193,28 @@ class FfmpegService {
       outcome: FfmpegOutcome.failure,
       logs: <String?>[logs, stackTrace].nonNulls.join('\n'),
     );
+  }
+
+  /// Channel count for [stream].
+  ///
+  /// FFprobe exposes `channels` on some builds and only the layout name on
+  /// others, so the layout is read as a fallback rather than treating a
+  /// missing number as mono.
+  static int? _parseChannels(StreamInformation? stream) {
+    if (stream == null) {
+      return null;
+    }
+
+    final int? channels = stream.getNumberProperty('channels')?.toInt();
+    if (channels != null && channels > 0) {
+      return channels;
+    }
+
+    return switch (stream.getChannelLayout()) {
+      'mono' => 1,
+      'stereo' || 'downmix' => 2,
+      _ => null,
+    };
   }
 
   /// FFprobe reports duration as a string of seconds, e.g. `"213.482000"`.

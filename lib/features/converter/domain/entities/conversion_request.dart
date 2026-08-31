@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
 import '../../../../core/enums/export_speed.dart';
+import 'cleanup_settings.dart';
+import 'mix_settings.dart';
 
 /// What the conversion engine should produce.
 ///
@@ -19,6 +21,8 @@ class ConversionRequest extends Equatable {
     this.trimEnd,
     this.totalDuration,
     this.speed = ExportSpeed.normal,
+    this.mix,
+    this.cleanup,
   });
 
   /// Whether this request has everything the engine needs.
@@ -28,7 +32,10 @@ class ConversionRequest extends Equatable {
   bool get isValid =>
       inputPaths.isNotEmpty &&
       inputPaths.every((String path) => path.isNotEmpty) &&
-      outputPath.isNotEmpty;
+      outputPath.isNotEmpty &&
+      // A missing entry would silently play that clip whole, at full level,
+      // from zero, so a mismatched list is rejected rather than padded.
+      (mix == null || mix!.tracks.length == inputPaths.length);
 
   /// Single input for most tools; several, in order, for a merge.
   final List<String> inputPaths;
@@ -48,7 +55,15 @@ class ConversionRequest extends Equatable {
   /// Tempo the output is rendered at. Pitch is preserved.
   final ExportSpeed speed;
 
-  bool get isMerge => inputPaths.length > 1;
+  /// Set when the inputs are layered on top of each other rather than joined.
+  final MixSettings? mix;
+
+  /// Set when the input is being denoised.
+  final CleanupSettings? cleanup;
+
+  bool get isMix => mix != null;
+
+  bool get isMerge => mix == null && inputPaths.length > 1;
 
   bool get isTrim => trimStart != null || trimEnd != null;
 
@@ -93,5 +108,7 @@ class ConversionRequest extends Equatable {
     trimEnd,
     totalDuration,
     speed,
+    mix,
+    cleanup,
   ];
 }
