@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
+import '../../../../core/widgets/native_ad_tile.dart';
 import '../../domain/entities/media_file.dart';
 import '../controllers/files_controller.dart';
 
@@ -81,7 +82,14 @@ class FilesPage extends GetView<FilesController> {
                     final MediaFile file = files[index];
                     final bool selected = controller.isSelected(file);
 
-                    return Card(
+                    // Ads step aside while files are being picked: an ad row
+                    // in the middle of a selection is an easy mis-tap, and a
+                    // mis-tapped ad is worse than a missed impression.
+                    final bool showsAd =
+                        !controller.isSelectionMode &&
+                        AdSlots.showsAfter(index, files.length);
+
+                    final Widget row = Card(
                       color: selected
                           ? Theme.of(context).colorScheme.secondaryContainer
                           : null,
@@ -156,6 +164,17 @@ class FilesPage extends GetView<FilesController> {
                                     ],
                               ),
                       ),
+                    );
+
+                    if (!showsAd) {
+                      return row;
+                    }
+                    return Column(
+                      children: <Widget>[
+                        row,
+                        const SizedBox(height: AppDimens.spaceSm),
+                        const NativeAdTile(),
+                      ],
                     );
                   },
                 ),

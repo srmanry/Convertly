@@ -7,7 +7,9 @@ import '../../features/converter/presentation/pages/conversion_result_page.dart'
 import '../../features/converter/presentation/pages/converter_page.dart';
 import '../../features/onboarding/presentation/bindings/onboarding_binding.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/settings/presentation/bindings/storage_binding.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/settings/presentation/pages/storage_page.dart';
 import '../../features/shell/presentation/bindings/shell_binding.dart';
 import '../../features/shell/presentation/pages/shell_page.dart';
 import '../../features/splash/presentation/bindings/splash_binding.dart';
@@ -51,5 +53,10 @@ abstract final class AppPages {
       binding: AudioPlayerBinding(),
     ),
     GetPage<void>(name: AppRoutes.settings, page: SettingsPage.new),
+    GetPage<void>(
+      name: AppRoutes.storage,
+      page: StoragePage.new,
+      binding: StorageBinding(),
+    ),
   ];
 }

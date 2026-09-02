@@ -16,6 +16,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_track.dart';
+import '../../domain/entities/volume_envelope.dart';
 import '../../../files/domain/entities/media_file.dart';
 import '../controllers/converter_controller.dart';
 import '../controllers/mix_preview_controller.dart';
@@ -156,6 +157,24 @@ class _ConfigurationView extends StatelessWidget {
                     onVolumeChanged: controller.mode.isTimeline
                         ? null
                         : controller.setTrackVolume,
+                    // Shaping a level over time belongs to the mixer, where
+                    // tracks play at once and have to make room for each
+                    // other; on the timeline they take turns.
+                    envelopes: controller.mode.isMix
+                        ? <VolumeEnvelope>[
+                            for (int i = 0; i < controller.clips.length; i++)
+                              controller.envelopeOf(i),
+                          ]
+                        : null,
+                    onEnvelopePoint: controller.mode.isMix
+                        ? controller.setEnvelopePoint
+                        : null,
+                    onEnvelopeCleared: controller.mode.isMix
+                        ? controller.clearEnvelope
+                        : null,
+                    longestClip: controller.mode.isMix
+                        ? controller.longestClipLength
+                        : null,
                     showsPositions: controller.mode.isTimeline,
                     onRemove: controller.removeSourceAt,
                     onReorder: controller.reorderSources,

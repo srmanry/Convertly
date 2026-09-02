@@ -10,6 +10,7 @@ import '../../features/settings/domain/repositories/settings_repository.dart';
 import '../../features/settings/domain/usecases/get_settings.dart';
 import '../../features/settings/domain/usecases/save_settings.dart';
 import '../../features/settings/presentation/controllers/settings_controller.dart';
+import '../services/ads_service.dart';
 import '../services/ffmpeg_service.dart';
 import '../services/output_directory_service.dart';
 import '../services/share_service.dart';
@@ -29,6 +30,7 @@ class InitialBinding extends Bindings {
     Get.put<FfmpegService>(FfmpegService(), permanent: true);
     Get.put<OutputDirectoryService>(OutputDirectoryService(), permanent: true);
     Get.put<ShareService>(ShareService(), permanent: true);
+    Get.put<AdsService>(AdsService(), permanent: true);
     Get.put<MediaLibraryDatabase>(MediaLibraryDatabase(), permanent: true);
 
     final SettingsRepository settingsRepository = SettingsRepositoryImpl(

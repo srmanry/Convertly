@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/media_info.dart';
+import '../../domain/entities/volume_envelope.dart';
 import 'source_summary_card.dart';
+import 'volume_lane.dart';
 
 /// The mixer's track list: every clip with its own start point and volume.
 ///
@@ -26,6 +28,10 @@ class MixTrackList extends StatelessWidget {
     this.previewingClip,
     this.previewError,
     this.previewErrorClip,
+    this.envelopes,
+    this.onEnvelopePoint,
+    this.onEnvelopeCleared,
+    this.longestClip,
   });
 
   /// Loudest a layer can be pushed. Above this the limiter is doing more work
@@ -62,8 +68,35 @@ class MixTrackList extends StatelessWidget {
   final String? previewError;
   final int? previewErrorClip;
 
+  /// The level drawn along each track, when tracks can be shaped over time.
+  final List<VolumeEnvelope>? envelopes;
+
+  final void Function(int index, int point, double level)? onEnvelopePoint;
+  final void Function(int index)? onEnvelopeCleared;
+
+  /// Length of the longest track, used to draw a shorter one shorter.
+  final Duration? longestClip;
+
   final void Function(int index) onRemove;
   final void Function(int oldIndex, int newIndex) onReorder;
+
+  VolumeEnvelope _envelopeFor(int index) {
+    final List<VolumeEnvelope>? all = envelopes;
+    if (all != null && index < all.length) {
+      return all[index];
+    }
+    return VolumeEnvelope.flat;
+  }
+
+  /// How much of the row [media] fills, so length is readable at a glance.
+  double _widthFactorFor(MediaInfo media) {
+    final Duration? longest = longestClip;
+    final Duration? own = media.duration;
+    if (longest == null || own == null || longest <= Duration.zero) {
+      return 1;
+    }
+    return own.inMilliseconds / longest.inMilliseconds;
+  }
 
   /// Selection on the clip at [index], defaulting to the whole file.
   (Duration, Duration) _rangeFor(int index, MediaInfo media) {
@@ -154,6 +187,18 @@ class MixTrackList extends StatelessWidget {
                   clipLength: index < starts.length
                       ? _rangeFor(index, media).$2 - _rangeFor(index, media).$1
                       : media.duration,
+                ),
+              if (onEnvelopePoint
+                  case final void Function(int, int, double) change)
+                _ShapeRow(
+                  label: trackLabel(index),
+                  envelope: _envelopeFor(index),
+                  widthFactor: _widthFactorFor(media),
+                  onPointChanged: (int point, double level) =>
+                      change(index, point, level),
+                  onCleared: onEnvelopeCleared == null
+                      ? null
+                      : () => onEnvelopeCleared!(index),
                 ),
               if (onVolumeChanged case final void Function(int, double) change)
                 _VolumeRow(
@@ -319,6 +364,49 @@ class _PlaysRow extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A track's level along its length, with a way back to an even one.
+class _ShapeRow extends StatelessWidget {
+  const _ShapeRow({
+    required this.label,
+    required this.envelope,
+    required this.widthFactor,
+    required this.onPointChanged,
+    required this.onCleared,
+  });
+
+  final String label;
+  final VolumeEnvelope envelope;
+  final double widthFactor;
+  final void Function(int point, double level) onPointChanged;
+  final VoidCallback? onCleared;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(child: Text(label, style: theme.textTheme.labelMedium)),
+              if (onCleared != null && !envelope.isFlat)
+                TextButton(onPressed: onCleared, child: const Text('Even out')),
+            ],
+          ),
+          VolumeLane(
+            envelope: envelope,
+            widthFactor: widthFactor,
+            onPointChanged: onPointChanged,
           ),
         ],
       ),

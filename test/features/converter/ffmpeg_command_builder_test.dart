@@ -9,6 +9,7 @@ import 'package:convertly/features/converter/domain/entities/cleanup_settings.da
 import 'package:convertly/features/converter/domain/entities/conversion_request.dart';
 import 'package:convertly/features/converter/domain/entities/mix_settings.dart';
 import 'package:convertly/features/converter/domain/entities/mix_track.dart';
+import 'package:convertly/features/converter/domain/entities/volume_envelope.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Index of [value] in [args], or -1.
@@ -16,6 +17,7 @@ int indexOf(List<String> args, String value) => args.indexOf(value);
 
 void main() {
   speedTests();
+  envelopeTests();
   mixTests();
   cleanupTests();
 
@@ -412,7 +414,7 @@ void mixTests() {
 
       expect(
         filterGraph(args),
-        startsWith('[0:a]volume=1[t0];[1:a]adelay=41000:all=1,volume=1[t1];'),
+        startsWith('[0:a]volume=1[t0];[1:a]volume=1,adelay=41000:all=1[t1];'),
       );
     });
 
@@ -433,7 +435,7 @@ void mixTests() {
 
       expect(
         filterGraph(args),
-        contains('[1:a]adelay=5000:all=1,volume=0.40[t1];'),
+        contains('[1:a]volume=0.40,adelay=5000:all=1[t1];'),
       );
     });
 
@@ -488,7 +490,7 @@ void mixTests() {
         filterGraph(args),
         startsWith(
           '[0:a]atrim=start=19.000:end=81.000,asetpts=PTS-STARTPTS,'
-          'volume=1[t0];[1:a]adelay=62000:all=1,volume=1[t1];',
+          'volume=1[t0];[1:a]volume=1,adelay=62000:all=1[t1];',
         ),
       );
     });
@@ -667,6 +669,145 @@ void cleanupTests() {
       );
 
       expect(FfmpegCommandBuilder.build(request), isNot(contains('-filter:a')));
+    });
+  });
+}
+
+// --- Shaping a clip's level over time ----------------------------------------
+
+/// A mix of one clip carrying [envelope] across [length].
+ConversionRequest shapedRequest(
+  VolumeEnvelope envelope, {
+  Duration length = const Duration(seconds: 10),
+  double volume = 1,
+}) {
+  return ConversionRequest(
+    inputPaths: const <String>['/in/a.mp3'],
+    outputPath: '/out/mixed.mp3',
+    format: AudioFormat.mp3,
+    mix: MixSettings(
+      tracks: <MixTrack>[
+        MixTrack(volume: volume, envelope: envelope, length: length),
+      ],
+    ),
+  );
+}
+
+/// The `volume` filter written for the single clip in [args].
+String volumeFilter(List<String> args) {
+  final String graph = filterGraph(args);
+  final int start = graph.indexOf('volume=');
+  final int end = graph.indexOf('[t0]', start);
+  return graph.substring(start, end);
+}
+
+void envelopeTests() {
+  group('shaping a level over time', () {
+    test('a flat shape stays a plain level', () {
+      // Nothing about the sound changes, so nothing has to be evaluated per
+      // frame either.
+      final List<String> args = FfmpegCommandBuilder.build(
+        shapedRequest(VolumeEnvelope.flat),
+      );
+
+      expect(volumeFilter(args), 'volume=1');
+      expect(filterGraph(args), isNot(contains('eval=frame')));
+    });
+
+    test('a shaped clip is evaluated as it plays', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+
+      final List<String> args = FfmpegCommandBuilder.build(
+        shapedRequest(dipped),
+      );
+
+      // Without eval=frame the expression is read once and the shape never
+      // moves.
+      expect(volumeFilter(args), contains('eval=frame'));
+      expect(volumeFilter(args), contains('t'));
+    });
+
+    test('a dip becomes a run down and a run back up', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(dipped)),
+      );
+
+      // Down to the dip, then back: three turns, so three windowed terms.
+      expect('+'.allMatches(filter).length, greaterThanOrEqualTo(2));
+      expect(filter, contains('gte(t,'));
+      expect(filter, contains('lt(t,'));
+    });
+
+    test('a flat run does not become one term per drawn point', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(dipped)),
+      );
+
+      // 48 points with a single dip is three straight runs, not 47.
+      expect('gte(t,'.allMatches(filter).length, lessThan(6));
+    });
+
+    test('the shape is spread across the clip length', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(
+          shapedRequest(dipped, length: const Duration(seconds: 96)),
+        ),
+      );
+
+      // The 48 points span the clip end to end, so point 24 of 0..47 lands at
+      // 24/47 of 1:36 — a shade past the middle, at 0:49.
+      expect(filter, contains('49.021'));
+    });
+
+    test('the last run has no upper bound', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(10, 0.5);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(dipped)),
+      );
+
+      // A measured length a fraction short must not drop the tail to silence,
+      // so the run carrying the end has a lower bound only.
+      expect(filter.split('+').last, isNot(contains('lt(t,')));
+      expect(filter.split('+').last, contains('gte(t,'));
+    });
+
+    test('the track level scales the whole shape', () {
+      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.5);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(dipped, volume: 0.5)),
+      );
+
+      // Half of the resting 1.0, so the shape starts at 0.5 rather than 1.
+      expect(filter, contains('0.5'));
+      expect(filter, isNot(contains('*1*')));
+    });
+
+    test('a clip of unknown length keeps its single level', () {
+      final ConversionRequest request = ConversionRequest(
+        inputPaths: const <String>['/in/a.mp3'],
+        outputPath: '/out/mixed.mp3',
+        format: AudioFormat.mp3,
+        mix: MixSettings(
+          tracks: <MixTrack>[
+            MixTrack(
+              volume: 0.6,
+              envelope: VolumeEnvelope.flat.withLevelAt(24, 0.2),
+            ),
+          ],
+        ),
+      );
+
+      // There is nowhere to put the points without a length, so guessing is
+      // worse than leaving the clip at the level it was given.
+      expect(volumeFilter(FfmpegCommandBuilder.build(request)), 'volume=0.60');
     });
   });
 }

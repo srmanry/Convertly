@@ -6,6 +6,7 @@ import '../domain/entities/cleanup_settings.dart';
 import '../domain/entities/conversion_request.dart';
 import '../domain/entities/mix_settings.dart';
 import '../domain/entities/mix_track.dart';
+import '../domain/entities/volume_envelope.dart';
 
 /// Translates a [ConversionRequest] into FFmpeg arguments.
 ///
@@ -113,16 +114,15 @@ abstract final class FfmpegCommandBuilder {
     final int count = request.inputPaths.length;
     final StringBuffer graph = StringBuffer();
 
-    // Each clip is cut to the part being used, moved to where it plays, and
-    // levelled, all before the sum. Cutting first is what makes the position
-    // mean the same thing for a trimmed clip as for a whole one.
+    // Each clip is cut to the part being used, levelled, and only then moved
+    // to where it plays. Levelling before the move matters: a shaped clip is
+    // levelled against its own time, so delaying it first would drag the
+    // whole shape along with it.
     for (int index = 0; index < count; index++) {
       final MixTrack clip = mix.trackAt(index);
-      graph.write('[$index:a]');
-      for (final String filter in _clipFilters(clip)) {
-        graph.write('$filter,');
-      }
-      graph.write('volume=${_gain(clip.volume)}[t$index];');
+      // Joined, not each followed by a comma: a trailing one would leave an
+      // empty filter before the output label and the graph would not parse.
+      graph.write('[$index:a]${_clipFilters(clip).join(',')}[t$index];');
     }
     for (int index = 0; index < count; index++) {
       graph.write('[t$index]');
@@ -147,18 +147,142 @@ abstract final class FfmpegCommandBuilder {
     return <String>['-filter_complex', graph.toString(), '-map', '[out]'];
   }
 
-  /// Cuts [clip] down to the part being used and moves it to where it plays.
+  /// Cuts [clip] down to the part being used, sets its level, and moves it to
+  /// where it plays.
   ///
-  /// A clip that is neither trimmed nor moved produces nothing, so an
-  /// untouched graph carries no no-op filters.
+  /// A clip that is untouched still carries a plain `volume`, which gives the
+  /// chain something to end on and costs nothing.
   static List<String> _clipFilters(MixTrack clip) {
     return <String>[
       if (clip.isTrimmed) ..._trimFilters(clip),
+      _volumeFilter(clip),
       // `all=1` delays every channel, which avoids having to know the channel
       // count in order to write one delay per channel.
       if (clip.start > Duration.zero)
         'adelay=${clip.start.inMilliseconds}:all=1',
     ];
+  }
+
+  /// Level for a clip: one figure, or a shape that moves over its length.
+  ///
+  /// Shaping needs a length to spread its points across, so a clip whose
+  /// length could not be read falls back to its single level rather than
+  /// guessing where the points belong.
+  static String _volumeFilter(MixTrack clip) {
+    final VolumeEnvelope? envelope = clip.envelope;
+    final Duration? length = clip.usedLength;
+
+    if (!clip.hasEnvelope ||
+        envelope == null ||
+        length == null ||
+        length <= Duration.zero) {
+      return 'volume=${_gain(clip.volume)}';
+    }
+
+    // eval=frame re-reads the expression as the audio runs; the default
+    // evaluates it once and the shape would never move.
+    final String expression = _envelopeExpression(
+      envelope,
+      length,
+      clip.volume,
+    );
+    return "volume=volume='$expression':eval=frame";
+  }
+
+  /// The envelope written as an expression of `t`, in seconds.
+  ///
+  /// Each straight run of the drawn shape becomes one term that is active only
+  /// inside its own span, so the terms sum to a single continuous line.
+  static String _envelopeExpression(
+    VolumeEnvelope envelope,
+    Duration length,
+    double volume,
+  ) {
+    final List<(double, double)> points = _controlPoints(
+      envelope,
+      length,
+      volume,
+    );
+
+    final List<String> terms = <String>[];
+    for (int i = 0; i < points.length - 1; i++) {
+      final (double startTime, double startLevel) = points[i];
+      final (double endTime, double endLevel) = points[i + 1];
+      final double span = endTime - startTime;
+      if (span <= 0) {
+        continue;
+      }
+
+      final String ramp = endLevel == startLevel
+          ? _number(startLevel)
+          : '(${_number(startLevel)}+${_number(endLevel - startLevel)}'
+                '*(t-${_number(startTime)})/${_number(span)})';
+
+      // The last run also covers anything past the clip's measured end, so a
+      // length that is a fraction short cannot drop the level to zero.
+      final String window = i == points.length - 2
+          ? 'gte(t,${_number(startTime)})'
+          : 'gte(t,${_number(startTime)})*lt(t,${_number(endTime)})';
+
+      terms.add('$window*$ramp');
+    }
+
+    return terms.isEmpty ? _number(volume) : terms.join('+');
+  }
+
+  /// The drawn shape reduced to the points that actually turn it.
+  ///
+  /// A shape is mostly flat, and a term for every drawn point would make the
+  /// expression far longer than the handful of turns it contains.
+  static List<(double, double)> _controlPoints(
+    VolumeEnvelope envelope,
+    Duration length,
+    double volume,
+  ) {
+    final int count = envelope.levels.length;
+    final double seconds = length.inMilliseconds / 1000;
+    final List<(double, double)> all = <(double, double)>[
+      for (int i = 0; i < count; i++)
+        (
+          count == 1 ? 0.0 : seconds * i / (count - 1),
+          envelope.levels[i] * volume,
+        ),
+    ];
+
+    if (all.length < 3) {
+      return all;
+    }
+
+    final List<(double, double)> kept = <(double, double)>[all.first];
+    for (int i = 1; i < all.length - 1; i++) {
+      final (double time, double level) = all[i];
+      final (double previousTime, double previousLevel) = kept.last;
+      final (double nextTime, double nextLevel) = all[i + 1];
+
+      final double span = nextTime - previousTime;
+      // A point already sitting on the line between its neighbours adds
+      // nothing to the shape, so it is dropped.
+      final double onLine = span <= 0
+          ? previousLevel
+          : previousLevel +
+                (nextLevel - previousLevel) * (time - previousTime) / span;
+      if ((level - onLine).abs() > 0.01) {
+        kept.add(all[i]);
+      }
+    }
+    kept.add(all.last);
+    return kept;
+  }
+
+  /// A level or a time, trimmed to what the filter needs to read it.
+  static String _number(double value) {
+    final String text = value.toStringAsFixed(3);
+    if (!text.contains('.')) {
+      return text;
+    }
+    return text
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   /// Keeps only the selected part of a clip.

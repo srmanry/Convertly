@@ -6,6 +6,7 @@ import '../../../files/presentation/pages/files_page.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../tools/presentation/pages/tools_page.dart';
+import '../../../../core/widgets/banner_ad_view.dart';
 import '../controllers/shell_controller.dart';
 
 /// Root scaffold hosting the four primary destinations.
@@ -47,29 +48,37 @@ class ShellPage extends GetView<ShellController> {
               SettingsPage(showBackButton: false),
             ],
           ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: controller.currentIndex,
-            onDestinationSelected: controller.changeTab,
-            destinations: const <NavigationDestination>[
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.folder_outlined),
-                selectedIcon: Icon(Icons.folder_rounded),
-                label: 'Files',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.build_outlined),
-                selectedIcon: Icon(Icons.build_rounded),
-                label: 'Tools',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings_rounded),
-                label: 'Settings',
+          // The banner sits between the content and the bar rather than
+          // inside a tab, so it never covers a list and never appears twice.
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const BannerAdView(),
+              NavigationBar(
+                selectedIndex: controller.currentIndex,
+                onDestinationSelected: controller.changeTab,
+                destinations: const <NavigationDestination>[
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home_rounded),
+                    label: 'Home',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.folder_outlined),
+                    selectedIcon: Icon(Icons.folder_rounded),
+                    label: 'Files',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.build_outlined),
+                    selectedIcon: Icon(Icons.build_rounded),
+                    label: 'Tools',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings_rounded),
+                    label: 'Settings',
+                  ),
+                ],
               ),
             ],
           ),

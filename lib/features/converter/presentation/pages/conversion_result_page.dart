@@ -6,6 +6,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/ad_free_button.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../domain/entities/conversion_result.dart';
 
@@ -103,6 +104,11 @@ class ConversionResultPage extends StatelessWidget {
                     label: const Text('Share'),
                   ),
                   const SizedBox(height: AppDimens.spaceMd),
+                  // Offered right where the full-screen ad would otherwise
+                  // land, so the choice is between watching one on purpose
+                  // and being shown one anyway.
+                  const AdFreeButton(),
+                  const SizedBox(height: AppDimens.spaceSm),
                   Row(
                     children: <Widget>[
                       Expanded(

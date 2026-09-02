@@ -8,6 +8,9 @@ abstract final class AppRoutes {
 
   static const String settings = '/settings';
 
+  /// What the app is keeping on the device.
+  static const String storage = '/storage';
+
   /// Shared conversion screen; the tool is passed as an argument.
   static const String converter = '/converter';
   static const String conversionResult = '/conversion-result';

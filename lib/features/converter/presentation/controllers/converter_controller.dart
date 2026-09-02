@@ -12,6 +12,7 @@ import '../../../../core/enums/noise_strength.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
+import '../../../../core/services/ads_service.dart';
 import '../../../../core/services/output_directory_service.dart';
 import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -25,6 +26,7 @@ import '../../domain/entities/conversion_result.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_settings.dart';
 import '../../domain/entities/mix_track.dart';
+import '../../domain/entities/volume_envelope.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
 import 'mix_preview_controller.dart';
@@ -259,6 +261,9 @@ class ConverterController extends GetxController {
     for (final MediaInfo info in added) {
       clips.add(
         MixTrack(
+          // Carried on the clip so the engine can spread a drawn shape across
+          // it without reaching back into the source list.
+          length: info.duration,
           // On the timeline nothing is stacked, so no clip needs to duck out
           // of another's way and every one comes in at full level.
           volume: _mode.isTimeline || sources.isEmpty
@@ -405,6 +410,48 @@ class ConverterController extends GetxController {
         (index < sources.length ? sources[index].duration : null) ??
         Duration.zero;
     return (clip.trimStart, end);
+  }
+
+  /// Sets the level of the clip at [index] at one point along its length.
+  ///
+  /// A clip that has not been shaped yet starts from a flat line, so the first
+  /// touch changes only the point under the finger.
+  void setEnvelopePoint(int index, int point, double level) {
+    if (index < 0 || index >= clips.length) {
+      return;
+    }
+    final MixTrack clip = clips[index];
+    final VolumeEnvelope envelope = clip.envelope ?? VolumeEnvelope.flat;
+    clips[index] = clip.copyWith(envelope: envelope.withLevelAt(point, level));
+  }
+
+  /// Length of the longest clip, which the lanes are drawn in proportion to.
+  Duration? get longestClipLength {
+    final Iterable<Duration> known = sources
+        .map((MediaInfo info) => info.duration)
+        .whereType<Duration>();
+    return known.isEmpty
+        ? null
+        : known.reduce((Duration a, Duration b) => a > b ? a : b);
+  }
+
+  /// The shape drawn on the clip at [index], flat when it has none.
+  VolumeEnvelope envelopeOf(int index) =>
+      clipAt(index).envelope ?? VolumeEnvelope.flat;
+
+  /// Returns the clip at [index] to an even level throughout.
+  void clearEnvelope(int index) {
+    if (index < 0 || index >= clips.length) {
+      return;
+    }
+    clips[index] = MixTrack(
+      volume: clips[index].volume,
+      start: clips[index].start,
+      trimStart: clips[index].trimStart,
+      trimEnd: clips[index].trimEnd,
+      length: clips[index].length,
+    );
+    _stopPreviewIfPresent();
   }
 
   void setMixLength(MixLengthMode value) {
@@ -620,6 +667,25 @@ class ConverterController extends GetxController {
     );
 
     await Get.toNamed<void>(AppRoutes.conversionResult, arguments: conversion);
+
+    // Shown after the result screen has been seen and left, never over the
+    // top of it: interrupting someone before they have their file is what
+    // makes an app feel like it is holding the work hostage.
+    await _maybeShowAdAfterExport();
+  }
+
+  /// Offers a full-screen ad once the export is behind the user.
+  ///
+  /// The service decides whether one is due; this only reports that an export
+  /// finished. Failing to show is not worth surfacing.
+  Future<void> _maybeShowAdAfterExport() async {
+    if (!Get.isRegistered<AdsService>()) {
+      return;
+    }
+    final AdsService ads = Get.find<AdsService>();
+    if (ads.shouldShowAfterExport()) {
+      await ads.showInterstitial();
+    }
   }
 
   MediaSourceType get _sourceTypeForMode => switch (_mode) {
