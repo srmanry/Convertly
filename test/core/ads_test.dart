@@ -1,9 +1,24 @@
 import 'package:convertly/core/config/ad_ids.dart';
 import 'package:convertly/core/services/ads_service.dart';
+import 'package:convertly/core/services/storage_service.dart';
 import 'package:convertly/core/widgets/native_ad_tile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late StorageService storage;
+
+  /// A service backed by real preferences, so what survives an app restart is
+  /// tested rather than assumed.
+  Future<AdsService> newService() async {
+    storage = StorageService(await SharedPreferences.getInstance());
+    return AdsService(storage);
+  }
+
+  setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
+
   group('AdIds', () {
     test('a test build never serves a live unit', () {
       // Clicking a live ad on your own device is what gets an account pulled,
@@ -30,11 +45,12 @@ void main() {
   group('AdsService pacing', () {
     late AdsService ads;
 
-    setUp(() => ads = AdsService());
+    setUp(() async => ads = await newService());
 
     test('nothing is shown before the SDK has started', () {
       for (int i = 0; i < 10; i++) {
-        expect(ads.shouldShowAfterExport(), isFalse);
+        ads.recordExport();
+        expect(ads.isInterstitialDue, isFalse);
       }
     });
 
@@ -112,7 +128,7 @@ void main() {
   group('earned quiet time', () {
     late AdsService ads;
 
-    setUp(() => ads = AdsService());
+    setUp(() async => ads = await newService());
     tearDown(() => ads.dispose());
 
     test('ads run until some quiet time is earned', () {
@@ -137,7 +153,8 @@ void main() {
       ads.grantAdFreeTime();
 
       for (int i = 0; i < 10; i++) {
-        expect(ads.shouldShowAfterExport(), isFalse);
+        ads.recordExport();
+        expect(ads.isInterstitialDue, isFalse);
       }
     });
 
@@ -183,6 +200,106 @@ void main() {
     test('asking to watch with nothing loaded earns nothing', () async {
       expect(await ads.watchForAdFreeTime(), isFalse);
       expect(ads.isAdFree.value, isFalse);
+    });
+  });
+
+  group('counting an export is separate from deciding on an ad', () {
+    test('asking whether an ad is due does not count as an export', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      // The result screen asks this on every completion. If asking counted,
+      // merely looking at the screen would bring the next ad closer.
+      for (int i = 0; i < 20; i++) {
+        expect(ads.isInterstitialDue, isFalse);
+      }
+
+      ads.recordExport();
+      expect(ads.isInterstitialDue, isFalse);
+    });
+  });
+
+  group('quiet time survives the app closing', () {
+    test('time earned is still there after a restart', () async {
+      final AdsService first = await newService();
+      first.grantAdFreeTime();
+      // Whatever the plugin queued has to reach storage before the restart.
+      await Future<void>.delayed(Duration.zero);
+      first.dispose();
+
+      // A fresh service is what the app builds when it is opened again.
+      final AdsService second = await newService();
+      addTearDown(second.dispose);
+      await second.initialise();
+
+      expect(second.isAdFree.value, isTrue);
+      expect(second.adFreeRemaining, isNotNull);
+    });
+
+    test('no full-screen ad slips through after a restart either', () async {
+      final AdsService first = await newService();
+      first.grantAdFreeTime();
+      await Future<void>.delayed(Duration.zero);
+      first.dispose();
+
+      final AdsService second = await newService();
+      addTearDown(second.dispose);
+      await second.initialise();
+
+      second.recordExport();
+      second.recordExport();
+      second.recordExport();
+      expect(second.isInterstitialDue, isFalse);
+    });
+
+    test('time that has already run out is not restored', () async {
+      // Stored deadlines are absolute, so a long gap between sessions must
+      // expire the reward rather than hand it back.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'ads_free_until': DateTime.now()
+            .subtract(const Duration(minutes: 5))
+            .toIso8601String(),
+      });
+
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+      await ads.initialise();
+
+      expect(ads.isAdFree.value, isFalse);
+      expect(ads.adFreeRemaining, isNull);
+    });
+
+    test('a corrupt stored value is ignored rather than crashing', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'ads_free_until': 'not-a-date',
+      });
+
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      await expectLater(ads.initialise(), completes);
+      expect(ads.isAdFree.value, isFalse);
+    });
+
+    test('the flag follows the clock, not the timer', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+      ads.grantAdFreeTime();
+
+      expect(ads.isAdFree.value, isTrue);
+
+      // A device that slept, or an app the system froze, cannot be relied on
+      // to have fired the timer; reading the state has to settle it.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'ads_free_until': DateTime.now()
+            .subtract(const Duration(seconds: 1))
+            .toIso8601String(),
+      });
+      final AdsService reopened = await newService();
+      addTearDown(reopened.dispose);
+      await reopened.initialise();
+
+      expect(reopened.isAdFree.value, isFalse);
     });
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/widgets/banner_ad_view.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../controllers/audio_player_controller.dart';
@@ -15,6 +16,9 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Now Playing')),
+      // Someone listening is resting, not working, and the strip sits below
+      // the transport controls rather than among them.
+      bottomNavigationBar: const BannerAdView(),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

@@ -6,6 +6,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/services/media_export_service.dart';
 import '../../../../core/widgets/ad_free_button.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../domain/entities/conversion_result.dart';
@@ -99,15 +100,22 @@ class ConversionResultPage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppDimens.spaceMd),
                   OutlinedButton.icon(
+                    onPressed: () => _saveToPhone(context, result),
+                    icon: const Icon(Icons.download_rounded),
+                    label: const Text('Save to phone'),
+                  ),
+                  const SizedBox(height: AppDimens.spaceMd),
+                  OutlinedButton.icon(
                     onPressed: () => _share(context, result),
                     icon: const Icon(Icons.share_rounded),
                     label: const Text('Share'),
                   ),
                   const SizedBox(height: AppDimens.spaceMd),
-                  // Offered right where the full-screen ad would otherwise
-                  // land, so the choice is between watching one on purpose
-                  // and being shown one anyway.
-                  const AdFreeButton(),
+                  // Only when an ad is genuinely coming: then the choice is
+                  // between watching one on purpose and being shown one
+                  // anyway. Every other time this screen stays a clean
+                  // finish, which is what it is for.
+                  const AdFreeButton(onlyWhenAdIsDue: true),
                   const SizedBox(height: AppDimens.spaceSm),
                   Row(
                     children: <Widget>[
@@ -133,6 +141,33 @@ class ConversionResultPage extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Copies the finished file into the phone's Music folder.
+  ///
+  /// Until this is done the file lives only in the app's own folder, which no
+  /// other app can see and which Android clears on uninstall.
+  Future<void> _saveToPhone(
+    BuildContext context,
+    ConversionResult result,
+  ) async {
+    final String? saved = await Get.find<MediaExportService>().saveToMusic(
+      path: result.outputPath,
+      name: result.name,
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved == null
+              ? 'Could not save that file to the phone.'
+              : 'Saved to Music / AudioForge on this phone.',
         ),
       ),
     );

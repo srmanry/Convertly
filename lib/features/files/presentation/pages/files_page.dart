@@ -135,6 +135,8 @@ class FilesPage extends GetView<FilesController> {
                                   switch (action) {
                                     case _FileAction.play:
                                       await controller.open(file);
+                                    case _FileAction.saveToPhone:
+                                      await _saveToPhone(context, file);
                                     case _FileAction.share:
                                       await controller.share(file);
                                     case _FileAction.rename:
@@ -148,6 +150,10 @@ class FilesPage extends GetView<FilesController> {
                                       PopupMenuItem<_FileAction>(
                                         value: _FileAction.play,
                                         child: Text('Play'),
+                                      ),
+                                      PopupMenuItem<_FileAction>(
+                                        value: _FileAction.saveToPhone,
+                                        child: Text('Save to phone'),
                                       ),
                                       PopupMenuItem<_FileAction>(
                                         value: _FileAction.share,
@@ -181,6 +187,25 @@ class FilesPage extends GetView<FilesController> {
               );
             }),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Copies a file out to the phone, and says where it went.
+  Future<void> _saveToPhone(BuildContext context, MediaFile file) async {
+    final FilesController controller = Get.find<FilesController>();
+    final bool saved = await controller.saveToPhone(file);
+
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Saved to Music / AudioForge on this phone.'
+              : 'Could not save that file to the phone.',
         ),
       ),
     );
@@ -311,7 +336,7 @@ class FilesPage extends GetView<FilesController> {
   }
 }
 
-enum _FileAction { play, share, rename, delete }
+enum _FileAction { play, saveToPhone, share, rename, delete }
 
 /// The normal app bar, with sorting.
 class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {

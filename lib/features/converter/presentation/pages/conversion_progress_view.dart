@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/widgets/banner_ad_view.dart';
 import '../controllers/converter_controller.dart';
 
 /// Progress state of an in-flight conversion, with a cancel action.
@@ -79,6 +80,12 @@ class ConversionProgressView extends GetView<ConverterController> {
             icon: const Icon(Icons.close_rounded),
             label: const Text('Cancel'),
           ),
+          // The one screen where the user has nothing to do but wait, so an
+          // ad here costs them nothing. Kept well below Cancel: an ad within
+          // reach of the button someone is aiming for is how accidental taps
+          // happen, and AdMob treats those as its problem too.
+          const SizedBox(height: AppDimens.spaceXxl),
+          const BannerAdView(),
         ],
       ),
     );

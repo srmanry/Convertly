@@ -1,7 +1,10 @@
 import 'package:get/get.dart';
 
 /// Tabs hosted by the bottom navigation shell.
-enum ShellTab { home, files, tools, settings }
+///
+/// The tools have their own grid on Home, so the third tab carries the player
+/// instead of repeating them.
+enum ShellTab { home, files, player, settings }
 
 /// Owns which tab is visible and the Android back-button contract.
 class ShellController extends GetxController {

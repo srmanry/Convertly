@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 
+import '../../../shell/presentation/controllers/shell_controller.dart';
+
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
+import '../../../../core/services/media_export_service.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -116,6 +119,32 @@ class FilesController extends GetxController {
   void onInit() {
     super.onInit();
     load();
+    _reloadWhenTabOpens();
+  }
+
+  /// Reads the library again each time this tab comes to the front.
+  ///
+  /// The tabs are kept alive in an IndexedStack, so onInit runs once for the
+  /// whole session: without this, a file converted after the app started
+  /// would not appear until the list was pulled down by hand.
+  void _reloadWhenTabOpens() {
+    if (!Get.isRegistered<ShellController>()) {
+      return;
+    }
+    final ShellController shell = Get.find<ShellController>();
+    _tabWatcher = ever<ShellTab>(shell.currentTab, (ShellTab tab) {
+      if (tab == ShellTab.files) {
+        load();
+      }
+    });
+  }
+
+  Worker? _tabWatcher;
+
+  @override
+  void onClose() {
+    _tabWatcher?.dispose();
+    super.onClose();
   }
 
   List<MediaFile> get visibleFiles {
@@ -183,6 +212,21 @@ class FilesController extends GetxController {
       AppRoutes.audioPlayer,
       arguments: <String, String>{'path': file.path, 'title': file.name},
     );
+  }
+
+  /// Copies [file] into the phone's Music folder.
+  ///
+  /// The app's own folder is invisible to other apps and is wiped when the
+  /// app is uninstalled; this is how a finished track leaves for good.
+  Future<bool> saveToPhone(MediaFile file) async {
+    if (!Get.isRegistered<MediaExportService>()) {
+      return false;
+    }
+    final String? saved = await Get.find<MediaExportService>().saveToMusic(
+      path: file.path,
+      name: file.name,
+    );
+    return saved != null;
   }
 
   Future<void> share(MediaFile file) async {

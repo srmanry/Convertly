@@ -10,7 +10,7 @@ void main() {
     test('changeTab maps a navigation index onto a tab', () {
       final ShellController controller = ShellController()..changeTab(2);
 
-      expect(controller.currentTab.value, ShellTab.tools);
+      expect(controller.currentTab.value, ShellTab.player);
       expect(controller.currentIndex, 2);
     });
 

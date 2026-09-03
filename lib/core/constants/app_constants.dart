@@ -19,4 +19,7 @@ abstract final class StorageKeys {
   static const String defaultAudioQuality = 'settings_default_audio_quality';
   static const String outputFolder = 'settings_output_folder';
   static const String languageCode = 'settings_language_code';
+
+  /// When earned ad-free time runs out, so it survives the app closing.
+  static const String adFreeUntil = 'ads_free_until';
 }

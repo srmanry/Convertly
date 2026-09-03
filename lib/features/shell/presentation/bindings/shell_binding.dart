@@ -4,6 +4,7 @@ import '../../../files/domain/repositories/media_library_repository.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
 import '../../../files/presentation/controllers/files_controller.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
+import '../../../music_library/presentation/bindings/music_library_binding.dart';
 import '../../../../core/services/share_service.dart';
 import '../controllers/shell_controller.dart';
 
@@ -15,6 +16,7 @@ class ShellBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<ShellController>(ShellController.new);
+    MusicLibraryBinding.register();
 
     final MediaLibraryRepository repository =
         Get.find<MediaLibraryRepository>();

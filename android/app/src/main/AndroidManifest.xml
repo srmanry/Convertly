@@ -1,7 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No storage permission is declared on purpose: media is chosen through
+    <!-- Conversion still needs no storage permission: media is chosen through
          the Storage Access Framework (file_picker) and output is written to
-         this app's own directory, neither of which requires one. -->
+         this app's own directory.
+
+         The music player is what needs these — it lists the songs already on
+         the device rather than asking the user to pick each one. Audio only;
+         nothing here grants access to photos, video or other files. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
+    <!-- Before Android 13 there was no audio-only permission, so older
+         versions fall back to the broader read and newer ones ignore it. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
 
     <application
         android:label="Convertly"

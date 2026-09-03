@@ -5,7 +5,7 @@ import '../../../files/presentation/controllers/files_controller.dart';
 import '../../../files/presentation/pages/files_page.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
-import '../../../tools/presentation/pages/tools_page.dart';
+import '../../../music_library/presentation/pages/music_library_page.dart';
 import '../../../../core/widgets/banner_ad_view.dart';
 import '../controllers/shell_controller.dart';
 
@@ -44,7 +44,7 @@ class ShellPage extends GetView<ShellController> {
             children: const <Widget>[
               HomePage(),
               FilesPage(),
-              ToolsPage(),
+              MusicLibraryPage(),
               SettingsPage(showBackButton: false),
             ],
           ),
@@ -69,9 +69,9 @@ class ShellPage extends GetView<ShellController> {
                     label: 'Files',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.build_outlined),
-                    selectedIcon: Icon(Icons.build_rounded),
-                    label: 'Tools',
+                    icon: Icon(Icons.play_circle_outline_rounded),
+                    selectedIcon: Icon(Icons.play_circle_filled_rounded),
+                    label: 'Player',
                   ),
                   NavigationDestination(
                     icon: Icon(Icons.settings_outlined),

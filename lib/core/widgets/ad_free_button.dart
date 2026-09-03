@@ -10,7 +10,14 @@ import '../utils/formatters.dart';
 /// Shows nothing when no rewarded ad is loaded: an offer that does nothing
 /// when tapped is worse than no offer at all.
 class AdFreeButton extends StatefulWidget {
-  const AdFreeButton({super.key});
+  const AdFreeButton({super.key, this.onlyWhenAdIsDue = false});
+
+  /// Shows the offer only when a full-screen ad is actually about to appear.
+  ///
+  /// Set on screens the user reaches after finishing something: offering to
+  /// remove ads when none were coming reads as nagging, and the wording would
+  /// be promising an escape from nothing.
+  final bool onlyWhenAdIsDue;
 
   @override
   State<AdFreeButton> createState() => _AdFreeButtonState();
@@ -41,6 +48,9 @@ class _AdFreeButtonState extends State<AdFreeButton> {
           return _RemainingNotice(remaining: ads.adFreeRemaining);
         }
         if (!ads.canOfferReward) {
+          return const SizedBox.shrink();
+        }
+        if (widget.onlyWhenAdIsDue && !ads.isInterstitialDue) {
           return const SizedBox.shrink();
         }
 

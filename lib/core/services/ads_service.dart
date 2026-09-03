@@ -4,12 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../config/ad_ids.dart';
+import '../constants/app_constants.dart';
+import 'storage_service.dart';
 
 /// The only place in the app that talks to AdMob.
 ///
 /// Everything above this deals in plain calls, so the ad network can be
 /// swapped or switched off without touching any feature code.
 class AdsService {
+  AdsService(this._storage);
+
+  /// Where earned quiet time is kept, so closing the app does not throw away
+  /// what the user watched an ad for.
+  final StorageService _storage;
+
   /// How long after showing a full-screen ad before another may be shown.
   ///
   /// A converter is used in bursts; an interstitial after every single export
@@ -38,12 +46,45 @@ class AdsService {
 
   /// How much quiet time is left, or null when ads are running.
   Duration? get adFreeRemaining {
+    _syncAdFreeState();
     final DateTime? until = _adFreeUntil;
     if (until == null) {
       return null;
     }
     final Duration left = until.difference(DateTime.now());
     return left.isNegative ? null : left;
+  }
+
+  /// Reads back time earned before the app was last closed.
+  void _restoreAdFreeTime() {
+    final String? stored = _storage.readString(StorageKeys.adFreeUntil);
+    if (stored == null) {
+      return;
+    }
+    final DateTime? until = DateTime.tryParse(stored);
+    if (until == null) {
+      return;
+    }
+    _adFreeUntil = until;
+    _syncAdFreeState();
+  }
+
+  /// Brings the flag in line with the clock.
+  ///
+  /// The timer below flips it while the app is open, but a device that slept
+  /// or an app that was killed cannot be relied on to have fired it. The
+  /// deadline is the truth; the timer only makes the change visible promptly.
+  void _syncAdFreeState() {
+    final DateTime? until = _adFreeUntil;
+    final bool active = until != null && until.isAfter(DateTime.now());
+
+    if (!active && until != null) {
+      _adFreeUntil = null;
+      unawaited(_storage.remove(StorageKeys.adFreeUntil));
+    }
+    if (isAdFree.value != active) {
+      isAdFree.value = active;
+    }
   }
 
   bool _initialised = false;
@@ -66,6 +107,10 @@ class AdsService {
 
   /// Starts the SDK. Safe to call more than once.
   Future<void> initialise() async {
+    // Restored first and regardless of platform: quiet time already paid for
+    // has to be honoured even if the ad network never comes up.
+    _restoreAdFreeTime();
+
     if (_initialised || !AdIds.isSupportedPlatform) {
       return;
     }
@@ -81,11 +126,18 @@ class AdsService {
     }
   }
 
-  /// Records that an export finished, and reports whether an ad may follow.
+  /// Records that an export finished.
   ///
-  /// Kept together so the count and the decision cannot drift apart.
-  bool shouldShowAfterExport() {
-    _completedExports++;
+  /// Separate from the decision so a screen can ask whether an ad is coming
+  /// without that question itself counting as an export.
+  void recordExport() => _completedExports++;
+
+  /// Whether a full-screen ad is due right now.
+  ///
+  /// Read by the result screen as well as by the code that shows the ad, so
+  /// what the screen offers matches what is about to happen.
+  bool get isInterstitialDue {
+    _syncAdFreeState();
     return _canShowInterstitial();
   }
 
@@ -139,16 +191,23 @@ class AdsService {
   /// Stacks rather than resets, so watching a second ad extends the quiet
   /// time instead of throwing away what is left of the first.
   void grantAdFreeTime() {
-    final DateTime from = _adFreeUntil ?? DateTime.now();
-    final DateTime base = from.isAfter(DateTime.now()) ? from : DateTime.now();
+    final DateTime now = DateTime.now();
+    final DateTime from = _adFreeUntil ?? now;
+    final DateTime base = from.isAfter(now) ? from : now;
     _adFreeUntil = base.add(adFreeReward);
     isAdFree.value = true;
 
+    // Written straight away rather than on exit: an app killed by the system
+    // gets no chance to save on the way out.
+    unawaited(
+      _storage.writeString(
+        StorageKeys.adFreeUntil,
+        _adFreeUntil!.toIso8601String(),
+      ),
+    );
+
     _adFreeTimer?.cancel();
-    _adFreeTimer = Timer(_adFreeUntil!.difference(DateTime.now()), () {
-      _adFreeUntil = null;
-      isAdFree.value = false;
-    });
+    _adFreeTimer = Timer(_adFreeUntil!.difference(now), _syncAdFreeState);
   }
 
   /// Plays a rewarded ad and grants quiet time if it is watched through.

@@ -666,6 +666,12 @@ class ConverterController extends GetxController {
       ),
     );
 
+    // Counted before the result screen opens, so that screen can tell whether
+    // an ad is coming and offer the choice instead of springing one.
+    if (Get.isRegistered<AdsService>()) {
+      Get.find<AdsService>().recordExport();
+    }
+
     await Get.toNamed<void>(AppRoutes.conversionResult, arguments: conversion);
 
     // Shown after the result screen has been seen and left, never over the
@@ -683,7 +689,7 @@ class ConverterController extends GetxController {
       return;
     }
     final AdsService ads = Get.find<AdsService>();
-    if (ads.shouldShowAfterExport()) {
+    if (ads.isInterstitialDue) {
       await ads.showInterstitial();
     }
   }
