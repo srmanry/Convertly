@@ -35,6 +35,11 @@ class FilesController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rx<MediaSortOrder> sortOrder = MediaSortOrder.newest.obs;
 
+  /// What the user has typed into the search field. Empty means no filter.
+  final RxString query = ''.obs;
+
+  bool get isSearching => query.value.trim().isNotEmpty;
+
   /// Ids the user has ticked. Selection mode is on whenever this is non-empty.
   final RxSet<int> selectedIds = <int>{}.obs;
 
@@ -46,14 +51,20 @@ class FilesController extends GetxController {
   /// toggle rather than a separate flag that could drift out of sync.
   bool get isAllSelected {
     final List<MediaFile> visible = visibleFiles;
-    return visible.isNotEmpty && selectedIds.length == visible.length;
+    // Every visible row ticked, rather than a count comparison: with a search
+    // active the selection can hold files this list is not showing.
+    return visible.isNotEmpty && visible.every(isSelected);
   }
 
   bool isSelected(MediaFile file) =>
       file.id != null && selectedIds.contains(file.id);
 
-  /// The selected files, in the order currently shown.
-  List<MediaFile> get selectedFiles => visibleFiles
+  /// Every selected file, whether or not the search is currently showing it.
+  ///
+  /// Deliberately not built from [visibleFiles]: typing in the search box
+  /// would otherwise hide ticked rows from a batch delete, which then cleared
+  /// their ticks — leaving files the user had marked, silently undeleted.
+  List<MediaFile> get selectedFiles => _sortedFiles
       .where(
         (MediaFile file) => file.id != null && selectedIds.contains(file.id),
       )
@@ -147,7 +158,8 @@ class FilesController extends GetxController {
     super.onClose();
   }
 
-  List<MediaFile> get visibleFiles {
+  /// Everything in the library, in the user's chosen order.
+  List<MediaFile> get _sortedFiles {
     final List<MediaFile> sorted = List<MediaFile>.from(files);
 
     switch (sortOrder.value) {
@@ -171,6 +183,20 @@ class FilesController extends GetxController {
     }
 
     return sorted;
+  }
+
+  /// What the list should show: the sorted library, narrowed by the search.
+  ///
+  /// Matching is case-insensitive and on the file name only — the one field
+  /// the user actually reads in the list.
+  List<MediaFile> get visibleFiles {
+    final String needle = query.value.trim().toLowerCase();
+    if (needle.isEmpty) {
+      return _sortedFiles;
+    }
+    return _sortedFiles
+        .where((MediaFile file) => file.name.toLowerCase().contains(needle))
+        .toList();
   }
 
   Future<void> load({bool pruneMissing = true}) async {
@@ -202,15 +228,30 @@ class FilesController extends GetxController {
 
   void setSortOrder(MediaSortOrder order) => sortOrder.value = order;
 
+  void setQuery(String value) => query.value = value;
+
+  void clearQuery() => query.value = '';
+
   Future<void> open(MediaFile file) async {
     if (!File(file.path).existsSync()) {
       await _removeMissingFile(file);
       return;
     }
 
+    final List<MediaFile> playable = visibleFiles;
+    final int index = playable.indexWhere(
+      (MediaFile item) => item.path == file.path,
+    );
+
     await Get.toNamed<void>(
       AppRoutes.audioPlayer,
-      arguments: <String, String>{'path': file.path, 'title': file.name},
+      arguments: <String, Object>{
+        'queue': <Map<String, String>>[
+          for (final MediaFile item in playable)
+            <String, String>{'path': item.path, 'title': item.name},
+        ],
+        'index': index < 0 ? 0 : index,
+      },
     );
   }
 

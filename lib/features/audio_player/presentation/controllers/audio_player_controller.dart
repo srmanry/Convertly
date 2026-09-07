@@ -3,18 +3,42 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../domain/entities/player_track.dart';
+
+import '../../../../core/utils/playable_audio_source.dart';
+
 /// Playback speeds offered in the player.
 const List<double> kPlaybackSpeeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
 
-/// Wraps a [AudioPlayer] for one file.
+/// Wraps a [AudioPlayer] for a queue of files.
+///
+/// The queue is whatever list the user opened the player from, so stepping to
+/// the next track lands on what they saw underneath the one they tapped. A
+/// single file is simply a queue of one, and the skip controls stand down.
 ///
 /// The player and every stream subscription are released in [onClose], so
 /// leaving the screen frees the native decoder (spec §25).
 class AudioPlayerController extends GetxController {
-  AudioPlayerController({required this.path, required this.title});
+  AudioPlayerController({required List<PlayerTrack> queue, int startIndex = 0})
+    : queue = List<PlayerTrack>.unmodifiable(queue) {
+    index.value = queue.isEmpty ? 0 : startIndex.clamp(0, queue.length - 1);
+  }
 
-  final String path;
-  final String title;
+  final List<PlayerTrack> queue;
+
+  /// Which track of [queue] is loaded.
+  final RxInt index = 0.obs;
+
+  PlayerTrack? get currentTrack =>
+      queue.isEmpty ? null : queue[index.value.clamp(0, queue.length - 1)];
+
+  String get path => currentTrack?.path ?? '';
+
+  String get title => currentTrack?.title ?? 'Audio';
+
+  bool get hasPrevious => queue.length > 1 && index.value > 0;
+
+  bool get hasNext => queue.length > 1 && index.value < queue.length - 1;
 
   final AudioPlayer _player = AudioPlayer();
 
@@ -59,7 +83,12 @@ class AudioPlayerController extends GetxController {
   Future<void> _load() async {
     isLoading.value = true;
     try {
-      final Duration? loaded = await _player.setFilePath(path);
+      // Not setFilePath: songs from the phone's music index arrive as
+      // content:// URIs, and handing one of those to setFilePath looks for a
+      // file literally named "content://..." and fails.
+      final Duration? loaded = await _player.setAudioSource(
+        playableAudioSource(path),
+      );
       if (loaded != null) {
         duration.value = loaded;
       }
@@ -80,6 +109,43 @@ class AudioPlayerController extends GetxController {
       await _player.pause();
     } else {
       await _player.play();
+    }
+  }
+
+  /// Moves to the next track, keeping playing if it already was.
+  Future<void> next() => _openAt(index.value + 1);
+
+  /// Goes back a track — or restarts this one.
+  ///
+  /// Restarting when the track is already under way is what every music player
+  /// does, and it is the reason a mis-tapped previous does not lose the user's
+  /// place in a long recording.
+  Future<void> previous() async {
+    if (position.value > const Duration(seconds: 3) || !hasPrevious) {
+      await seek(Duration.zero);
+      return;
+    }
+    await _openAt(index.value - 1);
+  }
+
+  Future<void> _openAt(int target) async {
+    if (target < 0 || target >= queue.length || target == index.value) {
+      return;
+    }
+
+    // Carry the playing state across: someone who taps next while listening
+    // wants the next track playing, not cued up and silent.
+    final bool wasPlaying = isPlaying.value;
+
+    await _player.pause();
+    index.value = target;
+    position.value = Duration.zero;
+    duration.value = Duration.zero;
+    await _load();
+
+    if (wasPlaying && errorMessage.value.isEmpty) {
+      // play()'s future completes when playback ends, not when it starts.
+      unawaited(_player.play());
     }
   }
 

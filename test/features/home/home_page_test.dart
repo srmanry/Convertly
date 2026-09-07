@@ -1,4 +1,6 @@
 import 'package:convertly/core/theme/app_theme.dart';
+import 'package:convertly/core/widgets/banner_ad_view.dart';
+import 'package:convertly/features/files/domain/entities/media_file.dart';
 import 'package:convertly/features/home/presentation/controllers/home_controller.dart';
 import 'package:convertly/features/home/presentation/pages/home_page.dart';
 import 'package:convertly/features/shell/presentation/controllers/shell_controller.dart';
@@ -7,6 +9,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
 void main() {
+  MediaFile file(int id, String name) => MediaFile(
+    id: id,
+    name: name,
+    originalName: name,
+    path: '/tmp/$name.mp3',
+    type: MediaFileType.audio,
+    format: 'mp3',
+    sizeInBytes: 2 * 1024 * 1024,
+    duration: const Duration(minutes: 2, seconds: 15),
+    createdAt: DateTime(2026, 9, 7),
+    sourceType: MediaSourceType.audioConvert,
+  );
+
   setUp(() {
     Get
       ..put<HomeController>(HomeController())
@@ -77,6 +92,23 @@ void main() {
     await scrollTo(tester, find.text('Your converted files will appear here.'));
 
     expect(find.text('Your converted files will appear here.'), findsOneWidget);
+    expect(find.byType(BannerAdView), findsOneWidget);
+  });
+
+  testWidgets('recent files use player rows with one inline ad placement', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester);
+    Get.find<HomeController>().recentFiles.assignAll(<MediaFile>[
+      file(1, 'First track'),
+      file(2, 'Second track'),
+    ]);
+    await tester.pump();
+    await scrollTo(tester, find.text('Second track'));
+
+    expect(find.text('No files yet'), findsNothing);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNWidgets(2));
+    expect(find.byType(BannerAdView), findsOneWidget);
   });
 
   testWidgets('greets the user and shows the app name', (
@@ -134,6 +166,7 @@ void main() {
     useScreenSize(tester, const Size(360, 720));
 
     await pumpHome(tester, textScale: 1.5);
+    await scrollTo(tester, find.text('Audio Compressor'));
 
     expect(tester.takeException(), isNull);
     expectTwoLineLabelFullyVisible(tester, 1.5);

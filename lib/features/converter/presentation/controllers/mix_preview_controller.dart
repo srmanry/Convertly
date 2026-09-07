@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../domain/entities/media_info.dart';
-import 'playable_audio_source.dart';
+import '../../../../core/utils/playable_audio_source.dart';
 
 /// Plays the arrangement so it can be heard before it is exported.
 ///

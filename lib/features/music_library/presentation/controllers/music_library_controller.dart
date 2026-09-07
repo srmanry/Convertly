@@ -151,9 +151,20 @@ class MusicLibraryController extends GetxController {
 
   /// Opens the built-in player on [song].
   Future<void> play(Song song) async {
+    // The whole visible list goes with it, so next and previous walk the
+    // songs the user can see rather than dead-ending on the one they tapped.
+    final List<Song> songs = visibleSongs;
+    final int index = songs.indexWhere((Song item) => item.id == song.id);
+
     await Get.toNamed<void>(
       AppRoutes.audioPlayer,
-      arguments: <String, String>{'path': song.path, 'title': song.title},
+      arguments: <String, Object>{
+        'queue': <Map<String, String>>[
+          for (final Song item in songs)
+            <String, String>{'path': item.path, 'title': item.title},
+        ],
+        'index': index < 0 ? 0 : index,
+      },
     );
   }
 }

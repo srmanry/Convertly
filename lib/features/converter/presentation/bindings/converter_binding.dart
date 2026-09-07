@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/services/ffmpeg_service.dart';
 import '../../../../core/services/output_directory_service.dart';
+import '../../../../core/services/waveform_service.dart';
 import '../../../files/domain/repositories/media_library_repository.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
 import '../../data/datasources/media_picker_datasource.dart';
@@ -16,6 +17,7 @@ import '../controllers/converter_controller.dart';
 import '../controllers/mix_preview_controller.dart';
 import '../controllers/timeline_preview_controller.dart';
 import '../controllers/trim_preview_controller.dart';
+import '../controllers/trim_waveform_controller.dart';
 
 class ConverterBinding extends Bindings {
   @override
@@ -48,6 +50,14 @@ class ConverterBinding extends Bindings {
 
     if (mode.isTimeline && !Get.isRegistered<TimelinePreviewController>()) {
       Get.lazyPut<TimelinePreviewController>(TimelinePreviewController.new);
+    }
+
+    // Only the cutter draws a waveform: the other tools never show one, and
+    // decoding a track they will not display is pure cost.
+    if (mode.supportsTrim && !Get.isRegistered<TrimWaveformController>()) {
+      Get.lazyPut<TrimWaveformController>(
+        () => TrimWaveformController(Get.find<WaveformService>()),
+      );
     }
 
     Get.lazyPut<ConverterController>(

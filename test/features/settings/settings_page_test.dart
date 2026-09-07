@@ -52,7 +52,6 @@ void main() {
       'CONVERSION',
       'STORAGE',
       'APP',
-      'OTHER',
     ]) {
       await tester.scrollUntilVisible(
         find.text(section),

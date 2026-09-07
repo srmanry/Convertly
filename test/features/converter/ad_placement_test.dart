@@ -81,7 +81,7 @@ void main() {
       );
     });
 
-    test('the tab shell does, once, below the content', () {
+    test('the tab shell has one shared banner for secondary tabs', () {
       final String source = read(
         'lib/features/shell/presentation/pages/shell_page.dart',
       );
@@ -89,6 +89,13 @@ void main() {
       expect(source, contains(bannerWidget));
       // One strip for all four tabs; a second would stack two banners.
       expect(bannerWidget.allMatches(source).length, 1);
+    });
+
+    test('home controls its banner beside Recent Files', () {
+      expect(
+        read('lib/features/home/presentation/pages/home_page.dart'),
+        contains(bannerWidget),
+      );
     });
 
     test('the files list does', () {

@@ -16,6 +16,7 @@ import '../services/media_export_service.dart';
 import '../services/output_directory_service.dart';
 import '../services/share_service.dart';
 import '../services/storage_service.dart';
+import '../services/waveform_service.dart';
 
 /// Registers dependencies that must live for the whole app session.
 ///
@@ -34,6 +35,13 @@ class InitialBinding extends Bindings {
     Get.put<AdsService>(AdsService(_storage), permanent: true);
     Get.put<MediaExportService>(const MediaExportService(), permanent: true);
     Get.put<MediaLibraryDatabase>(MediaLibraryDatabase(), permanent: true);
+    Get.put<WaveformService>(
+      WaveformService(
+        Get.find<FfmpegService>(),
+        Get.find<OutputDirectoryService>(),
+      ),
+      permanent: true,
+    );
 
     final SettingsRepository settingsRepository = SettingsRepositoryImpl(
       SettingsLocalDataSourceImpl(_storage),

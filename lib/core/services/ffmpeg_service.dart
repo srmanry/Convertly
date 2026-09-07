@@ -126,6 +126,44 @@ class FfmpegService {
     return result;
   }
 
+  /// Decodes the audio of [source] to raw 16-bit little-endian mono PCM at
+  /// [sampleRate] Hz, written to [destination].
+  ///
+  /// The low sample rate is the point: this feeds a waveform a few hundred
+  /// bars wide, so decoding at CD rate would spend seconds and megabytes
+  /// producing detail that is thrown away in the very next step.
+  ///
+  /// Deliberately not registered for cancellation. This runs while the user is
+  /// still setting a trim up, and [cancel] belongs to the conversion they
+  /// start afterwards — sharing the slot would let one abort the other.
+  Future<bool> decodeToPcm({
+    required String source,
+    required String destination,
+    int sampleRate = 4000,
+  }) async {
+    final FfmpegRunResult result = await _execute(
+      arguments: <String>[
+        '-y',
+        '-i',
+        source,
+        '-vn',
+        '-ac',
+        '1',
+        '-ar',
+        '$sampleRate',
+        '-f',
+        's16le',
+        '-acodec',
+        'pcm_s16le',
+        destination,
+      ],
+      totalDuration: null,
+      onProgress: null,
+      trackForCancellation: false,
+    );
+    return result.isSuccess;
+  }
+
   /// Stops the running session, if any.
   ///
   /// The pending [run] completes with [FfmpegOutcome.cancelled] rather than
@@ -142,6 +180,7 @@ class FfmpegService {
     required List<String> arguments,
     required Duration? totalDuration,
     required void Function(double progress)? onProgress,
+    bool trackForCancellation = true,
   }) async {
     // executeWithArgumentsAsync returns as soon as the session *starts*, and
     // getReturnCode() is null until it ends. The completion callback is the
@@ -170,7 +209,9 @@ class FfmpegService {
       },
     );
 
-    _activeSessionId = session.getSessionId();
+    if (trackForCancellation) {
+      _activeSessionId = session.getSessionId();
+    }
 
     final FFmpegSession finished = await completion.future;
     final ReturnCode? returnCode = await finished.getReturnCode();

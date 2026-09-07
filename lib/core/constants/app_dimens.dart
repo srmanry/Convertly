@@ -14,6 +14,9 @@ abstract final class AppDimens {
   static const double radiusLg = 16;
   static const double radiusXl = 24;
 
+  /// Fully rounded ends, for search boxes.
+  static const double radiusPill = 50;
+
   static const double iconSm = 18;
   static const double iconMd = 24;
   static const double iconLg = 32;

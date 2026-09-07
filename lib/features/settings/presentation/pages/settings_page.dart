@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
@@ -132,27 +131,6 @@ class SettingsPage extends GetView<SettingsController> {
                         icon: Icons.privacy_tip_rounded,
                         title: 'Privacy Policy',
                         onTap: () => _showComingSoon(context, 'Privacy Policy'),
-                      ),
-                      SettingsTile(
-                        icon: Icons.description_rounded,
-                        title: 'Terms',
-                        onTap: () => _showComingSoon(context, 'Terms'),
-                      ),
-                      const SettingsTile(
-                        icon: Icons.info_rounded,
-                        title: 'About',
-                        subtitle: '${AppConstants.appName} 1.0.0',
-                      ),
-                    ],
-                  ),
-                  SettingsSection(
-                    title: 'Other',
-                    children: <Widget>[
-                      SettingsTile(
-                        icon: Icons.language_rounded,
-                        title: 'Language',
-                        value: settings.languageCode.toUpperCase(),
-                        onTap: () => _showComingSoon(context, 'More languages'),
                       ),
                     ],
                   ),

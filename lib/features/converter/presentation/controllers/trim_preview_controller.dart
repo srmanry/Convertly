@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 
-import 'playable_audio_source.dart';
+import '../../../../core/utils/playable_audio_source.dart';
 
 /// Plays just the selected section, at the chosen export speed.
 ///
@@ -87,7 +87,16 @@ class TrimPreviewController extends GetxController {
       // playback would finish before a sound came out.
       await _player.seek(Duration.zero);
       playingTag.value = tag;
-      await _player.play();
+      // Not awaited on purpose: play()'s future completes when playback ends,
+      // not when it starts. Awaiting it held isPreparing true for the whole
+      // clip, so the button sat showing a loading spinner while the audio was
+      // already running — and could not be pressed to stop it.
+      unawaited(
+        _player.play().catchError((Object _) {
+          errorMessage.value = 'This section could not be played.';
+          errorTag.value = tag;
+        }),
+      );
     } catch (error) {
       _loadedSource = null;
       errorMessage.value = 'This section could not be played.';

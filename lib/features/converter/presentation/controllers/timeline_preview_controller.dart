@@ -5,7 +5,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_track.dart';
-import 'playable_audio_source.dart';
+import '../../../../core/utils/playable_audio_source.dart';
 
 /// Plays the clips straight through, in order, before they are exported.
 ///

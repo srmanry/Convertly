@@ -9,6 +9,7 @@ import 'core/routes/app_pages.dart';
 import 'core/services/ads_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/neon_backdrop.dart';
 import 'features/settings/presentation/controllers/settings_controller.dart';
 
 Future<void> main() async {
@@ -38,6 +39,8 @@ class ConvertlyApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: Get.find<SettingsController>().themeMode,
+      builder: (BuildContext context, Widget? child) =>
+          NeonBackdrop(child: child ?? const SizedBox.shrink()),
       initialRoute: AppPages.initial,
       getPages: AppPages.pages,
       defaultTransition: Transition.cupertino,

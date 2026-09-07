@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/widgets/depth_surface.dart';
 
 /// Large primary action card used for the main converter entry points.
 class ActionCard extends StatelessWidget {
@@ -25,60 +26,64 @@ class ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.spaceLg),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                ),
-                child: Icon(
-                  icon,
-                  color: accentColor,
-                  size: AppDimens.iconLg - 4,
-                ),
-              ),
-              const SizedBox(width: AppDimens.spaceLg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return DepthSurface(
+      onTap: onTap,
+      tint: accentColor,
+      elevation: 1.15,
+      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      padding: const EdgeInsets.all(AppDimens.spaceLg),
+      child: Row(
+        children: <Widget>[
+          DepthChip(
+            icon: icon,
+            color: accentColor,
+            size: 52,
+            iconSize: AppDimens.iconLg - 6,
+          ),
+          const SizedBox(width: AppDimens.spaceLg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        if (badge != null) ...<Widget>[
-                          const SizedBox(width: AppDimens.spaceSm),
-                          _Badge(label: badge!),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: AppDimens.spaceXs),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
+                    if (badge != null) ...<Widget>[
+                      const SizedBox(width: AppDimens.spaceSm),
+                      _Badge(label: badge!),
+                    ],
                   ],
                 ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
-            ],
+                const SizedBox(height: AppDimens.spaceXs),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+            ),
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              size: AppDimens.iconSm,
+              color: accentColor,
+            ),
+          ),
+        ],
       ),
     );
   }

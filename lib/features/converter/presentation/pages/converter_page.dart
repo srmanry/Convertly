@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -12,7 +14,9 @@ import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/mix_length_mode.dart';
 import '../../../../core/enums/noise_strength.dart';
 import '../../../../core/enums/tool_mode.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/depth_surface.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_track.dart';
@@ -22,10 +26,12 @@ import '../controllers/converter_controller.dart';
 import '../controllers/mix_preview_controller.dart';
 import '../controllers/timeline_preview_controller.dart';
 import '../controllers/trim_preview_controller.dart';
+import '../controllers/trim_waveform_controller.dart';
 import '../widgets/clip_timeline_strip.dart';
 import '../widgets/mix_track_list.dart';
 import '../widgets/option_chips.dart';
 import '../widgets/source_summary_card.dart';
+import '../widgets/trim_waveform.dart';
 import 'conversion_progress_view.dart';
 
 /// Configuration screen shared by every conversion tool.
@@ -328,28 +334,156 @@ class _EmptySelection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => EmptyStateView(
-        icon: controller.mode.picksVideo
-            ? Icons.video_library_outlined
-            : Icons.library_music_outlined,
-        title: controller.mode.title,
-        message: controller.errorMessage.value.isNotEmpty
-            ? controller.errorMessage.value
-            : controller.mode.description,
-        action: _offersLibraryPicker(controller)
-            ? _SourcePickerActions(controller: controller)
-            : FilledButton.icon(
-                onPressed: controller.isPicking.value
-                    ? null
-                    : controller.pickSource,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: Text(controller.mode.actionLabel),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double minHeight = constraints.hasBoundedHeight
+            ? math.max(0, constraints.maxHeight - AppDimens.pagePadding * 2)
+            : 0;
+
+        return Obx(() {
+          final ThemeData theme = Theme.of(context);
+          final Color accent = _accentFor(controller.mode);
+          final String error = controller.errorMessage.value;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(AppDimens.pagePadding),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: minHeight),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: DepthSurface(
+                    tint: accent,
+                    elevation: 0.9,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+                    padding: const EdgeInsets.all(AppDimens.spaceXl),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(AppDimens.spaceSm),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.14),
+                            ),
+                          ),
+                          child: DepthChip(
+                            icon: _iconFor(controller.mode),
+                            color: accent,
+                            size: 64,
+                            iconSize: 30,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.spaceLg),
+                        Text(
+                          controller.mode.title,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppDimens.spaceSm),
+                        Text(
+                          controller.mode.description,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (error.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: AppDimens.spaceMd),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(AppDimens.spaceMd),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.errorContainer
+                                  .withValues(alpha: 0.48),
+                              borderRadius: BorderRadius.circular(
+                                AppDimens.radiusMd,
+                              ),
+                            ),
+                            child: Text(
+                              error,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppDimens.spaceXl),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Divider(
+                                color: accent.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppDimens.spaceMd,
+                              ),
+                              child: Text(
+                                'CHOOSE A SOURCE',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: accent.withValues(alpha: 0.2),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppDimens.spaceLg),
+                        if (_offersLibraryPicker(controller))
+                          _SourcePickerActions(controller: controller)
+                        else
+                          FilledButton.icon(
+                            onPressed: controller.isPicking.value
+                                ? null
+                                : controller.pickSource,
+                            icon: const Icon(Icons.folder_open_rounded),
+                            label: Text(controller.mode.actionLabel),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-      ),
+            ),
+          );
+        });
+      },
     );
   }
 }
+
+IconData _iconFor(ToolMode mode) => switch (mode) {
+  ToolMode.videoToAudio => Icons.movie_creation_rounded,
+  ToolMode.audioConvert => Icons.swap_horiz_rounded,
+  ToolMode.cut => Icons.content_cut_rounded,
+  ToolMode.merge => Icons.merge_rounded,
+  ToolMode.compress => Icons.compress_rounded,
+  ToolMode.mix => Icons.layers_rounded,
+  ToolMode.arrange => Icons.view_timeline_rounded,
+  ToolMode.cleanup => Icons.auto_fix_high_rounded,
+};
+
+Color _accentFor(ToolMode mode) => switch (mode) {
+  ToolMode.videoToAudio || ToolMode.cut => AppColors.accentVideo,
+  ToolMode.audioConvert || ToolMode.compress => AppColors.accentAudio,
+  ToolMode.merge => AppColors.accentTools,
+  ToolMode.mix => const Color(0xFF6F9BFF),
+  ToolMode.arrange => AppColors.accentPremium,
+  ToolMode.cleanup => AppColors.success,
+};
 
 class _SourcePickerActions extends StatelessWidget {
   const _SourcePickerActions({required this.controller, this.compact = false});
@@ -471,7 +605,7 @@ class _SourcePickerActions extends StatelessWidget {
       final List<Widget> buttons = <Widget>[
         FilledButton.icon(
           onPressed: controller.isPicking.value ? null : controller.pickSource,
-          icon: const Icon(Icons.folder_open_rounded),
+          icon: const Icon(Icons.smartphone_rounded),
           label: Text(
             controller.mode.picksMultiple ? 'Add from phone' : 'Phone files',
           ),
@@ -502,7 +636,26 @@ class _SourcePickerActions extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           buttons.first,
-          const SizedBox(height: AppDimens.spaceMd),
+          const SizedBox(height: AppDimens.spaceSm),
+          Row(
+            children: <Widget>[
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimens.spaceMd,
+                ),
+                child: Text(
+                  'OR',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: AppDimens.spaceSm),
           buttons.last,
         ],
       );
@@ -553,8 +706,8 @@ class _TrimSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TrimPreviewController previewController =
-        Get.find<TrimPreviewController>();
+    final TrimPreviewController preview = Get.find<TrimPreviewController>();
+    final TrimWaveformController waveform = Get.find<TrimWaveformController>();
 
     return Obx(() {
       final Duration total =
@@ -563,52 +716,58 @@ class _TrimSection extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
-      final double maxMs = total.inMilliseconds.toDouble();
-      final double startMs = controller.trimStart.value.inMilliseconds
-          .toDouble()
-          .clamp(0, maxMs);
-      final double endMs = controller.trimEnd.value.inMilliseconds
-          .toDouble()
-          .clamp(startMs, maxMs);
+      final Duration start = controller.trimStart.value;
+      final Duration end = controller.trimEnd.value;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Selection', style: Theme.of(context).textTheme.titleSmall),
+          TrimWaveformFrame(
+            child: Obx(() {
+              final bool isPlaying = preview.isPlaying.value;
+
+              return TrimWaveform(
+                peaks: waveform.peaks.value,
+                isLoading: waveform.isLoading.value,
+                total: total,
+                start: start,
+                end: end,
+                // The clip is rebased to zero, so the player's position is an
+                // offset into the selection rather than into the track.
+                playhead: isPlaying ? start + preview.position.value : null,
+                isPlaying: isPlaying,
+                speed: controller.speed.value.value,
+                onChanged: controller.setTrimRange,
+              );
+            }),
+          ),
+          _HandleTimes(start: start, end: end, total: total),
           const SizedBox(height: AppDimens.spaceSm),
-          RangeSlider(
-            min: 0,
-            max: maxMs,
-            values: RangeValues(startMs, endMs),
-            labels: RangeLabels(
-              Formatters.duration(Duration(milliseconds: startMs.round())),
-              Formatters.duration(Duration(milliseconds: endMs.round())),
-            ),
-            onChanged: (RangeValues values) => controller.setTrimRange(
-              Duration(milliseconds: values.start.round()),
-              Duration(milliseconds: values.end.round()),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                'Start ${Formatters.duration(Duration(milliseconds: startMs.round()))}',
+          // One card, not three. The bounds, the reset and the preview are one
+          // job — choosing a section and hearing it — and boxing each of them
+          // separately was what made the screen read as clutter.
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.spaceLg,
+                vertical: AppDimens.spaceMd,
               ),
-              Text(
-                'End ${Formatters.duration(Duration(milliseconds: endMs.round()))}',
+              child: Column(
+                children: <Widget>[
+                  _SelectionBounds(controller: controller, total: total),
+                  const Divider(height: AppDimens.spaceXl),
+                  _PreviewRow(controller: controller, preview: preview),
+                ],
               ),
-            ],
+            ),
           ),
-          TextButton.icon(
-            onPressed: () => controller.setTrimRange(Duration.zero, total),
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: const Text('Reset'),
-          ),
-          const SizedBox(height: AppDimens.spaceLg),
-          _TrimPreviewSection(
-            controller: controller,
-            previewController: previewController,
+          const SizedBox(height: AppDimens.spaceXl),
+          OptionChips<ExportSpeed>(
+            title: 'Playback speed',
+            options: ExportSpeed.values,
+            selected: controller.speed.value,
+            labelBuilder: (ExportSpeed speed) => speed.label,
+            onSelected: controller.setSpeed,
           ),
         ],
       );
@@ -616,95 +775,282 @@ class _TrimSection extends StatelessWidget {
   }
 }
 
-class _TrimPreviewSection extends StatelessWidget {
-  const _TrimPreviewSection({
-    required this.controller,
-    required this.previewController,
+class _HandleTimes extends StatelessWidget {
+  const _HandleTimes({
+    required this.start,
+    required this.end,
+    required this.total,
   });
 
+  final Duration start;
+  final Duration end;
+  final Duration total;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
+
+    double fractionOf(Duration value) {
+      final int totalMs = total.inMilliseconds;
+      if (totalMs <= 0) {
+        return 0;
+      }
+      return (value.inMilliseconds / totalMs).clamp(0.0, 1.0);
+    }
+
+    return SizedBox(
+      height: 20,
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double width = constraints.maxWidth;
+
+          // The waveform keeps a margin at each end, so a label placed on the
+          // raw fraction would sit beside its handle rather than under it.
+          double alignmentFor(Duration value) {
+            if (width <= 0) {
+              return 0;
+            }
+            final double track = math.max(
+              0,
+              width - TrimWaveform.edgeInset * 2,
+            );
+            final double centre =
+                TrimWaveform.edgeInset + fractionOf(value) * track;
+            // Alignment.x runs -1..1, pulled in from the edges so a label at
+            // either end is not clipped.
+            return (centre / width * 2 - 1).clamp(-0.94, 0.94);
+          }
+
+          return Stack(
+            children: <Widget>[
+              Align(
+                alignment: Alignment(alignmentFor(start), 0),
+                child: Text(Formatters.duration(start), style: style),
+              ),
+              Align(
+                alignment: Alignment(alignmentFor(end), 0),
+                child: Text(Formatters.duration(end), style: style),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Start and end as read-outs, with the reset between them.
+class _SelectionBounds extends StatelessWidget {
+  const _SelectionBounds({required this.controller, required this.total});
+
   final ConverterController controller;
-  final TrimPreviewController previewController;
+  final Duration total;
+
+  @override
+  Widget build(BuildContext context) {
+    final Duration start = controller.trimStart.value;
+    final Duration end = controller.trimEnd.value;
+    final bool isWholeTrack = start == Duration.zero && end == total;
+
+    return Row(
+      children: <Widget>[
+        _BoundReadout(label: 'Start', value: start),
+        Expanded(
+          child: Center(
+            child: TextButton(
+              // Nothing to undo on an untouched track, and an enabled reset
+              // there invites a tap that does nothing.
+              onPressed: isWholeTrack
+                  ? null
+                  : () => controller.setTrimRange(Duration.zero, total),
+              child: const Text('Reset'),
+            ),
+          ),
+        ),
+        _BoundReadout(
+          label: 'End',
+          value: end,
+          alignment: CrossAxisAlignment.end,
+        ),
+      ],
+    );
+  }
+}
+
+class _BoundReadout extends StatelessWidget {
+  const _BoundReadout({
+    required this.label,
+    required this.value,
+    this.alignment = CrossAxisAlignment.start,
+  });
+
+  final String label;
+  final Duration value;
+  final CrossAxisAlignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: alignment,
+      children: <Widget>[
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          Formatters.duration(value),
+          style: theme.textTheme.titleMedium?.copyWith(
+            // Tabular figures so the numbers do not jitter sideways while a
+            // handle is being dragged.
+            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Play control, elapsed time and progress, on one line.
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({required this.controller, required this.preview});
+
+  final ConverterController controller;
+  final TrimPreviewController preview;
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      final ThemeData theme = Theme.of(context);
       final Duration start = controller.trimStart.value;
       final Duration end = controller.trimEnd.value;
       final Duration selected = end > start ? end - start : Duration.zero;
       final MediaInfo? source = controller.primarySource;
+      final bool isPlaying = preview.isPlaying.value;
+      final bool isPreparing = preview.isPreparing.value;
+
+      final Duration heard = isPlaying ? preview.position.value : Duration.zero;
+      final double played = selected.inMilliseconds <= 0
+          ? 0
+          : (heard.inMilliseconds / selected.inMilliseconds).clamp(0.0, 1.0);
 
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          OptionChips<ExportSpeed>(
-            title: 'Speed',
-            options: ExportSpeed.values,
-            selected: controller.speed.value,
-            labelBuilder: (ExportSpeed speed) => speed.label,
-            onSelected: controller.setSpeed,
+          Row(
+            children: <Widget>[
+              _PlayButton(
+                isPlaying: isPlaying,
+                isPreparing: isPreparing,
+                // Stop is its own call rather than a second toggle: toggling
+                // asked the controller to match the tag it had stored, so
+                // anything that left that bookkeeping stale turned the stop
+                // into a no-op and the preview could not be switched off.
+                onPressed: source == null
+                    ? null
+                    : () => isPlaying
+                          ? preview.stop()
+                          : preview.toggle(
+                              source: source.playableSource,
+                              start: start,
+                              end: end,
+                              speed: controller.speed.value.value,
+                            ),
+              ),
+              const SizedBox(width: AppDimens.spaceMd),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+                  child: LinearProgressIndicator(value: played, minHeight: 6),
+                ),
+              ),
+              const SizedBox(width: AppDimens.spaceMd),
+              Text(
+                '${Formatters.duration(heard)} / '
+                '${Formatters.duration(selected)}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures(),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppDimens.spaceLg),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppDimens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Preview before export',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: AppDimens.spaceXs),
-                  Text(
-                    'Selected clip: ${Formatters.duration(selected)}'
-                    ' at ${controller.speed.value.label}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: AppDimens.spaceMd),
-                  FilledButton.icon(
-                    onPressed:
-                        source == null || previewController.isPreparing.value
-                        ? null
-                        : () => previewController.toggle(
-                            source: source.playableSource,
-                            start: start,
-                            end: end,
-                            speed: controller.speed.value.value,
-                          ),
-                    icon: Icon(
-                      previewController.isPlaying.value
-                          ? Icons.stop_rounded
-                          : Icons.play_arrow_rounded,
-                    ),
-                    label: Text(
-                      previewController.isPlaying.value
-                          ? 'Stop preview'
-                          : 'Play selected part',
-                    ),
-                  ),
-                  if (previewController.isPreparing.value) ...<Widget>[
-                    const SizedBox(height: AppDimens.spaceMd),
-                    const LinearProgressIndicator(),
-                  ],
-                  if (previewController
-                      .errorMessage
-                      .value
-                      .isNotEmpty) ...<Widget>[
-                    const SizedBox(height: AppDimens.spaceMd),
-                    Text(
-                      previewController.errorMessage.value,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ],
+          if (preview.errorMessage.value.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppDimens.spaceSm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                preview.errorMessage.value,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       );
     });
+  }
+}
+
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({
+    required this.isPlaying,
+    required this.isPreparing,
+    required this.onPressed,
+  });
+
+  final bool isPlaying;
+  final bool isPreparing;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    final Color tint = onPressed == null
+        ? colors.onSurfaceVariant
+        : colors.primary;
+
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Center(
+            child: isPreparing
+                ? SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: tint,
+                    ),
+                  )
+                // The icons carry their own circle, so the button behind them
+                // stays transparent rather than putting a disc inside a disc.
+                : Icon(
+                    isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    color: tint,
+                    size: 46,
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

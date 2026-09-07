@@ -8,6 +8,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_logo.dart';
+import '../../../../core/widgets/banner_ad_view.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../../files/domain/entities/media_file.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
@@ -68,15 +69,13 @@ class HomePage extends GetView<HomeController> {
                       mainAxisSpacing: AppDimens.spaceMd,
                       // A fixed extent instead of an aspect ratio: tile
                       // height must not depend on screen width.
-                      // A fixed extent instead of an aspect ratio: tile
-                      // height must not depend on screen width.
                       mainAxisExtent: ToolTile.heightFor(context),
                     ),
                     delegate: SliverChildListDelegate(<Widget>[
                       ToolTile(
                         icon: Icons.content_cut_rounded,
                         label: 'Audio Cutter',
-                        accentColor: AppColors.accentTools,
+                        accentColor: AppColors.accentVideo,
                         onTap: () => _openTool(ToolMode.cut),
                       ),
                       ToolTile(
@@ -86,27 +85,27 @@ class HomePage extends GetView<HomeController> {
                         onTap: () => _openTool(ToolMode.merge),
                       ),
                       ToolTile(
-                        icon: Icons.compress_rounded,
-                        label: 'Audio Compressor',
-                        accentColor: AppColors.accentTools,
-                        onTap: () => _openTool(ToolMode.compress),
-                      ),
-                      ToolTile(
                         icon: Icons.layers_rounded,
                         label: 'Audio Mixer',
-                        accentColor: AppColors.accentTools,
+                        accentColor: const Color(0xFF6F9BFF),
                         onTap: () => _openTool(ToolMode.mix),
+                      ),
+                      ToolTile(
+                        icon: Icons.compress_rounded,
+                        label: 'Audio Compressor',
+                        accentColor: AppColors.accentAudio,
+                        onTap: () => _openTool(ToolMode.compress),
                       ),
                       ToolTile(
                         icon: Icons.auto_fix_high_rounded,
                         label: 'Noise Remover',
-                        accentColor: AppColors.accentTools,
+                        accentColor: AppColors.success,
                         onTap: () => _openTool(ToolMode.cleanup),
                       ),
                       ToolTile(
                         icon: Icons.view_timeline_rounded,
                         label: 'Audio Timeline',
-                        accentColor: AppColors.accentTools,
+                        accentColor: AppColors.accentPremium,
                         onTap: () => _openTool(ToolMode.arrange),
                       ),
                     ]),
@@ -128,54 +127,44 @@ class HomePage extends GetView<HomeController> {
                       ),
                       Obx(() {
                         if (!controller.hasRecentFiles) {
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppDimens.spaceXl,
+                          return Column(
+                            children: <Widget>[
+                              Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppDimens.spaceXl,
+                                  ),
+                                  child: const EmptyStateView(
+                                    icon: Icons.folder_open_rounded,
+                                    title: 'No files yet',
+                                    message:
+                                        'Your converted files will appear here.',
+                                  ),
+                                ),
                               ),
-                              child: EmptyStateView(
-                                icon: Icons.library_music_outlined,
-                                title: 'No files yet',
-                                message:
-                                    'Your converted files will appear here.',
-                              ),
-                            ),
+                              const _InlineBanner(),
+                            ],
                           );
                         }
-                        // Populated in Phase 5 once the media library exists.
-                        return Card(
-                          child: Column(
-                            children: <Widget>[
-                              for (final MediaFile file
-                                  in controller.recentFiles)
-                                ListTile(
-                                  leading: const CircleAvatar(
-                                    child: Icon(Icons.music_note_rounded),
-                                  ),
-                                  title: Text(
-                                    file.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  subtitle: Text(
-                                    [
-                                      file.format.toUpperCase(),
-                                      Formatters.fileSize(file.sizeInBytes),
-                                      if (file.duration != null)
-                                        Formatters.duration(file.duration!),
-                                    ].join(' • '),
-                                  ),
-                                  trailing: Text(
-                                    Formatters.date(file.createdAt),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                  onTap: () =>
-                                      Get.find<ShellController>().goToFiles(),
-                                ),
+
+                        final List<MediaFile> files = controller.recentFiles;
+                        return Column(
+                          children: <Widget>[
+                            for (
+                              int index = 0;
+                              index < files.length;
+                              index++
+                            ) ...<Widget>[
+                              _RecentFileCard(
+                                file: files[index],
+                                onTap: () =>
+                                    _playRecentFile(files[index], files),
+                              ),
+                              if (index == 0) const _InlineBanner(),
+                              if (index < files.length - 1)
+                                const SizedBox(height: AppDimens.spaceSm),
                             ],
-                          ),
+                          ],
                         );
                       }),
                       const SizedBox(height: AppDimens.spaceXxl),
@@ -192,6 +181,76 @@ class HomePage extends GetView<HomeController> {
 
   void _openTool(ToolMode mode) {
     Get.toNamed<void>(AppRoutes.converter, arguments: mode);
+  }
+
+  void _playRecentFile(MediaFile selected, List<MediaFile> files) {
+    final int index = files.indexOf(selected);
+    Get.toNamed<void>(
+      AppRoutes.audioPlayer,
+      arguments: <String, Object>{
+        'queue': <Map<String, String>>[
+          for (final MediaFile file in files)
+            <String, String>{'path': file.path, 'title': file.name},
+        ],
+        'index': index < 0 ? 0 : index,
+      },
+    );
+  }
+}
+
+class _RecentFileCard extends StatelessWidget {
+  const _RecentFileCard({required this.file, required this.onTap});
+
+  final MediaFile file;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final String details = <String>[
+      if (file.duration case final Duration duration)
+        Formatters.duration(duration),
+      Formatters.fileSize(file.sizeInBytes),
+      file.format.toUpperCase(),
+    ].join('  ·  ');
+
+    return Card(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceMd,
+          vertical: AppDimens.spaceXs,
+        ),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(
+            Icons.music_note_rounded,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+        ),
+        title: Text(file.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Icon(
+          Icons.play_arrow_rounded,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _InlineBanner extends StatelessWidget {
+  const _InlineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) =>
+          BannerAdView(
+            width: constraints.maxWidth.floor(),
+            padding: const EdgeInsets.symmetric(vertical: AppDimens.spaceMd),
+          ),
+    );
   }
 }
 

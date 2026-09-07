@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/widgets/search_field_border.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../../../core/widgets/native_ad_tile.dart';
@@ -51,7 +52,10 @@ class FilesPage extends GetView<FilesController> {
                 );
               }
 
-              if (controller.visibleFiles.isEmpty) {
+              // An empty library and an empty search result are different
+              // problems, and the message that helps with one is useless for
+              // the other.
+              if (controller.files.isEmpty) {
                 return EmptyStateView(
                   icon: Icons.folder_open_rounded,
                   title: 'No files yet',
@@ -66,128 +70,149 @@ class FilesPage extends GetView<FilesController> {
 
               final List<MediaFile> files = controller.visibleFiles;
 
-              return RefreshIndicator(
-                onRefresh: controller.load,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.pagePadding,
-                    AppDimens.spaceSm,
-                    AppDimens.pagePadding,
-                    AppDimens.spaceXxl,
+              return Column(
+                children: <Widget>[
+                  _SearchField(controller: controller),
+                  Expanded(
+                    child: files.isEmpty
+                        ? EmptyStateView(
+                            icon: Icons.search_off_rounded,
+                            title: 'No matching files',
+                            message:
+                                'Nothing here is called '
+                                '"${controller.query.value.trim()}".',
+                            action: TextButton(
+                              onPressed: controller.clearQuery,
+                              child: const Text('Clear search'),
+                            ),
+                          )
+                        : _fileList(context, files),
                   ),
-                  itemCount: files.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppDimens.spaceSm),
-                  itemBuilder: (BuildContext context, int index) {
-                    final MediaFile file = files[index];
-                    final bool selected = controller.isSelected(file);
-
-                    // Ads step aside while files are being picked: an ad row
-                    // in the middle of a selection is an easy mis-tap, and a
-                    // mis-tapped ad is worse than a missed impression.
-                    final bool showsAd =
-                        !controller.isSelectionMode &&
-                        AdSlots.showsAfter(index, files.length);
-
-                    final Widget row = Card(
-                      color: selected
-                          ? Theme.of(context).colorScheme.secondaryContainer
-                          : null,
-                      child: ListTile(
-                        selected: selected,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppDimens.spaceMd,
-                          vertical: AppDimens.spaceXs,
-                        ),
-                        leading: controller.isSelectionMode
-                            ? Checkbox(
-                                value: selected,
-                                onChanged: (_) =>
-                                    controller.toggleSelection(file),
-                              )
-                            : const CircleAvatar(
-                                child: Icon(Icons.library_music_rounded),
-                              ),
-                        title: Text(
-                          file.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          [
-                            file.format.toUpperCase(),
-                            Formatters.fileSize(file.sizeInBytes),
-                            if (file.duration != null)
-                              Formatters.duration(file.duration!),
-                            Formatters.date(file.createdAt),
-                          ].join(' • '),
-                        ),
-                        // While selecting, a tap toggles instead of opening
-                        // the player, which is the standard Android gesture.
-                        onTap: () => controller.isSelectionMode
-                            ? controller.toggleSelection(file)
-                            : controller.open(file),
-                        onLongPress: () => controller.toggleSelection(file),
-                        trailing: controller.isSelectionMode
-                            ? null
-                            : PopupMenuButton<_FileAction>(
-                                onSelected: (_FileAction action) async {
-                                  switch (action) {
-                                    case _FileAction.play:
-                                      await controller.open(file);
-                                    case _FileAction.saveToPhone:
-                                      await _saveToPhone(context, file);
-                                    case _FileAction.share:
-                                      await controller.share(file);
-                                    case _FileAction.rename:
-                                      await _showRenameDialog(context, file);
-                                    case _FileAction.delete:
-                                      await _confirmDeleteSingle(context, file);
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) =>
-                                    const <PopupMenuEntry<_FileAction>>[
-                                      PopupMenuItem<_FileAction>(
-                                        value: _FileAction.play,
-                                        child: Text('Play'),
-                                      ),
-                                      PopupMenuItem<_FileAction>(
-                                        value: _FileAction.saveToPhone,
-                                        child: Text('Save to phone'),
-                                      ),
-                                      PopupMenuItem<_FileAction>(
-                                        value: _FileAction.share,
-                                        child: Text('Share'),
-                                      ),
-                                      PopupMenuItem<_FileAction>(
-                                        value: _FileAction.rename,
-                                        child: Text('Rename'),
-                                      ),
-                                      PopupMenuItem<_FileAction>(
-                                        value: _FileAction.delete,
-                                        child: Text('Delete'),
-                                      ),
-                                    ],
-                              ),
-                      ),
-                    );
-
-                    if (!showsAd) {
-                      return row;
-                    }
-                    return Column(
-                      children: <Widget>[
-                        row,
-                        const SizedBox(height: AppDimens.spaceSm),
-                        const NativeAdTile(),
-                      ],
-                    );
-                  },
-                ),
+                ],
               );
             }),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _fileList(BuildContext context, List<MediaFile> files) {
+    return RefreshIndicator(
+      onRefresh: controller.load,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimens.pagePadding,
+          AppDimens.spaceSm,
+          AppDimens.pagePadding,
+          AppDimens.spaceXxl,
+        ),
+        itemCount: files.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppDimens.spaceSm),
+        itemBuilder: (BuildContext context, int index) {
+          final MediaFile file = files[index];
+          final bool selected = controller.isSelected(file);
+
+          // Ads step aside while files are being picked: an ad row
+          // in the middle of a selection is an easy mis-tap, and a
+          // mis-tapped ad is worse than a missed impression.
+          final bool showsAd =
+              !controller.isSelectionMode &&
+              AdSlots.showsAfter(index, files.length);
+
+          final Widget row = Card(
+            color: selected
+                ? Theme.of(context).colorScheme.secondaryContainer
+                : null,
+            child: ListTile(
+              selected: selected,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.spaceMd,
+                vertical: AppDimens.spaceXs,
+              ),
+              leading: controller.isSelectionMode
+                  ? Checkbox(
+                      value: selected,
+                      onChanged: (_) => controller.toggleSelection(file),
+                    )
+                  : const CircleAvatar(
+                      child: Icon(Icons.library_music_rounded),
+                    ),
+              title: Text(
+                file.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                [
+                  file.format.toUpperCase(),
+                  Formatters.fileSize(file.sizeInBytes),
+                  if (file.duration != null)
+                    Formatters.duration(file.duration!),
+                  Formatters.date(file.createdAt),
+                ].join(' • '),
+              ),
+              // While selecting, a tap toggles instead of opening
+              // the player, which is the standard Android gesture.
+              onTap: () => controller.isSelectionMode
+                  ? controller.toggleSelection(file)
+                  : controller.open(file),
+              onLongPress: () => controller.toggleSelection(file),
+              trailing: controller.isSelectionMode
+                  ? null
+                  : PopupMenuButton<_FileAction>(
+                      onSelected: (_FileAction action) async {
+                        switch (action) {
+                          case _FileAction.play:
+                            await controller.open(file);
+                          case _FileAction.saveToPhone:
+                            await _saveToPhone(context, file);
+                          case _FileAction.share:
+                            await controller.share(file);
+                          case _FileAction.rename:
+                            await _showRenameDialog(context, file);
+                          case _FileAction.delete:
+                            await _confirmDeleteSingle(context, file);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) =>
+                          const <PopupMenuEntry<_FileAction>>[
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.play,
+                              child: Text('Play'),
+                            ),
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.saveToPhone,
+                              child: Text('Save to phone'),
+                            ),
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.share,
+                              child: Text('Share'),
+                            ),
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.rename,
+                              child: Text('Rename'),
+                            ),
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.delete,
+                              child: Text('Delete'),
+                            ),
+                          ],
+                    ),
+            ),
+          );
+
+          if (!showsAd) {
+            return row;
+          }
+          return Column(
+            children: <Widget>[
+              row,
+              const SizedBox(height: AppDimens.spaceSm),
+              const NativeAdTile(),
+            ],
+          );
+        },
       ),
     );
   }
@@ -413,6 +438,95 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.delete_outline_rounded),
         ),
       ],
+    );
+  }
+}
+
+/// Narrows the list by file name.
+///
+/// Sits under the app bar rather than replacing its title: the sort control
+/// and the selection count both live up there, and swapping the bar out for a
+/// search box would hide them exactly when a search makes them most useful.
+class _SearchField extends StatefulWidget {
+  const _SearchField({required this.controller});
+
+  final FilesController controller;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late final TextEditingController _field = TextEditingController(
+    text: widget.controller.query.value,
+  );
+
+  /// Keeps the box in step with the query when something else clears it —
+  /// the empty state's "Clear search" button, for one. Without this the
+  /// filter would lift while the typed text sat there contradicting it.
+  late final Worker _sync = ever<String>(widget.controller.query, (
+    String value,
+  ) {
+    if (_field.text != value) {
+      _field.text = value;
+    }
+  });
+
+  @override
+  void initState() {
+    super.initState();
+    _sync;
+  }
+
+  @override
+  void dispose() {
+    _sync.dispose();
+    _field.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.pagePadding,
+        AppDimens.spaceSm,
+        AppDimens.pagePadding,
+        0,
+      ),
+      child: Obx(
+        () => TextField(
+          controller: _field,
+          onChanged: widget.controller.setQuery,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: 'Search files',
+            prefixIcon: const Icon(Icons.search_rounded),
+            border: searchFieldBorder(),
+            enabledBorder: searchFieldBorder(),
+            focusedBorder: searchFieldBorder(
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 1.5,
+              ),
+            ),
+            suffixIcon: widget.controller.isSearching
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'Clear search',
+                    onPressed: () {
+                      widget.controller.clearQuery();
+                      FocusScope.of(context).unfocus();
+                    },
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.spaceLg,
+              vertical: AppDimens.spaceMd,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
