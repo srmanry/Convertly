@@ -6,8 +6,8 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/services/media_export_service.dart';
 import '../../../../core/widgets/ad_free_button.dart';
+import '../../../../core/services/media_export_service.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../domain/entities/conversion_result.dart';
 
@@ -111,11 +111,9 @@ class ConversionResultPage extends StatelessWidget {
                     label: const Text('Share'),
                   ),
                   const SizedBox(height: AppDimens.spaceMd),
-                  // Only when an ad is genuinely coming: then the choice is
-                  // between watching one on purpose and being shown one
-                  // anyway. Every other time this screen stays a clean
-                  // finish, which is what it is for.
-                  const AdFreeButton(onlyWhenAdIsDue: true),
+                  // The moment a file is ready is when more files are on the
+                  // user's mind, so the offer to make them ad-free sits here.
+                  const AdFreeButton(),
                   const SizedBox(height: AppDimens.spaceSm),
                   Row(
                     children: <Widget>[

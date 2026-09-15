@@ -54,17 +54,115 @@ void main() {
       }
     });
 
-    test('the first exports are never interrupted', () {
-      // Someone trying the app has to reach their file without a full-screen
-      // ad in the way.
-      expect(AdsService.exportsBeforeFirstInterstitial, greaterThan(1));
+    /// Finishes one export the way the converter does.
+    void export() {
+      ads.recordExport();
+      ads.finishExport();
+    }
+
+    test('the round is five files with the video on the second', () {
+      expect(AdsService.exportsPerCycle, 5);
+      expect(AdsService.rewardBeforeExport, 2);
+      expect(AdsService.adFreeExportsReward, 3);
     });
 
-    test('there is a real gap between full-screen ads', () {
+    test('the ad waits long enough to dodge the tap on Convert', () {
       expect(
-        AdsService.interstitialGap,
-        greaterThanOrEqualTo(const Duration(minutes: 1)),
+        AdsService.conversionAdDelay,
+        greaterThanOrEqualTo(const Duration(milliseconds: 500)),
       );
+      expect(
+        AdsService.conversionAdDelay,
+        lessThanOrEqualTo(const Duration(seconds: 3)),
+      );
+    });
+
+    test('the first file has no full-screen ad', () {
+      expect(ads.isRewardTurn, isFalse);
+      expect(ads.isInterstitialTurn, isFalse);
+    });
+
+    test('the second file offers the video', () {
+      export();
+
+      expect(ads.isRewardTurn, isTrue);
+      expect(ads.isInterstitialTurn, isFalse);
+    });
+
+    test('without an ad loaded nothing is offered', () {
+      export();
+
+      expect(ads.isRewardDue, isFalse);
+    });
+
+    test('a watched video covers files two to four, and the fifth shows '
+        'the interstitial', () {
+      export();
+
+      // Earned while file two converts, before it is counted.
+      ads.markRewardOffered();
+      ads.grantAdFreeExports();
+      for (int file = 2; file <= 4; file++) {
+        expect(ads.isRewardTurn, isFalse, reason: 'file $file');
+        expect(ads.isInterstitialTurn, isFalse, reason: 'file $file');
+        ads.recordExport();
+        expect(ads.isAdFree.value, isTrue, reason: 'file $file');
+        ads.finishExport();
+      }
+
+      expect(ads.isAdFree.value, isFalse);
+      expect(ads.isInterstitialTurn, isTrue);
+    });
+
+    test('a declined video still converts, and the round carries on', () {
+      export();
+      ads.markRewardOffered();
+      export(); // File two, converted without the reward.
+
+      for (int file = 3; file <= 4; file++) {
+        expect(ads.isRewardTurn, isFalse, reason: 'file $file');
+        ads.recordExport();
+        expect(ads.isAdFree.value, isFalse, reason: 'file $file');
+        ads.finishExport();
+      }
+      expect(ads.isInterstitialTurn, isTrue);
+    });
+
+    test('a retry after a failed second file does not ask again', () {
+      export();
+      ads.markRewardOffered();
+      // The conversion failed, so nothing was recorded.
+
+      expect(ads.isRewardTurn, isFalse);
+    });
+
+    test('the round starts again after the fifth file', () {
+      for (int round = 0; round < 3; round++) {
+        export();
+        expect(ads.isRewardTurn, isTrue, reason: 'round $round');
+        ads.markRewardOffered();
+        ads.grantAdFreeExports();
+
+        for (int file = 2; file <= 4; file++) {
+          export();
+        }
+
+        expect(ads.isInterstitialTurn, isTrue, reason: 'round $round');
+        export();
+        expect(ads.isInterstitialTurn, isFalse, reason: 'round $round');
+        expect(ads.isRewardTurn, isFalse, reason: 'round $round');
+      }
+    });
+
+    test('the offer comes back in the next round', () {
+      export();
+      ads.markRewardOffered();
+      for (int file = 2; file <= 5; file++) {
+        export();
+      }
+
+      export();
+      expect(ads.isRewardTurn, isTrue);
     });
 
     test('an unstarted service shows nothing when asked to', () async {
@@ -125,72 +223,92 @@ void main() {
     });
   });
 
-  group('earned quiet time', () {
+  group('earned ad-free files', () {
     late AdsService ads;
 
     setUp(() async => ads = await newService());
     tearDown(() => ads.dispose());
 
-    test('ads run until some quiet time is earned', () {
+    test('ads run until something is earned', () {
       expect(ads.isAdFree.value, isFalse);
-      expect(ads.adFreeRemaining, isNull);
+      expect(ads.adFreeExportsLeft, 0);
     });
 
-    test('watching one ad switches ads off', () {
-      ads.grantAdFreeTime();
+    test('watching one ad earns three files', () {
+      ads.grantAdFreeExports();
 
       expect(ads.isAdFree.value, isTrue);
-      expect(ads.adFreeRemaining, isNotNull);
-      expect(
-        ads.adFreeRemaining!.inSeconds,
-        closeTo(AdsService.adFreeReward.inSeconds, 2),
-      );
+      expect(ads.adFreeExportsLeft, AdsService.adFreeExportsReward);
+      expect(AdsService.adFreeExportsReward, 3);
     });
 
-    test('no full-screen ad slips through the quiet time', () {
-      // The whole point of the reward. One interstitial getting past this
-      // makes the offer feel like a trick.
-      ads.grantAdFreeTime();
+    test('each finished export uses one file', () {
+      ads.grantAdFreeExports();
 
-      for (int i = 0; i < 10; i++) {
+      ads.recordExport();
+      expect(ads.adFreeExportsLeft, 2);
+      ads.finishExport();
+
+      ads.recordExport();
+      expect(ads.adFreeExportsLeft, 1);
+    });
+
+    test('no interstitial on a fifth file covered by the reward', () {
+      // Earned from a button just before the end of a round: the fifth file
+      // is covered, so its interstitial is skipped.
+      for (int file = 1; file <= 4; file++) {
         ads.recordExport();
-        expect(ads.isInterstitialDue, isFalse);
+        ads.finishExport();
       }
+      ads.grantAdFreeExports();
+
+      expect(ads.isInterstitialTurn, isFalse);
     });
 
-    test('a second ad extends the time rather than restarting it', () {
-      ads.grantAdFreeTime();
-      final Duration afterFirst = ads.adFreeRemaining!;
+    test('the last free file stays ad-free until it is finished', () {
+      // Otherwise the count reaching zero would let an interstitial follow
+      // the very file the reward was meant to cover.
+      ads.grantAdFreeExports();
+      for (int i = 0; i < AdsService.adFreeExportsReward; i++) {
+        ads.recordExport();
+        expect(ads.isAdFree.value, isTrue, reason: 'file ${i + 1}');
+        expect(ads.isInterstitialDue, isFalse);
+        ads.finishExport();
+      }
 
-      ads.grantAdFreeTime();
+      expect(ads.isAdFree.value, isFalse);
+      expect(ads.adFreeExportsLeft, 0);
+    });
 
-      expect(
-        ads.adFreeRemaining!,
-        greaterThan(
-          afterFirst + AdsService.adFreeReward - const Duration(seconds: 3),
-        ),
-      );
+    test('ads come back for the file after the free ones', () {
+      ads.grantAdFreeExports();
+      for (int i = 0; i < AdsService.adFreeExportsReward; i++) {
+        ads.recordExport();
+        ads.finishExport();
+      }
+
+      ads.recordExport();
+      expect(ads.isAdFree.value, isFalse);
+    });
+
+    test('a second ad adds to what is left rather than resetting it', () {
+      ads.grantAdFreeExports();
+      ads.recordExport();
+      ads.finishExport();
+
+      ads.grantAdFreeExports();
+
+      expect(ads.adFreeExportsLeft, 2 + AdsService.adFreeExportsReward);
     });
 
     test('the banner and the list ad watch the same switch', () {
-      // One flag drives every placement, so quiet time cannot be partial.
+      // One flag drives every placement, so ad-free files cannot be partial.
       final List<bool> seen = <bool>[];
       ads.isAdFree.addListener(() => seen.add(ads.isAdFree.value));
 
-      ads.grantAdFreeTime();
+      ads.grantAdFreeExports();
 
       expect(seen, <bool>[true]);
-    });
-
-    test('the reward is worth earning but not permanent', () {
-      expect(
-        AdsService.adFreeReward,
-        greaterThanOrEqualTo(const Duration(minutes: 10)),
-      );
-      expect(
-        AdsService.adFreeReward,
-        lessThanOrEqualTo(const Duration(hours: 2)),
-      );
     });
 
     test('nothing is offered before an ad is loaded', () {
@@ -198,8 +316,103 @@ void main() {
     });
 
     test('asking to watch with nothing loaded earns nothing', () async {
-      expect(await ads.watchForAdFreeTime(), isFalse);
+      expect(await ads.watchForAdFreeExports(), isFalse);
       expect(ads.isAdFree.value, isFalse);
+    });
+  });
+
+  group('a video watched by choice', () {
+    late AdsService ads;
+
+    setUp(() async => ads = await newService());
+    tearDown(() => ads.dispose());
+
+    /// Finishes one export the way the converter does.
+    void export() {
+      ads.recordExport();
+      ads.finishExport();
+    }
+
+    test('earns four files without ads', () {
+      ads.grantBonusExports();
+
+      expect(AdsService.bonusExportsReward, 4);
+      expect(ads.adFreeExportsLeft, 4);
+      for (int file = 1; file <= 4; file++) {
+        expect(ads.isRewardTurn, isFalse, reason: 'file $file');
+        expect(ads.isInterstitialTurn, isFalse, reason: 'file $file');
+        ads.recordExport();
+        expect(ads.isAdFree.value, isTrue, reason: 'file $file');
+        ads.finishExport();
+      }
+      expect(ads.isAdFree.value, isFalse);
+    });
+
+    test('pauses the round and picks it up where it left off', () {
+      // One file into the round, so the next would offer the round's video.
+      export();
+      expect(ads.isRewardTurn, isTrue);
+
+      ads.grantBonusExports();
+      for (int file = 1; file <= 4; file++) {
+        expect(ads.isRewardTurn, isFalse, reason: 'bonus file $file');
+        export();
+      }
+
+      // Still the second file of the round.
+      expect(ads.isRewardTurn, isTrue);
+    });
+
+    test('keeps the interstitial from landing inside the bonus files', () {
+      for (int file = 1; file <= 4; file++) {
+        export();
+      }
+      expect(ads.isInterstitialTurn, isTrue);
+
+      ads.grantBonusExports();
+      for (int file = 1; file <= 4; file++) {
+        expect(ads.isInterstitialTurn, isFalse, reason: 'bonus file $file');
+        export();
+      }
+
+      // The fifth file of the round, now that the bonus is spent.
+      expect(ads.isInterstitialTurn, isTrue);
+    });
+
+    test("is used before what is left of the round's own video", () {
+      export();
+      ads.markRewardOffered();
+      ads.grantAdFreeExports();
+      export(); // Round file two, covered by the round's video.
+
+      ads.grantBonusExports();
+      for (int file = 1; file <= 4; file++) {
+        export();
+      }
+
+      // Round files three and four are still covered, then the interstitial.
+      expect(ads.adFreeExportsLeft, 2);
+      export();
+      export();
+      expect(ads.isInterstitialTurn, isTrue);
+    });
+
+    test('survives a restart', () async {
+      ads.grantBonusExports();
+      export();
+      await Future<void>.delayed(Duration.zero);
+
+      final AdsService reopened = await newService();
+      addTearDown(reopened.dispose);
+      await reopened.initialise();
+
+      expect(reopened.adFreeExportsLeft, 3);
+      expect(reopened.isAdFree.value, isTrue);
+    });
+
+    test('asking to watch with nothing loaded earns nothing', () async {
+      expect(await ads.watchForBonusExports(), isFalse);
+      expect(ads.adFreeExportsLeft, 0);
     });
   });
 
@@ -219,10 +432,11 @@ void main() {
     });
   });
 
-  group('quiet time survives the app closing', () {
-    test('time earned is still there after a restart', () async {
+  group('ad-free files survive the app closing', () {
+    test('files earned are still there after a restart', () async {
       final AdsService first = await newService();
-      first.grantAdFreeTime();
+      first.grantAdFreeExports();
+      first.recordExport();
       // Whatever the plugin queued has to reach storage before the restart.
       await Future<void>.delayed(Duration.zero);
       first.dispose();
@@ -233,12 +447,13 @@ void main() {
       await second.initialise();
 
       expect(second.isAdFree.value, isTrue);
-      expect(second.adFreeRemaining, isNotNull);
+      expect(second.adFreeExportsLeft, AdsService.adFreeExportsReward - 1);
     });
 
-    test('no full-screen ad slips through after a restart either', () async {
+    test('the place in the round is kept after a restart', () async {
       final AdsService first = await newService();
-      first.grantAdFreeTime();
+      first.recordExport();
+      first.finishExport();
       await Future<void>.delayed(Duration.zero);
       first.dispose();
 
@@ -246,32 +461,43 @@ void main() {
       addTearDown(second.dispose);
       await second.initialise();
 
-      second.recordExport();
-      second.recordExport();
-      second.recordExport();
-      expect(second.isInterstitialDue, isFalse);
+      // Closing the app after the first file must not dodge the video.
+      expect(second.isRewardTurn, isTrue);
     });
 
-    test('time that has already run out is not restored', () async {
-      // Stored deadlines are absolute, so a long gap between sessions must
-      // expire the reward rather than hand it back.
+    test('a stored round position out of range starts a new round', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
-        'ads_free_until': DateTime.now()
-            .subtract(const Duration(minutes: 5))
-            .toIso8601String(),
+        'ads_cycle_position': 99,
       });
 
       final AdsService ads = await newService();
       addTearDown(ads.dispose);
       await ads.initialise();
 
-      expect(ads.isAdFree.value, isFalse);
-      expect(ads.adFreeRemaining, isNull);
+      expect(ads.isRewardTurn, isFalse);
+    });
+
+    test('used-up files are not restored', () async {
+      final AdsService first = await newService();
+      first.grantAdFreeExports();
+      for (int i = 0; i < AdsService.adFreeExportsReward; i++) {
+        first.recordExport();
+        first.finishExport();
+      }
+      await Future<void>.delayed(Duration.zero);
+      first.dispose();
+
+      final AdsService second = await newService();
+      addTearDown(second.dispose);
+      await second.initialise();
+
+      expect(second.isAdFree.value, isFalse);
+      expect(second.adFreeExportsLeft, 0);
     });
 
     test('a corrupt stored value is ignored rather than crashing', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
-        'ads_free_until': 'not-a-date',
+        'ads_free_exports_left': -4,
       });
 
       final AdsService ads = await newService();
@@ -279,27 +505,7 @@ void main() {
 
       await expectLater(ads.initialise(), completes);
       expect(ads.isAdFree.value, isFalse);
-    });
-
-    test('the flag follows the clock, not the timer', () async {
-      final AdsService ads = await newService();
-      addTearDown(ads.dispose);
-      ads.grantAdFreeTime();
-
-      expect(ads.isAdFree.value, isTrue);
-
-      // A device that slept, or an app the system froze, cannot be relied on
-      // to have fired the timer; reading the state has to settle it.
-      SharedPreferences.setMockInitialValues(<String, Object>{
-        'ads_free_until': DateTime.now()
-            .subtract(const Duration(seconds: 1))
-            .toIso8601String(),
-      });
-      final AdsService reopened = await newService();
-      addTearDown(reopened.dispose);
-      await reopened.initialise();
-
-      expect(reopened.isAdFree.value, isFalse);
+      expect(ads.adFreeExportsLeft, 0);
     });
   });
 }

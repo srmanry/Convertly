@@ -20,6 +20,12 @@ abstract final class StorageKeys {
   static const String outputFolder = 'settings_output_folder';
   static const String languageCode = 'settings_language_code';
 
-  /// When earned ad-free time runs out, so it survives the app closing.
-  static const String adFreeUntil = 'ads_free_until';
+  /// Ad-free files earned from a rewarded ad, so they survive the app closing.
+  static const String adFreeExportsLeft = 'ads_free_exports_left';
+
+  /// Ad-free files earned from a rewarded ad watched by choice.
+  static const String adBonusExportsLeft = 'ads_bonus_exports_left';
+
+  /// How far through the current round of ads the user is.
+  static const String adCyclePosition = 'ads_cycle_position';
 }

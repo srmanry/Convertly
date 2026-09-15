@@ -17,6 +17,7 @@ import '../../../../core/services/output_directory_service.dart';
 import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/file_utils.dart';
+import '../../../../core/widgets/reward_prompt.dart';
 import '../../../files/domain/entities/media_file.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
@@ -553,6 +554,13 @@ class ConverterController extends GetxController {
     }
   }
 
+  /// The ad shown while the current conversion runs, if one was due.
+  Future<void>? _conversionAd;
+
+  /// Completes when the current conversion ends, however it ends, so an ad
+  /// waiting for its moment does not hold up a quick conversion.
+  Completer<void>? _conversionEnded;
+
   /// Builds the request and runs it, then records the output in the library.
   Future<void> convert() async {
     if (!canConvert) {
@@ -585,6 +593,13 @@ class ConverterController extends GetxController {
     stage.value = ConverterStage.converting;
     progress.value = 0;
     errorMessage.value = '';
+
+    // Started alongside the conversion rather than before it: the user is
+    // only waiting, so the ad costs them nothing, and the file keeps
+    // converting underneath.
+    final Completer<void> ended = Completer<void>();
+    _conversionEnded = ended;
+    _conversionAd = _showAdDuringConversion(ended.future);
 
     // Anything thrown between here and the engine would otherwise escape as an
     // unhandled async error, leaving the progress screen spinning with no way
@@ -639,6 +654,7 @@ class ConverterController extends GetxController {
   }
 
   Future<void> _onConversionFailed(Failure failure) async {
+    _endConversion();
     errorMessage.value = failure.message;
     stage.value = failure is ConversionCancelled
         ? ConverterStage.configuring
@@ -647,8 +663,15 @@ class ConverterController extends GetxController {
   }
 
   Future<void> _onConversionSucceeded(ConversionResult conversion) async {
+    _endConversion();
     result.value = conversion;
     progress.value = 1;
+
+    // A conversion that beats the ad waits for it here, at 100%, so the
+    // result screen never opens underneath an ad and gets missed.
+    await _conversionAd;
+    _conversionAd = null;
+
     stage.value = ConverterStage.completed;
 
     await _addMediaFile(
@@ -666,31 +689,73 @@ class ConverterController extends GetxController {
       ),
     );
 
-    // Counted before the result screen opens, so that screen can tell whether
-    // an ad is coming and offer the choice instead of springing one.
-    if (Get.isRegistered<AdsService>()) {
-      Get.find<AdsService>().recordExport();
-    }
+    // Counted before the result screen opens, so that screen shows how many
+    // ad-free files are left after this one.
+    final AdsService? ads = Get.isRegistered<AdsService>()
+        ? Get.find<AdsService>()
+        : null;
+    ads?.recordExport();
 
     await Get.toNamed<void>(AppRoutes.conversionResult, arguments: conversion);
 
-    // Shown after the result screen has been seen and left, never over the
-    // top of it: interrupting someone before they have their file is what
-    // makes an app feel like it is holding the work hostage.
-    await _maybeShowAdAfterExport();
+    ads?.finishExport();
   }
 
-  /// Offers a full-screen ad once the export is behind the user.
+  void _endConversion() {
+    final Completer<void>? ended = _conversionEnded;
+    if (ended != null && !ended.isCompleted) {
+      ended.complete();
+    }
+    _conversionEnded = null;
+  }
+
+  /// Shows whichever ad this conversion's place in the round calls for.
   ///
-  /// The service decides whether one is due; this only reports that an export
-  /// finished. Failing to show is not worth surfacing.
-  Future<void> _maybeShowAdAfterExport() async {
+  /// The second file of a round offers the rewarded video; the fifth shows an
+  /// interstitial. Nothing the user does here can stop the file: declining
+  /// the video, or closing it early, only means the next files keep their
+  /// ads.
+  Future<void> _showAdDuringConversion(Future<void> ended) async {
     if (!Get.isRegistered<AdsService>()) {
       return;
     }
     final AdsService ads = Get.find<AdsService>();
-    if (ads.isInterstitialDue) {
-      await ads.showInterstitial();
+
+    // Decided now, before anything is awaited, so the answer belongs to this
+    // conversion and not to whatever the service looks like by the end.
+    final bool offerReward = ads.isRewardDue;
+    final bool showInterstitial = !offerReward && ads.isInterstitialDue;
+    if (!offerReward && !showInterstitial) {
+      return;
+    }
+
+    // A moment for the progress screen to settle, so a tap aimed at Convert
+    // cannot land on the ad. A conversion that ends sooner skips the wait.
+    await Future.any(<Future<void>>[
+      Future<void>.delayed(AdsService.conversionAdDelay),
+      ended,
+    ]);
+
+    // Cancelled or failed while waiting: the user is back on the settings
+    // screen and an ad now would be for a file that does not exist.
+    if (stage.value != ConverterStage.converting) {
+      return;
+    }
+
+    // The finished file waits on this, so an ad that throws must not take
+    // the result screen down with it.
+    try {
+      if (showInterstitial) {
+        await ads.showInterstitial();
+        return;
+      }
+
+      ads.markRewardOffered();
+      if (await showRewardPrompt()) {
+        await ads.watchForAdFreeExports();
+      }
+    } catch (_) {
+      // Nothing worth telling the user: they still get their file.
     }
   }
 
@@ -708,7 +773,9 @@ class ConverterController extends GetxController {
   /// Stops a running conversion. The partial output is removed by the
   /// repository, so nothing unusable is left behind.
   Future<void> cancel() async {
-    if (stage.value != ConverterStage.converting) {
+    // Also covers the moment a finished file waits at 100% for an ad to
+    // close: there is nothing left to cancel.
+    if (stage.value != ConverterStage.converting || _conversionEnded == null) {
       return;
     }
     await _cancelConversion(const NoParams());

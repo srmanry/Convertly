@@ -3,21 +3,14 @@ import 'package:get/get.dart';
 
 import '../constants/app_dimens.dart';
 import '../services/ads_service.dart';
-import '../utils/formatters.dart';
 
-/// Offers quiet time in exchange for watching one ad.
+/// Offers [AdsService.bonusExportsReward] ad-free files in exchange for
+/// watching one ad, outside the usual round of ads.
 ///
 /// Shows nothing when no rewarded ad is loaded: an offer that does nothing
 /// when tapped is worse than no offer at all.
 class AdFreeButton extends StatefulWidget {
-  const AdFreeButton({super.key, this.onlyWhenAdIsDue = false});
-
-  /// Shows the offer only when a full-screen ad is actually about to appear.
-  ///
-  /// Set on screens the user reaches after finishing something: offering to
-  /// remove ads when none were coming reads as nagging, and the wording would
-  /// be promising an escape from nothing.
-  final bool onlyWhenAdIsDue;
+  const AdFreeButton({super.key});
 
   @override
   State<AdFreeButton> createState() => _AdFreeButtonState();
@@ -28,7 +21,7 @@ class _AdFreeButtonState extends State<AdFreeButton> {
 
   Future<void> _watch(AdsService ads) async {
     setState(() => _watching = true);
-    await ads.watchForAdFreeTime();
+    await ads.watchForBonusExports();
     if (mounted) {
       setState(() => _watching = false);
     }
@@ -45,40 +38,34 @@ class _AdFreeButtonState extends State<AdFreeButton> {
       valueListenable: ads.isAdFree,
       builder: (BuildContext context, bool isAdFree, _) {
         if (isAdFree) {
-          return _RemainingNotice(remaining: ads.adFreeRemaining);
+          return _RemainingNotice(filesLeft: ads.adFreeExportsLeft);
         }
         if (!ads.canOfferReward) {
-          return const SizedBox.shrink();
-        }
-        if (widget.onlyWhenAdIsDue && !ads.isInterstitialDue) {
           return const SizedBox.shrink();
         }
 
         return OutlinedButton.icon(
           onPressed: _watching ? null : () => _watch(ads),
           icon: const Icon(Icons.play_circle_outline_rounded),
-          label: Text(
+          label: const Text(
             'Watch an ad for '
-            '${_minutes(AdsService.adFreeReward)} without ads',
+            '${AdsService.bonusExportsReward} files without ads',
           ),
         );
       },
     );
   }
-
-  static String _minutes(Duration duration) => '${duration.inMinutes} minutes';
 }
 
-/// What is left of the quiet time, once it has been earned.
+/// How many ad-free files are left, once they have been earned.
 class _RemainingNotice extends StatelessWidget {
-  const _RemainingNotice({required this.remaining});
+  const _RemainingNotice({required this.filesLeft});
 
-  final Duration? remaining;
+  final int filesLeft;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Duration? left = remaining;
 
     return Row(
       children: <Widget>[
@@ -89,12 +76,11 @@ class _RemainingNotice extends StatelessWidget {
         ),
         const SizedBox(width: AppDimens.spaceSm),
         Expanded(
-          child: Text(
-            left == null
-                ? 'No ads for now.'
-                : 'No ads for the next ${Formatters.duration(left)}.',
-            style: theme.textTheme.bodyMedium,
-          ),
+          child: Text(switch (filesLeft) {
+            0 => 'No ads for this file.',
+            1 => 'No ads for your next file.',
+            _ => 'No ads for your next $filesLeft files.',
+          }, style: theme.textTheme.bodyMedium),
         ),
       ],
     );

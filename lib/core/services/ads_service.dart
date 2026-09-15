@@ -14,77 +14,131 @@ import 'storage_service.dart';
 class AdsService {
   AdsService(this._storage);
 
-  /// Where earned quiet time is kept, so closing the app does not throw away
-  /// what the user watched an ad for.
+  /// Where earned ad-free files and the place in the ad cycle are kept, so
+  /// closing the app neither throws away a reward nor restarts the cycle.
   final StorageService _storage;
 
-  /// How long after showing a full-screen ad before another may be shown.
+  /// Exports in one round of ads, counted across every tool.
   ///
-  /// A converter is used in bursts; an interstitial after every single export
-  /// would make the app unusable and breaks AdMob's own guidance on
-  /// interrupting a task the user is in the middle of.
-  static const Duration interstitialGap = Duration(minutes: 3);
+  /// The first file of a round has no full-screen ad, the second offers a
+  /// rewarded ad that also covers the two after it, and the last shows an
+  /// interstitial. Both play while the file converts. Then the round starts
+  /// again.
+  static const int exportsPerCycle = 5;
 
-  /// Exports that have to finish before the first full-screen ad appears, so
-  /// someone trying the app is not interrupted on their first result.
-  static const int exportsBeforeFirstInterstitial = 2;
+  /// Which export of the round (counting from one) offers the rewarded ad.
+  static const int rewardBeforeExport = 2;
 
-  /// Quiet time earned by watching a rewarded ad.
+  /// How long a conversion runs before its ad appears.
   ///
-  /// Long enough to finish a batch of conversions in peace, short enough that
-  /// it is worth earning again.
-  static const Duration adFreeReward = Duration(minutes: 30);
+  /// Long enough that a tap aimed at Convert cannot land on the ad, short
+  /// enough that most conversions are still running when it does.
+  static const Duration conversionAdDelay = Duration(milliseconds: 1200);
 
-  /// Whether ads are currently switched off, and when that ends.
+  /// Files the round's own rewarded ad covers: the one it unlocks and the
+  /// ones after it, up to the interstitial.
+  ///
+  /// Counted across every tool, so Video to Audio, Audio Converter and the
+  /// rest all draw from the same allowance.
+  static const int adFreeExportsReward = 3;
+
+  /// Files covered by a rewarded ad the user chose to watch from a button.
+  ///
+  /// These sit outside the round: while they last the round is paused, and
+  /// it carries on from the same place once they are used up.
+  static const int bonusExportsReward = 4;
+
+  /// Whether ads are currently switched off.
   ///
   /// Exposed as a listenable so the banner and the in-list ad can disappear
   /// the moment it is earned, without either of them polling for it.
   final ValueNotifier<bool> isAdFree = ValueNotifier<bool>(false);
 
-  DateTime? _adFreeUntil;
-  Timer? _adFreeTimer;
+  /// Files left from the round's own rewarded ad. These move the round on.
+  int _adFreeExportsLeft = 0;
 
-  /// How much quiet time is left, or null when ads are running.
-  Duration? get adFreeRemaining {
-    _syncAdFreeState();
-    final DateTime? until = _adFreeUntil;
-    if (until == null) {
-      return null;
-    }
-    final Duration left = until.difference(DateTime.now());
-    return left.isNegative ? null : left;
-  }
+  /// Files left from a rewarded ad watched by choice. These pause the round.
+  int _bonusExportsLeft = 0;
 
-  /// Reads back time earned before the app was last closed.
-  void _restoreAdFreeTime() {
-    final String? stored = _storage.readString(StorageKeys.adFreeUntil);
-    if (stored == null) {
-      return;
-    }
-    final DateTime? until = DateTime.tryParse(stored);
-    if (until == null) {
-      return;
-    }
-    _adFreeUntil = until;
-    _syncAdFreeState();
-  }
-
-  /// Brings the flag in line with the clock.
+  /// Whether the export that just finished was paid for with the reward.
   ///
-  /// The timer below flips it while the app is open, but a device that slept
-  /// or an app that was killed cannot be relied on to have fired it. The
-  /// deadline is the truth; the timer only makes the change visible promptly.
-  void _syncAdFreeState() {
-    final DateTime? until = _adFreeUntil;
-    final bool active = until != null && until.isAfter(DateTime.now());
+  /// Kept apart from the count so the last free file stays ad-free through
+  /// its own result screen, instead of the count reaching zero and an
+  /// interstitial following it straight away.
+  bool _currentExportCovered = false;
 
-    if (!active && until != null) {
-      _adFreeUntil = null;
-      unawaited(_storage.remove(StorageKeys.adFreeUntil));
-    }
+  /// How many more files can be exported without ads, from either reward.
+  int get adFreeExportsLeft => _adFreeExportsLeft + _bonusExportsLeft;
+
+  /// Exports finished in the current round, from zero up to
+  /// [exportsPerCycle] minus one.
+  int _exportsInCycle = 0;
+
+  /// Whether this round's rewarded ad has already been offered.
+  ///
+  /// Kept so a conversion that fails or is cancelled, and is then tried
+  /// again, does not ask a second time. Cleared when the round starts over.
+  bool _rewardOffered = false;
+
+  /// Whether this round's interstitial has already been shown, for the same
+  /// reason.
+  bool _interstitialShown = false;
+
+  /// Whether the next export should offer the rewarded ad.
+  ///
+  /// Only the turn itself: whether an ad is actually loaded is a separate
+  /// question, answered by [isRewardDue].
+  @visibleForTesting
+  bool get isRewardTurn =>
+      _exportsInCycle == rewardBeforeExport - 1 &&
+      adFreeExportsLeft == 0 &&
+      !_rewardOffered;
+
+  /// Whether the next export should show the interstitial, loaded or not.
+  ///
+  /// Not when that export is covered by a reward: someone who watched a video
+  /// for ad-free files must actually get them.
+  @visibleForTesting
+  bool get isInterstitialTurn =>
+      _exportsInCycle == exportsPerCycle - 1 &&
+      adFreeExportsLeft == 0 &&
+      !_interstitialShown;
+
+  /// Reads back what was earned, and where the round was, before the app was
+  /// last closed.
+  void _restoreAdState() {
+    _adFreeExportsLeft = _readCount(StorageKeys.adFreeExportsLeft);
+    _bonusExportsLeft = _readCount(StorageKeys.adBonusExportsLeft);
+
+    final int position = _storage.readInt(StorageKeys.adCyclePosition) ?? 0;
+    _exportsInCycle = position >= 0 && position < exportsPerCycle
+        ? position
+        : 0;
+
+    _syncAdFreeState();
+  }
+
+  int _readCount(String key) {
+    final int stored = _storage.readInt(key) ?? 0;
+    return stored < 0 ? 0 : stored;
+  }
+
+  void _syncAdFreeState() {
+    final bool active = adFreeExportsLeft > 0 || _currentExportCovered;
     if (isAdFree.value != active) {
       isAdFree.value = active;
     }
+  }
+
+  void _persistAdFreeExports() {
+    _persistCount(StorageKeys.adFreeExportsLeft, _adFreeExportsLeft);
+    _persistCount(StorageKeys.adBonusExportsLeft, _bonusExportsLeft);
+  }
+
+  void _persistCount(String key, int value) {
+    // Written straight away rather than on exit: an app killed by the system
+    // gets no chance to save on the way out.
+    unawaited(value > 0 ? _storage.writeInt(key, value) : _storage.remove(key));
   }
 
   bool _initialised = false;
@@ -102,14 +156,11 @@ class AdsService {
   /// nothing when tapped is worse than no offer.
   bool get canOfferReward => _initialised && _rewarded != null;
 
-  DateTime? _lastShown;
-  int _completedExports = 0;
-
   /// Starts the SDK. Safe to call more than once.
   Future<void> initialise() async {
-    // Restored first and regardless of platform: quiet time already paid for
-    // has to be honoured even if the ad network never comes up.
-    _restoreAdFreeTime();
+    // Restored first and regardless of platform: ad-free files already paid
+    // for have to be honoured even if the ad network never comes up.
+    _restoreAdState();
 
     if (_initialised || !AdIds.isSupportedPlatform) {
       return;
@@ -126,50 +177,81 @@ class AdsService {
     }
   }
 
+  /// Whether the export about to start should offer the rewarded ad.
+  ///
+  /// False whenever no ad is loaded, and the export goes ahead either way.
+  bool get isRewardDue {
+    if (!isRewardTurn) {
+      return false;
+    }
+    if (!canOfferReward) {
+      unawaited(_loadRewarded());
+      return false;
+    }
+    return true;
+  }
+
+  /// Notes that this round's rewarded ad was offered, whatever the answer.
+  void markRewardOffered() => _rewardOffered = true;
+
   /// Records that an export finished.
   ///
   /// Separate from the decision so a screen can ask whether an ad is coming
-  /// without that question itself counting as an export.
-  void recordExport() => _completedExports++;
+  /// without that question itself counting as an export. Uses up one earned
+  /// ad-free file when there is one, and moves the round along.
+  void recordExport() {
+    // A file from a reward watched by choice sits outside the round: no ad,
+    // and the round does not move, so it picks up where it left off.
+    if (_bonusExportsLeft > 0) {
+      _bonusExportsLeft--;
+      _persistAdFreeExports();
+      _currentExportCovered = true;
+      _syncAdFreeState();
+      return;
+    }
 
-  /// Whether a full-screen ad is due right now.
-  ///
-  /// Read by the result screen as well as by the code that shows the ad, so
-  /// what the screen offers matches what is about to happen.
-  bool get isInterstitialDue {
+    _currentExportCovered = _adFreeExportsLeft > 0;
+    if (_currentExportCovered) {
+      _adFreeExportsLeft--;
+      _persistAdFreeExports();
+    }
+
+    _exportsInCycle++;
+    if (_exportsInCycle >= exportsPerCycle) {
+      _exportsInCycle = 0;
+      _rewardOffered = false;
+      _interstitialShown = false;
+    }
+    unawaited(_storage.writeInt(StorageKeys.adCyclePosition, _exportsInCycle));
+
     _syncAdFreeState();
-    return _canShowInterstitial();
   }
 
-  bool _canShowInterstitial() {
-    if (!_initialised || _interstitial == null) {
-      return false;
-    }
-    // Someone who paid for quiet with their attention must actually get it;
-    // an interstitial slipping through here is the fastest way to make the
-    // reward feel like a trick.
-    if (isAdFree.value) {
-      return false;
-    }
-    if (_completedExports < exportsBeforeFirstInterstitial) {
-      return false;
-    }
-    final DateTime? last = _lastShown;
-    return last == null || DateTime.now().difference(last) >= interstitialGap;
+  /// Marks the export as behind the user, once its result screen is closed.
+  ///
+  /// Until then the last ad-free file keeps ads away; after it, ads return
+  /// for the next file.
+  void finishExport() {
+    _currentExportCovered = false;
+    _syncAdFreeState();
   }
 
-  /// Shows a full-screen ad if one is loaded and enough time has passed.
+  /// Whether the export about to start should show the interstitial.
+  bool get isInterstitialDue =>
+      _initialised && _interstitial != null && isInterstitialTurn;
+
+  /// Shows a full-screen ad if one is loaded and it is its turn.
   ///
   /// Returns whether one was shown. The next is loaded as soon as this one is
   /// dismissed, so it is ready well before it is next allowed.
   Future<bool> showInterstitial() async {
     final InterstitialAd? ad = _interstitial;
-    if (ad == null || !_canShowInterstitial()) {
+    if (ad == null || !isInterstitialDue) {
       return false;
     }
 
     _interstitial = null;
-    _lastShown = DateTime.now();
+    _interstitialShown = true;
 
     ad.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
@@ -186,35 +268,33 @@ class AdsService {
     return true;
   }
 
-  /// Turns ads off for [adFreeReward], starting now.
+  /// Adds [adFreeExportsReward] ad-free files that move the round on.
   ///
-  /// Stacks rather than resets, so watching a second ad extends the quiet
-  /// time instead of throwing away what is left of the first.
-  void grantAdFreeTime() {
-    final DateTime now = DateTime.now();
-    final DateTime from = _adFreeUntil ?? now;
-    final DateTime base = from.isAfter(now) ? from : now;
-    _adFreeUntil = base.add(adFreeReward);
-    isAdFree.value = true;
-
-    // Written straight away rather than on exit: an app killed by the system
-    // gets no chance to save on the way out.
-    unawaited(
-      _storage.writeString(
-        StorageKeys.adFreeUntil,
-        _adFreeUntil!.toIso8601String(),
-      ),
-    );
-
-    _adFreeTimer?.cancel();
-    _adFreeTimer = Timer(_adFreeUntil!.difference(now), _syncAdFreeState);
+  /// Stacks rather than resets, so watching a second ad adds to what is left
+  /// of the first instead of throwing it away.
+  void grantAdFreeExports() {
+    _adFreeExportsLeft += adFreeExportsReward;
+    _persistAdFreeExports();
+    _syncAdFreeState();
   }
 
-  /// Plays a rewarded ad and grants quiet time if it is watched through.
+  /// Adds [bonusExportsReward] ad-free files that pause the round.
+  void grantBonusExports() {
+    _bonusExportsLeft += bonusExportsReward;
+    _persistAdFreeExports();
+    _syncAdFreeState();
+  }
+
+  /// Plays the round's rewarded ad, the one that unlocks its second file.
   ///
   /// Returns whether the reward was earned. Closing the ad early earns
   /// nothing, which is the network's rule, not ours.
-  Future<bool> watchForAdFreeTime() async {
+  Future<bool> watchForAdFreeExports() => _watchRewarded(grantAdFreeExports);
+
+  /// Plays a rewarded ad the user asked for from a button.
+  Future<bool> watchForBonusExports() => _watchRewarded(grantBonusExports);
+
+  Future<bool> _watchRewarded(void Function() grant) async {
     final RewardedAd? ad = _rewarded;
     if (ad == null) {
       return false;
@@ -223,25 +303,35 @@ class AdsService {
     _rewarded = null;
     bool earned = false;
 
+    // show() returns as soon as the ad is on screen, long before the user has
+    // watched it, so the answer has to wait for the ad to be closed.
+    final Completer<bool> closed = Completer<bool>();
+
     ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdDismissedFullScreenContent: (RewardedAd ad) {
         ad.dispose();
         unawaited(_loadRewarded());
+        if (!closed.isCompleted) {
+          closed.complete(earned);
+        }
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
         ad.dispose();
         unawaited(_loadRewarded());
+        if (!closed.isCompleted) {
+          closed.complete(false);
+        }
       },
     );
 
     await ad.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         earned = true;
-        grantAdFreeTime();
+        grant();
       },
     );
 
-    return earned;
+    return closed.future;
   }
 
   Future<void> _loadRewarded() async {
@@ -291,8 +381,6 @@ class AdsService {
   }
 
   void dispose() {
-    _adFreeTimer?.cancel();
-    _adFreeTimer = null;
     _interstitial?.dispose();
     _interstitial = null;
     _rewarded?.dispose();
