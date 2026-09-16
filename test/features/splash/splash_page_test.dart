@@ -10,7 +10,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Convertly'), findsOneWidget);
+    expect(find.text('AudioForge'), findsOneWidget);
     expect(find.text('Media Converter & Toolkit'), findsOneWidget);
   });
 

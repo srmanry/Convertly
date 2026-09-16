@@ -693,6 +693,13 @@ ConversionRequest shapedRequest(
   );
 }
 
+/// Full at both ends with one point in the middle pulled down to [level].
+VolumeEnvelope dipTo(double level) => VolumeEnvelope(<EnvelopePoint>[
+  const EnvelopePoint(0, 1),
+  EnvelopePoint(0.5, level),
+  const EnvelopePoint(1, 1),
+]);
+
 /// The `volume` filter written for the single clip in [args].
 String volumeFilter(List<String> args) {
   final String graph = filterGraph(args);
@@ -715,7 +722,7 @@ void envelopeTests() {
     });
 
     test('a shaped clip is evaluated as it plays', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+      final VolumeEnvelope dipped = dipTo(0.2);
 
       final List<String> args = FfmpegCommandBuilder.build(
         shapedRequest(dipped),
@@ -728,7 +735,7 @@ void envelopeTests() {
     });
 
     test('a dip becomes a run down and a run back up', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
+      final VolumeEnvelope dipped = dipTo(0.2);
 
       final String filter = volumeFilter(
         FfmpegCommandBuilder.build(shapedRequest(dipped)),
@@ -740,33 +747,54 @@ void envelopeTests() {
       expect(filter, contains('lt(t,'));
     });
 
-    test('a flat run does not become one term per drawn point', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
-
+    test('each run between points is one term', () {
       final String filter = volumeFilter(
-        FfmpegCommandBuilder.build(shapedRequest(dipped)),
+        FfmpegCommandBuilder.build(shapedRequest(dipTo(0.2))),
       );
 
-      // 48 points with a single dip is three straight runs, not 47.
-      expect('gte(t,'.allMatches(filter).length, lessThan(6));
+      // Three points make two runs, whatever the clip length.
+      expect('gte(t,'.allMatches(filter).length, 2);
     });
 
-    test('the shape is spread across the clip length', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.2);
-
+    test('a point lands at its own time on the clip', () {
       final String filter = volumeFilter(
         FfmpegCommandBuilder.build(
-          shapedRequest(dipped, length: const Duration(seconds: 96)),
+          shapedRequest(dipTo(0.2), length: const Duration(seconds: 96)),
         ),
       );
 
-      // The 48 points span the clip end to end, so point 24 of 0..47 lands at
-      // 24/47 of 1:36 — a shade past the middle, at 0:49.
-      expect(filter, contains('49.021'));
+      // Halfway along 1:36 is 0:48 exactly: points are not rounded onto a
+      // fixed grid.
+      expect(filter, contains('gte(t,48)'));
+      expect(filter, contains('lt(t,48)'));
+    });
+
+    test('runs ease rather than jump in a straight line', () {
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(dipTo(0.2))),
+      );
+
+      // The S-curve the lane draws, held at its end so it cannot curve back.
+      expect(filter, contains('(3-2*min('));
+      expect(filter, contains(',1)'));
+    });
+
+    test('a run between two equal levels stays a plain figure', () {
+      final VolumeEnvelope held = VolumeEnvelope(<EnvelopePoint>[
+        const EnvelopePoint(0, 0.5),
+        const EnvelopePoint(0.5, 0.5),
+        const EnvelopePoint(1, 1),
+      ]);
+
+      final String filter = volumeFilter(
+        FfmpegCommandBuilder.build(shapedRequest(held)),
+      );
+
+      expect(filter, contains('lt(t,5)*0.5+'));
     });
 
     test('the last run has no upper bound', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(10, 0.5);
+      final VolumeEnvelope dipped = dipTo(0.5);
 
       final String filter = volumeFilter(
         FfmpegCommandBuilder.build(shapedRequest(dipped)),
@@ -774,12 +802,12 @@ void envelopeTests() {
 
       // A measured length a fraction short must not drop the tail to silence,
       // so the run carrying the end has a lower bound only.
-      expect(filter.split('+').last, isNot(contains('lt(t,')));
-      expect(filter.split('+').last, contains('gte(t,'));
+      final String lastRun = filter.substring(filter.lastIndexOf('gte(t,'));
+      expect(lastRun, isNot(contains('lt(t,')));
     });
 
     test('the track level scales the whole shape', () {
-      final VolumeEnvelope dipped = VolumeEnvelope.flat.withLevelAt(24, 0.5);
+      final VolumeEnvelope dipped = dipTo(0.5);
 
       final String filter = volumeFilter(
         FfmpegCommandBuilder.build(shapedRequest(dipped, volume: 0.5)),
@@ -796,12 +824,7 @@ void envelopeTests() {
         outputPath: '/out/mixed.mp3',
         format: AudioFormat.mp3,
         mix: MixSettings(
-          tracks: <MixTrack>[
-            MixTrack(
-              volume: 0.6,
-              envelope: VolumeEnvelope.flat.withLevelAt(24, 0.2),
-            ),
-          ],
+          tracks: <MixTrack>[MixTrack(volume: 0.6, envelope: dipTo(0.2))],
         ),
       );
 

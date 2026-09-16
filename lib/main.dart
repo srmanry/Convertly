@@ -25,11 +25,11 @@ Future<void> main() async {
   // wait on that to draw its first screen. Ads appear once it is ready.
   unawaited(Get.find<AdsService>().initialise());
 
-  runApp(const ConvertlyApp());
+  runApp(const AudioForgeApp());
 }
 
-class ConvertlyApp extends StatelessWidget {
-  const ConvertlyApp({super.key});
+class AudioForgeApp extends StatelessWidget {
+  const AudioForgeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,9 @@ class ConvertlyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: Get.find<SettingsController>().themeMode,
+      // The app ships dark-only: no light or system option is offered,
+      // so this is fixed rather than read from settings.
+      themeMode: ThemeMode.dark,
       builder: (BuildContext context, Widget? child) =>
           NeonBackdrop(child: child ?? const SizedBox.shrink()),
       initialRoute: AppPages.initial,

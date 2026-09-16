@@ -81,11 +81,11 @@ void main() {
       final SettingsRepositoryImpl repository = await buildRepository();
 
       await repository.saveSettings(
-        const AppSettings(outputFolder: '/storage/emulated/0/Convertly'),
+        const AppSettings(outputFolder: '/storage/emulated/0/AudioForge'),
       );
       expect(
         (await repository.getSettings()).valueOrNull?.outputFolder,
-        '/storage/emulated/0/Convertly',
+        '/storage/emulated/0/AudioForge',
       );
 
       await repository.saveSettings(const AppSettings());

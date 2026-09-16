@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 
 /// One clip's place on the timeline.
@@ -105,16 +108,11 @@ class ClipTimelineStrip extends StatelessWidget {
 
   Widget _block(ThemeData theme, int index, double width, int totalMs) {
     final TimelineClip clip = clips[index];
-    // Two theme colours alternating: enough to tell one block from the next
-    // without turning the strip into a colour chart, and it follows light and
-    // dark on its own.
-    final bool isEven = index.isEven;
-    final Color color = isEven
-        ? theme.colorScheme.primary
-        : theme.colorScheme.tertiary;
-    final Color labelColor = isEven
-        ? theme.colorScheme.onPrimary
-        : theme.colorScheme.onTertiary;
+    // Cycled from the same accents the mixer gives each of its tracks, so a
+    // clip reads as its own voice here too, rather than just alternating
+    // between two theme colours.
+    final Color color =
+        AppColors.mixTrackAccents[index % AppColors.mixTrackAccents.length];
     final double left = width * clip.start.inMilliseconds / totalMs;
     final double blockWidth = (width * clip.length.inMilliseconds / totalMs)
         .clamp(minimumBlockWidth, width);
@@ -124,24 +122,38 @@ class ClipTimelineStrip extends StatelessWidget {
       top: 0,
       bottom: 0,
       width: blockWidth,
-      child: Container(
+      // No fill behind a clip: the strip's own background carries through
+      // underneath every block, so the picture reads as one waveform ribbon
+      // rather than a row of solid colour tiles. A hairline is enough to
+      // mark where one clip ends and the next begins, without reading as a
+      // gap in playback.
+      child: DecoratedBox(
         key: blockKey(index),
-        // No margin and no rounding: clips run straight into each other, so
-        // the strip has to look like one continuous track rather than a row
-        // of separate tiles. The alternating colour is what marks the join.
-        color: color,
-        alignment: Alignment.center,
-        child: blockWidth < 22
-            // Too narrow for a number; the colour alone ties it to its card.
-            ? const SizedBox.shrink()
-            : Text(
-                clip.label,
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: labelColor,
-                  fontWeight: FontWeight.w600,
+        decoration: BoxDecoration(
+          border: index == 0
+              ? null
+              : Border(
+                  left: BorderSide(
+                    color: theme.colorScheme.outlineVariant,
+                    width: 1.5,
+                  ),
                 ),
+        ),
+        // Too narrow for the bars to read as anything but noise; the number
+        // badge alone ties a sliver of a clip to its card.
+        child: blockWidth < 16
+            ? null
+            : CustomPaint(
+                painter: _WaveformTexturePainter(
+                  color: color,
+                  seed: Object.hash(index, clip.label),
+                ),
+                child: blockWidth < 22
+                    // Too narrow for the badge too.
+                    ? null
+                    : Center(
+                        child: _ClipBadge(label: clip.label, color: color),
+                      ),
               ),
       ),
     );
@@ -167,3 +179,91 @@ class ClipTimelineStrip extends StatelessWidget {
     );
   }
 }
+
+/// A decorative waveform, standing in for the clip's real one.
+///
+/// This is texture, not a reading of the audio: it fills what would
+/// otherwise be a flat block, in the same shape a real waveform takes,
+/// without claiming to show this clip's actual levels.
+class _WaveformTexturePainter extends CustomPainter {
+  const _WaveformTexturePainter({required this.color, required this.seed});
+
+  static const double _barWidth = 3;
+  static const double _gap = 2.5;
+
+  final Color color;
+  final int seed;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    final math.Random random = math.Random(seed);
+    final Paint paint = Paint()..color = color.withValues(alpha: 0.85);
+    final double middle = size.height / 2;
+
+    for (double x = 2; x < size.width - _barWidth; x += _barWidth + _gap) {
+      final double reach = 0.2 + random.nextDouble() * 0.65;
+      final double barHeight = (size.height * reach).clamp(2.0, size.height);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, middle - barHeight / 2, _barWidth, barHeight),
+          const Radius.circular(1.5),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformTexturePainter old) =>
+      old.color != color || old.seed != seed;
+}
+
+/// The clip's number, small and solid, so it stays readable over the bars
+/// behind it regardless of how the waveform texture happens to fall there.
+class _ClipBadge extends StatelessWidget {
+  const _ClipBadge({required this.label, required this.color});
+
+  static const double _size = 22;
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _size,
+      height: _size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: _readableOn(color),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// Black or white, whichever reads on [background].
+Color _readableOn(Color background) =>
+    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+    ? Colors.white
+    : Colors.black87;

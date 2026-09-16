@@ -116,7 +116,7 @@ void main() {
   ) async {
     await pumpHome(tester);
 
-    expect(find.text('Convertly'), findsOneWidget);
+    expect(find.text('AudioForge'), findsOneWidget);
     expect(find.textContaining('Good '), findsOneWidget);
   });
 

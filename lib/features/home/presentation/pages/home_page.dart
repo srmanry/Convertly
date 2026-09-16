@@ -291,11 +291,6 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Settings',
-            onPressed: () => Get.toNamed<void>(AppRoutes.settings),
-            icon: const Icon(Icons.settings_rounded),
-          ),
         ],
       ),
     );

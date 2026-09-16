@@ -166,13 +166,18 @@ class AdsService {
       return;
     }
     try {
-      await MobileAds.instance.initialize();
+      // A slow or unresponsive network must not hold this open indefinitely:
+      // nothing awaits this call, but it still runs on the same isolate as
+      // everything else, so a hang here can still stall the app around it.
+      await MobileAds.instance.initialize().timeout(
+        const Duration(seconds: 10),
+      );
       _initialised = true;
       unawaited(_loadInterstitial());
       unawaited(_loadRewarded());
     } catch (error) {
-      // A network failure at startup must not stop the app opening; ads
-      // simply stay absent for this run.
+      // A network failure or timeout at startup must not stop the app
+      // opening; ads simply stay absent for this run.
       _initialised = false;
     }
   }

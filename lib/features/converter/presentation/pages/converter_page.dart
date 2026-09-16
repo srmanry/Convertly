@@ -115,12 +115,23 @@ class _ConfigurationView extends StatelessWidget {
         return _EmptySelection(controller: controller);
       }
 
+      final ThemeData theme = Theme.of(context);
+
       return Column(
         children: <Widget>[
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(AppDimens.pagePadding),
               children: <Widget>[
+                if (controller.mode.isMix) ...<Widget>[
+                  Text(
+                    'Adjust the volume of each track over time.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.spaceLg),
+                ],
                 if (controller.mode.combinesTracks)
                   MixTrackList(
                     sources: sources,
@@ -172,15 +183,24 @@ class _ConfigurationView extends StatelessWidget {
                               controller.envelopeOf(i),
                           ]
                         : null,
-                    onEnvelopePoint: controller.mode.isMix
-                        ? controller.setEnvelopePoint
+                    onEnvelopeChanged: controller.mode.isMix
+                        ? controller.setEnvelope
                         : null,
                     onEnvelopeCleared: controller.mode.isMix
                         ? controller.clearEnvelope
                         : null,
-                    longestClip: controller.mode.isMix
-                        ? controller.longestClipLength
+                    playheadOf: controller.mode.isMix
+                        ? Get.find<MixPreviewController>().playheadOf
                         : null,
+                    onPreviewToggle: controller.mode.isMix
+                        ? controller.toggleMixPreview
+                        : null,
+                    isPreviewPlaying:
+                        controller.mode.isMix &&
+                        Get.find<MixPreviewController>().isPlaying.value,
+                    isPreviewPreparing:
+                        controller.mode.isMix &&
+                        Get.find<MixPreviewController>().isPreparing.value,
                     showsPositions: controller.mode.isTimeline,
                     onRemove: controller.removeSourceAt,
                     onReorder: controller.reorderSources,
@@ -361,19 +381,30 @@ class _EmptySelection extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         Container(
-                          padding: const EdgeInsets.all(AppDimens.spaceSm),
+                          width: 80,
+                          height: 80,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.08),
+                            color: accent.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: accent.withValues(alpha: 0.14),
+                              color: accent.withValues(alpha: 0.4),
+                              width: 1.5,
                             ),
                           ),
-                          child: DepthChip(
-                            icon: _iconFor(controller.mode),
-                            color: accent,
-                            size: 64,
-                            iconSize: 30,
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.18),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _iconFor(controller.mode),
+                              color: accent,
+                              size: 30,
+                            ),
                           ),
                         ),
                         const SizedBox(height: AppDimens.spaceLg),
@@ -522,7 +553,7 @@ class _SourcePickerActions extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimens.spaceXs),
                     Text(
-                      'Previously converted audio saved inside Convertly.',
+                      'Previously converted audio saved inside AudioForge.',
                       style: Theme.of(sheetContext).textTheme.bodySmall,
                     ),
                     const SizedBox(height: AppDimens.spaceLg),
@@ -611,6 +642,7 @@ class _SourcePickerActions extends StatelessWidget {
           ),
         ),
         OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
           onPressed: controller.isPicking.value
               ? null
               : () => _showLibraryPicker(context),
@@ -1107,7 +1139,7 @@ class _MixSection extends StatelessWidget {
   }
 }
 
-/// Plays the layers together so the balance can be set by ear.
+/// Plays every track together so the balance can be set by ear.
 class _MixPreviewCard extends StatelessWidget {
   const _MixPreviewCard({required this.controller});
 
@@ -1119,8 +1151,15 @@ class _MixPreviewCard extends StatelessWidget {
 
     return Obx(() {
       final ThemeData theme = Theme.of(context);
-      final bool hasEnoughTracks = controller.sources.length >= 2;
+      final ColorScheme colors = theme.colorScheme;
+      final bool hasEnoughTracks = controller.sources.isNotEmpty;
       final bool isPlaying = preview.isPlaying.value;
+      final bool isPreparing = preview.isPreparing.value;
+      final Duration? total = controller.longestClipLength;
+      final Duration position = preview.position.value;
+      final double fraction = total == null || total <= Duration.zero
+          ? 0
+          : (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
 
       return Card(
         child: Padding(
@@ -1128,70 +1167,134 @@ class _MixPreviewCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Preview the mix', style: theme.textTheme.titleSmall),
-              const SizedBox(height: AppDimens.spaceXs),
-              Text(
-                hasEnoughTracks
-                    ? 'Plays the whole arrangement. Move a volume slider while '
-                          'it runs to hear the balance change.'
-                    : 'Add a second track to hear them together.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              if (isPlaying) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceXs),
-                // A clip placed later in the timeline is silent until it
-                // arrives, so the running time is what shows the preview is
-                // working rather than stuck.
-                Text(
-                  Formatters.duration(preview.position.value),
-                  style: theme.textTheme.titleMedium,
-                ),
-              ],
-              const SizedBox(height: AppDimens.spaceMd),
-              FilledButton.icon(
-                onPressed: !hasEnoughTracks || preview.isPreparing.value
-                    ? null
-                    : () => preview.toggle(
-                        tracks: controller.sources.toList(),
-                        volumes: <double>[
-                          for (final MixTrack clip in controller.clips)
-                            clip.volume,
-                        ],
-                        starts: <Duration>[
-                          for (final MixTrack clip in controller.clips)
-                            clip.start,
-                        ],
-                        loopLayers: controller.loopShorterTracks.value,
-                        endsWithMainTrack:
-                            controller.mixLength.value ==
-                            MixLengthMode.mainTrack,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.graphic_eq_rounded,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.spaceMd),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          'Preview all',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasEnoughTracks
+                              ? 'All tracks play together, following the '
+                                    'volume shaping you set.'
+                              : 'Add a track to hear it.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.spaceSm),
+                  FilledButton.icon(
+                    // The theme makes filled buttons full width, which a
+                    // button sharing a row with a title cannot be.
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.spaceMd,
                       ),
-                icon: Icon(
-                  isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                ),
-                label: Text(isPlaying ? 'Stop preview' : 'Play the mix'),
+                    ),
+                    onPressed: !hasEnoughTracks || isPreparing
+                        ? null
+                        : controller.toggleMixPreview,
+                    icon: isPreparing
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isPlaying
+                                ? Icons.stop_rounded
+                                : Icons.play_arrow_rounded,
+                          ),
+                    label: Text(isPlaying ? 'Stop' : 'Preview'),
+                  ),
+                ],
               ),
-              if (preview.isPreparing.value) ...<Widget>[
+              if (total != null) ...<Widget>[
                 const SizedBox(height: AppDimens.spaceMd),
-                const LinearProgressIndicator(),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      Formatters.duration(position),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimens.spaceSm,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusPill,
+                          ),
+                          child: LinearProgressIndicator(
+                            value: fraction,
+                            minHeight: 6,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      Formatters.duration(total),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
               if (preview.errorMessage.value.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppDimens.spaceMd),
                 Text(
                   preview.errorMessage.value,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
+                    color: colors.error,
                   ),
                 ),
               ],
-              const SizedBox(height: AppDimens.spaceMd),
+              const SizedBox(height: AppDimens.spaceSm),
               // The preview starts the tracks together but does not lock them
               // to each other, so this is worth saying rather than letting a
               // small drift read as a bug in the export.
               Text(
                 'A preview for balance. The export renders the finished mix.',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1331,16 +1434,23 @@ class _TimelineStrip extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
-      final List<TimelineClip> clips = <TimelineClip>[
-        for (int index = 0; index < controller.sources.length; index++)
-          // The selected part is what plays, so it is what the block shows.
-          if (controller.usedLengthOf(index) case final Duration length)
+      // Numbered by where a clip actually lands in the picture, not by its
+      // place among the sources: a clip whose length could not be read
+      // contributes nothing and is left out here too, and the clips after it
+      // must not jump a number over the gap it leaves.
+      final List<TimelineClip> clips = <TimelineClip>[];
+      for (int index = 0; index < controller.sources.length; index++) {
+        // The selected part is what plays, so it is what the block shows.
+        if (controller.usedLengthOf(index) case final Duration length) {
+          clips.add(
             TimelineClip(
-              label: '${index + 1}',
+              label: '${clips.length + 1}',
               start: controller.startOfTrack(index),
               length: length,
             ),
-      ];
+          );
+        }
+      }
 
       return ClipTimelineStrip(
         clips: clips,

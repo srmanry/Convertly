@@ -13,8 +13,9 @@ import '../widgets/settings_tile.dart';
 
 /// Settings skeleton for Phase 1.
 ///
-/// Appearance and conversion defaults are fully wired; storage and legal rows
-/// are placeholders until the features they describe exist.
+/// The app is dark-only, so there is no appearance choice to offer here.
+/// Conversion defaults are fully wired; storage and legal rows are
+/// placeholders until the features they describe exist.
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({super.key, this.showBackButton = true});
 
@@ -44,18 +45,8 @@ class SettingsPage extends GetView<SettingsController> {
                   AppDimens.spaceXxl,
                 ),
                 children: <Widget>[
-                  SettingsSection(
-                    title: 'Appearance',
-                    children: <Widget>[
-                      SettingsTile(
-                        icon: Icons.brightness_6_rounded,
-                        title: 'Theme',
-                        value: _themeLabel(settings.themeMode),
-                        onTap: () =>
-                            _showThemePicker(context, settings.themeMode),
-                      ),
-                    ],
-                  ),
+                  // No Appearance section: the app is dark-only, so there is
+                  // no theme choice to show.
                   SettingsSection(
                     title: 'Conversion',
                     children: <Widget>[
@@ -140,23 +131,6 @@ class SettingsPage extends GetView<SettingsController> {
           ),
         ),
       ),
-    );
-  }
-
-  String _themeLabel(AppThemeMode mode) => switch (mode) {
-    AppThemeMode.system => 'System',
-    AppThemeMode.light => 'Light',
-    AppThemeMode.dark => 'Dark',
-  };
-
-  Future<void> _showThemePicker(BuildContext context, AppThemeMode current) {
-    return _showOptionSheet<AppThemeMode>(
-      context: context,
-      title: 'Theme',
-      options: AppThemeMode.values,
-      current: current,
-      labelBuilder: _themeLabel,
-      onSelected: controller.setThemeMode,
     );
   }
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_dimens.dart';
 import '../theme/app_colors.dart';
 
-/// The Convertly mark: a rounded gradient tile with a waveform glyph.
+/// The AudioForge mark: a rounded gradient tile with a waveform glyph.
 ///
 /// Drawn rather than loaded from an asset so it stays crisp at any size and
 /// adds no binary weight before the real icon set lands in the release phase.

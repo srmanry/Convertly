@@ -75,7 +75,7 @@ class _TotalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Used by Convertly', style: theme.textTheme.bodyMedium),
+            Text('Used by AudioForge', style: theme.textTheme.bodyMedium),
             const SizedBox(height: AppDimens.spaceXs),
             Text(
               Formatters.fileSize(usage.totalBytes),

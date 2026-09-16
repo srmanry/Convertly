@@ -360,6 +360,9 @@ class ConverterController extends GetxController {
     // Dragging a clip changes what follows what, so the whole run is laid out
     // again rather than leaving a hole where the clip used to be.
     _reflowTimeline();
+    // A playing preview holds its tracks by position, so it would carry on
+    // applying each line to the wrong track.
+    _stopPreviewIfPresent();
   }
 
   void setFormat(AudioFormat value) => format.value = value;
@@ -369,14 +372,41 @@ class ConverterController extends GetxController {
       return;
     }
     clips[index] = clips[index].copyWith(volume: value);
-    // A running preview follows the slider rather than waiting for a restart.
-    if (Get.isRegistered<MixPreviewController>()) {
-      unawaited(
-        Get.find<MixPreviewController>().applyVolumes(<double>[
-          for (final MixTrack clip in clips) clip.volume,
-        ]),
-      );
+    _updateMixPreview();
+  }
+
+  /// Hands the current levels and volume lines to the mix preview.
+  ///
+  /// A running preview follows the slider and the lines rather than waiting
+  /// for a restart, so a point dragged under a finger is heard at once.
+  void _updateMixPreview() {
+    if (!Get.isRegistered<MixPreviewController>()) {
+      return;
     }
+    Get.find<MixPreviewController>().updateMix(
+      volumes: <double>[for (final MixTrack clip in clips) clip.volume],
+      envelopes: <VolumeEnvelope?>[
+        for (final MixTrack clip in clips) clip.envelope,
+      ],
+    );
+  }
+
+  /// Plays every track together, following each one's volume line, or stops
+  /// the preview if it is already playing.
+  Future<void> toggleMixPreview() async {
+    if (!Get.isRegistered<MixPreviewController>()) {
+      return;
+    }
+    await Get.find<MixPreviewController>().toggle(
+      tracks: sources.toList(),
+      volumes: <double>[for (final MixTrack clip in clips) clip.volume],
+      starts: <Duration>[for (final MixTrack clip in clips) clip.start],
+      envelopes: <VolumeEnvelope?>[
+        for (final MixTrack clip in clips) clip.envelope,
+      ],
+      loopLayers: loopShorterTracks.value,
+      endsWithMainTrack: mixLength.value == MixLengthMode.mainTrack,
+    );
   }
 
   /// Keeps only [start] to [end] of the clip at [index].
@@ -413,20 +443,24 @@ class ConverterController extends GetxController {
     return (clip.trimStart, end);
   }
 
-  /// Sets the level of the clip at [index] at one point along its length.
+  /// Replaces the volume shape of the clip at [index].
   ///
-  /// A clip that has not been shaped yet starts from a flat line, so the first
-  /// touch changes only the point under the finger.
-  void setEnvelopePoint(int index, int point, double level) {
+  /// The lane works out the new shape itself, point by point, so every edit
+  /// it offers — adding, dragging, removing, a preset — arrives the same way.
+  void setEnvelope(int index, VolumeEnvelope envelope) {
     if (index < 0 || index >= clips.length) {
       return;
     }
-    final MixTrack clip = clips[index];
-    final VolumeEnvelope envelope = clip.envelope ?? VolumeEnvelope.flat;
-    clips[index] = clip.copyWith(envelope: envelope.withLevelAt(point, level));
+    clips[index] = clips[index].copyWith(envelope: envelope);
+    _updateMixPreview();
   }
 
-  /// Length of the longest clip, which the lanes are drawn in proportion to.
+  /// The shape drawn on the clip at [index], flat when it has none.
+  VolumeEnvelope envelopeOf(int index) =>
+      clipAt(index).envelope ?? VolumeEnvelope.flat;
+
+  /// Length of the longest track, for the preview's scrubber. Null before
+  /// any track's own length is known.
   Duration? get longestClipLength {
     final Iterable<Duration> known = sources
         .map((MediaInfo info) => info.duration)
@@ -435,10 +469,6 @@ class ConverterController extends GetxController {
         ? null
         : known.reduce((Duration a, Duration b) => a > b ? a : b);
   }
-
-  /// The shape drawn on the clip at [index], flat when it has none.
-  VolumeEnvelope envelopeOf(int index) =>
-      clipAt(index).envelope ?? VolumeEnvelope.flat;
 
   /// Returns the clip at [index] to an even level throughout.
   void clearEnvelope(int index) {
@@ -452,7 +482,7 @@ class ConverterController extends GetxController {
       trimEnd: clips[index].trimEnd,
       length: clips[index].length,
     );
-    _stopPreviewIfPresent();
+    _updateMixPreview();
   }
 
   void setMixLength(MixLengthMode value) {

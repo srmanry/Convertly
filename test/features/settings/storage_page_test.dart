@@ -89,7 +89,7 @@ void main() {
       StorageGroup(label: 'MP3', bytes: 5000, fileCount: 1),
       StorageGroup(label: 'WAV', bytes: 3000, fileCount: 1),
     ],
-    outputPath: '/tmp/Convertly',
+    outputPath: '/tmp/AudioForge',
   );
 
   group('storage screen', () {
@@ -102,7 +102,7 @@ void main() {
       await pumpStorage(tester, StorageUsage.empty);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Used by Convertly'), findsOneWidget);
+      expect(find.text('Used by AudioForge'), findsOneWidget);
       expect(find.text('0 B'), findsWidgets);
     });
 

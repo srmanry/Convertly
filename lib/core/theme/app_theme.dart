@@ -107,6 +107,11 @@ abstract final class AppTheme {
             borderRadius: BorderRadius.circular(AppDimens.radiusMd),
           ),
           textStyle: base.textTheme.labelLarge,
+          // colorScheme.onPrimary is a near-black purple in dark mode, tuned
+          // for contrast against the light violet primary; on a filled
+          // button that reads as washed out, and white is what every screen
+          // asks for instead.
+          foregroundColor: Colors.white,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(

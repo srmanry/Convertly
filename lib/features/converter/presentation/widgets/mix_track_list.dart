@@ -1,11 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/volume_envelope.dart';
+import 'mixer_track_card.dart';
 import 'source_summary_card.dart';
-import 'volume_lane.dart';
 
 /// The mixer's track list: every clip with its own start point and volume.
 ///
@@ -29,9 +31,12 @@ class MixTrackList extends StatelessWidget {
     this.previewError,
     this.previewErrorClip,
     this.envelopes,
-    this.onEnvelopePoint,
+    this.onEnvelopeChanged,
     this.onEnvelopeCleared,
-    this.longestClip,
+    this.playheadOf,
+    this.isPreviewPlaying = false,
+    this.isPreviewPreparing = false,
+    this.onPreviewToggle,
   });
 
   /// Loudest a layer can be pushed. Above this the limiter is doing more work
@@ -71,11 +76,18 @@ class MixTrackList extends StatelessWidget {
   /// The level drawn along each track, when tracks can be shaped over time.
   final List<VolumeEnvelope>? envelopes;
 
-  final void Function(int index, int point, double level)? onEnvelopePoint;
+  final void Function(int index, VolumeEnvelope envelope)? onEnvelopeChanged;
   final void Function(int index)? onEnvelopeCleared;
 
-  /// Length of the longest track, used to draw a shorter one shorter.
-  final Duration? longestClip;
+  /// Where a running preview is along each track, for the line across its
+  /// lane.
+  final ValueListenable<double?> Function(int index)? playheadOf;
+
+  /// Plays or stops the preview from beside any lane, so testing a change
+  /// never means scrolling down to the preview card.
+  final VoidCallback? onPreviewToggle;
+  final bool isPreviewPlaying;
+  final bool isPreviewPreparing;
 
   final void Function(int index) onRemove;
   final void Function(int oldIndex, int newIndex) onReorder;
@@ -86,16 +98,6 @@ class MixTrackList extends StatelessWidget {
       return all[index];
     }
     return VolumeEnvelope.flat;
-  }
-
-  /// How much of the row [media] fills, so length is readable at a glance.
-  double _widthFactorFor(MediaInfo media) {
-    final Duration? longest = longestClip;
-    final Duration? own = media.duration;
-    if (longest == null || own == null || longest <= Duration.zero) {
-      return 1;
-    }
-    return own.inMilliseconds / longest.inMilliseconds;
   }
 
   /// Selection on the clip at [index], defaulting to the whole file.
@@ -118,6 +120,12 @@ class MixTrackList extends StatelessWidget {
     return index == 0 ? 'Main track' : 'Layer ${index + 1}';
   }
 
+  /// This track's own colour, cycled from the same accents the home screen
+  /// uses for its tools — so a stack of tracks reads as separate voices
+  /// without the mixer inventing a palette of its own.
+  Color _accentFor(int index) =>
+      AppColors.mixTrackAccents[index % AppColors.mixTrackAccents.length];
+
   @override
   Widget build(BuildContext context) {
     return ReorderableListView.builder(
@@ -132,9 +140,44 @@ class MixTrackList extends StatelessWidget {
       buildDefaultDragHandles: false,
       itemBuilder: (BuildContext context, int index) {
         final MediaInfo media = sources[index];
+        final Key key = ValueKey<String>('${media.path}#$index');
+
+        // The mixer gets one unified, coloured card per track; the timeline
+        // keeps its own plainer row, built for stepping clips one after
+        // another rather than balancing them against each other.
+        if (onEnvelopeChanged
+            case final void Function(int, VolumeEnvelope) change) {
+          return Padding(
+            key: key,
+            padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
+            child: MixerTrackCard(
+              index: index,
+              media: media,
+              label: trackLabel(index),
+              accent: _accentFor(index),
+              envelope: _envelopeFor(index),
+              onEnvelopeChanged: (VolumeEnvelope envelope) =>
+                  change(index, envelope),
+              onEnvelopeCleared: onEnvelopeCleared == null
+                  ? null
+                  : () => onEnvelopeCleared!(index),
+              volume: onVolumeChanged == null
+                  ? null
+                  : (index < volumes.length ? volumes[index] : 1),
+              onVolumeChanged: onVolumeChanged == null
+                  ? null
+                  : (double value) => onVolumeChanged!(index, value),
+              playhead: playheadOf?.call(index),
+              isPreviewPlaying: isPreviewPlaying,
+              isPreviewPreparing: isPreviewPreparing,
+              onPreviewToggle: onPreviewToggle,
+              onRemove: () => onRemove(index),
+            ),
+          );
+        }
 
         return Padding(
-          key: ValueKey<String>('${media.path}#$index'),
+          key: key,
           padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,24 +230,6 @@ class MixTrackList extends StatelessWidget {
                   clipLength: index < starts.length
                       ? _rangeFor(index, media).$2 - _rangeFor(index, media).$1
                       : media.duration,
-                ),
-              if (onEnvelopePoint
-                  case final void Function(int, int, double) change)
-                _ShapeRow(
-                  label: trackLabel(index),
-                  envelope: _envelopeFor(index),
-                  widthFactor: _widthFactorFor(media),
-                  onPointChanged: (int point, double level) =>
-                      change(index, point, level),
-                  onCleared: onEnvelopeCleared == null
-                      ? null
-                      : () => onEnvelopeCleared!(index),
-                ),
-              if (onVolumeChanged case final void Function(int, double) change)
-                _VolumeRow(
-                  label: trackLabel(index),
-                  volume: index < volumes.length ? volumes[index] : 1,
-                  onChanged: (double value) => change(index, value),
                 ),
             ],
           ),
@@ -369,98 +394,4 @@ class _PlaysRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A track's level along its length, with a way back to an even one.
-class _ShapeRow extends StatelessWidget {
-  const _ShapeRow({
-    required this.label,
-    required this.envelope,
-    required this.widthFactor,
-    required this.onPointChanged,
-    required this.onCleared,
-  });
-
-  final String label;
-  final VolumeEnvelope envelope;
-  final double widthFactor;
-  final void Function(int point, double level) onPointChanged;
-  final VoidCallback? onCleared;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceSm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(child: Text(label, style: theme.textTheme.labelMedium)),
-              if (onCleared != null && !envelope.isFlat)
-                TextButton(onPressed: onCleared, child: const Text('Even out')),
-            ],
-          ),
-          VolumeLane(
-            envelope: envelope,
-            widthFactor: widthFactor,
-            onPointChanged: onPointChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VolumeRow extends StatelessWidget {
-  const _VolumeRow({
-    required this.label,
-    required this.volume,
-    required this.onChanged,
-  });
-
-  final String label;
-  final double volume;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final double clamped = volume.clamp(0, MixTrackList.maxVolume);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceSm),
-      child: Row(
-        children: <Widget>[
-          Text(label, style: theme.textTheme.bodySmall),
-          Expanded(
-            child: Slider(
-              min: 0,
-              max: MixTrackList.maxVolume,
-              // One step per 5%, fine enough to place a background layer
-              // without the slider feeling loose.
-              divisions: 40,
-              value: clamped,
-              label: _percent(clamped),
-              onChanged: onChanged,
-            ),
-          ),
-          SizedBox(
-            width: 48,
-            child: Text(
-              _percent(clamped),
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _percent(double volume) => '${(volume * 100).round()}%';
 }

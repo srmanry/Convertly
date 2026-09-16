@@ -12,6 +12,7 @@ import 'package:convertly/features/converter/domain/entities/conversion_result.d
 import 'package:convertly/features/converter/domain/usecases/convert_media.dart';
 import 'package:convertly/features/converter/domain/usecases/pick_media.dart';
 import 'package:convertly/features/converter/presentation/controllers/converter_controller.dart';
+import 'package:convertly/features/converter/domain/entities/volume_envelope.dart';
 import 'package:convertly/features/converter/presentation/controllers/mix_preview_controller.dart';
 import 'package:convertly/features/files/domain/entities/media_file.dart';
 import 'package:convertly/features/files/domain/repositories/media_library_repository.dart';
@@ -295,44 +296,99 @@ void main() {
   });
 
   group('preview levels', () {
-    test('levels at or below full scale are left alone', () {
+    double levelAt(
+      double volume, {
+      VolumeEnvelope? envelope,
+      Duration time = Duration.zero,
+      double headroom = 1,
+    }) => MixPreviewController.previewLevel(
+      volume: volume,
+      envelope: envelope,
+      length: const Duration(seconds: 100),
+      time: time,
+      headroom: headroom,
+    );
+
+    /// Full at both ends, down to 20% at the middle.
+    final VolumeEnvelope dip = VolumeEnvelope(const <EnvelopePoint>[
+      EnvelopePoint(0, 1),
+      EnvelopePoint(0.5, 0.2),
+      EnvelopePoint(1, 1),
+    ]);
+
+    test('a track with no line plays at its slider level', () {
+      expect(levelAt(0.6), closeTo(0.6, 0.0001));
+      expect(levelAt(0.6, time: const Duration(seconds: 50)), 0.6);
+    });
+
+    test('a track follows its line as it plays', () {
+      expect(levelAt(1, envelope: dip), closeTo(1, 0.0001));
       expect(
-        MixPreviewController.previewVolumes(<double>[1, 0.6, 0.25]),
-        <double>[1, 0.6, 0.25],
+        levelAt(1, envelope: dip, time: const Duration(seconds: 50)),
+        closeTo(0.2, 0.0001),
+      );
+      expect(
+        levelAt(1, envelope: dip, time: const Duration(seconds: 25)),
+        inExclusiveRange(0.2, 1),
       );
     });
 
-    test('a boosted layer scales the group instead of being clipped', () {
-      // 200% cannot be played as-is, so everything drops by the same factor
-      // and the balance the user set survives.
-      expect(MixPreviewController.previewVolumes(<double>[1, 2]), <double>[
-        0.5,
-        1,
-      ]);
+    test('the slider scales the whole line', () {
+      expect(
+        levelAt(0.5, envelope: dip, time: const Duration(seconds: 50)),
+        closeTo(0.1, 0.0001),
+      );
     });
 
-    test('relative balance is preserved through the scaling', () {
-      final List<double> levels = MixPreviewController.previewVolumes(<double>[
-        1.5,
-        0.75,
+    test('past the end of its line a track holds the last point', () {
+      // The export does the same for a layer that repeats.
+      expect(
+        levelAt(
+          1,
+          envelope: VolumeEnvelope.fadeOut(),
+          time: const Duration(seconds: 250),
+        ),
+        0,
+      );
+    });
+
+    test('a boosted track scales the group instead of being clipped', () {
+      // 200% cannot be played as-is, so everything drops by the same factor
+      // and the balance the user set survives.
+      final double headroom = MixPreviewController.headroomFor(
+        <double>[1, 2],
+        const <VolumeEnvelope?>[null, null],
+      );
+
+      expect(headroom, 2);
+      expect(levelAt(1, headroom: headroom), 0.5);
+      expect(levelAt(2, headroom: headroom), 1);
+    });
+
+    test('a point raised above 100% counts as a boost', () {
+      final VolumeEnvelope raised = VolumeEnvelope(const <EnvelopePoint>[
+        EnvelopePoint(0, 1),
+        EnvelopePoint(0.5, 1.5),
+        EnvelopePoint(1, 1),
       ]);
 
-      expect(levels[0] / levels[1], closeTo(2, 0.0001));
+      expect(
+        MixPreviewController.headroomFor(
+          <double>[1, 1],
+          <VolumeEnvelope?>[null, raised],
+        ),
+        1.5,
+      );
     });
 
     test('every level stays inside what a player accepts', () {
-      final List<double> levels = MixPreviewController.previewVolumes(<double>[
-        0,
-        0.4,
-        1,
-        2,
-      ]);
-
-      expect(levels, everyElement(inInclusiveRange(0, 1)));
+      for (final double volume in <double>[0, 0.4, 1, 2]) {
+        expect(levelAt(volume), inInclusiveRange(0, 1));
+      }
     });
 
     test('a silent track stays silent', () {
-      expect(MixPreviewController.previewVolumes(<double>[1, 0])[1], 0);
+      expect(levelAt(0, envelope: dip), 0);
     });
   });
 

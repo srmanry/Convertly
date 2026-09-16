@@ -1,4 +1,4 @@
-# Convertly — Media Converter & Audio Toolkit
+# AudioForge — Media Converter & Audio Toolkit
 
 Offline-first Flutter app for converting video and audio on-device. User media
 is never uploaded; all processing happens locally.

@@ -188,23 +188,8 @@ class _BottomDockItem extends StatelessWidget {
       button: true,
       selected: selected,
       label: destination.label,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
+      child: SizedBox(
         height: 58,
-        decoration: BoxDecoration(
-          color: selected
-              ? colors.primary.withValues(
-                  alpha: theme.brightness == Brightness.dark ? 0.15 : 0.1,
-                )
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          border: Border.all(
-            color: selected
-                ? colors.primary.withValues(alpha: 0.2)
-                : Colors.transparent,
-          ),
-        ),
         child: Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -214,18 +199,46 @@ class _BottomDockItem extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (Widget child, Animation<double> value) =>
-                      FadeTransition(
-                        opacity: value,
-                        child: ScaleTransition(scale: value, child: child),
-                      ),
-                  child: Icon(
-                    selected ? destination.selectedIcon : destination.icon,
-                    key: ValueKey<bool>(selected),
-                    color: foreground,
-                    size: AppDimens.iconMd,
+                // Only the icon carries the selected look, as a circle
+                // behind it, rather than a pill spanning icon and label.
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? colors.primary.withValues(
+                            alpha: theme.brightness == Brightness.dark
+                                ? 0.18
+                                : 0.12,
+                          )
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected
+                          ? colors.primary.withValues(alpha: 0.24)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder:
+                        (Widget child, Animation<double> value) =>
+                            FadeTransition(
+                              opacity: value,
+                              child: ScaleTransition(
+                                scale: value,
+                                child: child,
+                              ),
+                            ),
+                    child: Icon(
+                      selected ? destination.selectedIcon : destination.icon,
+                      key: ValueKey<bool>(selected),
+                      color: foreground,
+                      size: AppDimens.iconMd,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),

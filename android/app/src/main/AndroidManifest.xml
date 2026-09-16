@@ -14,7 +14,7 @@
         android:maxSdkVersion="32"/>
 
     <application
-        android:label="Convertly"
+        android:label="AudioForge"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

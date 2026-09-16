@@ -12,6 +12,18 @@ abstract final class AppColors {
   static const Color success = Color(0xFF42E8A4);
   static const Color warning = Color(0xFFFFC857);
 
+  /// Cycled across the mixer's tracks so each one reads as a distinct voice
+  /// without introducing any colour the rest of the app does not already use
+  /// for an accent — the same six that label the tools on the home screen.
+  static const List<Color> mixTrackAccents = <Color>[
+    accentAudio,
+    success,
+    accentPremium,
+    accentTools,
+    accentVideo,
+    Color(0xFF6F9BFF),
+  ];
+
   static const List<Color> brandGradient = <Color>[
     Color(0xFFE13CFF),
     Color(0xFF8B5CFF),

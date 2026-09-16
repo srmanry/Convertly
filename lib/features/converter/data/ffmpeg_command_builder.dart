@@ -191,18 +191,20 @@ abstract final class FfmpegCommandBuilder {
 
   /// The envelope written as an expression of `t`, in seconds.
   ///
-  /// Each straight run of the drawn shape becomes one term that is active only
-  /// inside its own span, so the terms sum to a single continuous line.
+  /// Each run between two points becomes one term that is active only inside
+  /// its own span, so the terms sum to a single continuous line. Within a run
+  /// the level eases along the same S-curve the lane draws, so what is heard
+  /// is what was shaped.
   static String _envelopeExpression(
     VolumeEnvelope envelope,
     Duration length,
     double volume,
   ) {
-    final List<(double, double)> points = _controlPoints(
-      envelope,
-      length,
-      volume,
-    );
+    final double seconds = length.inMilliseconds / 1000;
+    final List<(double, double)> points = <(double, double)>[
+      for (final EnvelopePoint point in envelope.points)
+        (seconds * point.position, point.level * volume),
+    ];
 
     final List<String> terms = <String>[];
     for (int i = 0; i < points.length - 1; i++) {
@@ -213,10 +215,17 @@ abstract final class FfmpegCommandBuilder {
         continue;
       }
 
-      final String ramp = endLevel == startLevel
-          ? _number(startLevel)
-          : '(${_number(startLevel)}+${_number(endLevel - startLevel)}'
-                '*(t-${_number(startTime)})/${_number(span)})';
+      final String ramp;
+      if ((endLevel - startLevel).abs() < 0.0005) {
+        ramp = _number(startLevel);
+      } else {
+        // Progress through the run, held at 1 past its end so the last run
+        // cannot curve back once the clip runs a fraction long.
+        final String x = 'min((t-${_number(startTime)})/${_number(span)},1)';
+        ramp =
+            '(${_number(startLevel)}+${_number(endLevel - startLevel)}'
+            '*$x*$x*(3-2*$x))';
+      }
 
       // The last run also covers anything past the clip's measured end, so a
       // length that is a fraction short cannot drop the level to zero.
@@ -228,50 +237,6 @@ abstract final class FfmpegCommandBuilder {
     }
 
     return terms.isEmpty ? _number(volume) : terms.join('+');
-  }
-
-  /// The drawn shape reduced to the points that actually turn it.
-  ///
-  /// A shape is mostly flat, and a term for every drawn point would make the
-  /// expression far longer than the handful of turns it contains.
-  static List<(double, double)> _controlPoints(
-    VolumeEnvelope envelope,
-    Duration length,
-    double volume,
-  ) {
-    final int count = envelope.levels.length;
-    final double seconds = length.inMilliseconds / 1000;
-    final List<(double, double)> all = <(double, double)>[
-      for (int i = 0; i < count; i++)
-        (
-          count == 1 ? 0.0 : seconds * i / (count - 1),
-          envelope.levels[i] * volume,
-        ),
-    ];
-
-    if (all.length < 3) {
-      return all;
-    }
-
-    final List<(double, double)> kept = <(double, double)>[all.first];
-    for (int i = 1; i < all.length - 1; i++) {
-      final (double time, double level) = all[i];
-      final (double previousTime, double previousLevel) = kept.last;
-      final (double nextTime, double nextLevel) = all[i + 1];
-
-      final double span = nextTime - previousTime;
-      // A point already sitting on the line between its neighbours adds
-      // nothing to the shape, so it is dropped.
-      final double onLine = span <= 0
-          ? previousLevel
-          : previousLevel +
-                (nextLevel - previousLevel) * (time - previousTime) / span;
-      if ((level - onLine).abs() > 0.01) {
-        kept.add(all[i]);
-      }
-    }
-    kept.add(all.last);
-    return kept;
   }
 
   /// A level or a time, trimmed to what the filter needs to read it.

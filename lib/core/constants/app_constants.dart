@@ -1,10 +1,10 @@
 /// Values that identify the product itself.
 abstract final class AppConstants {
-  static const String appName = 'Convertly';
+  static const String appName = 'AudioForge';
   static const String appTagline = 'Media Converter & Toolkit';
 
   /// Folder created inside the app-specific media directory for all output.
-  static const String outputFolderName = 'Convertly';
+  static const String outputFolderName = 'AudioForge';
 
   static const Duration splashDuration = Duration(milliseconds: 1800);
 }

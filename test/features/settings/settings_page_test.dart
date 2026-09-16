@@ -47,12 +47,7 @@ void main() {
     await pumpSettings(tester);
 
     // The list is lazily built, so later sections must be scrolled into view.
-    for (final String section in <String>[
-      'APPEARANCE',
-      'CONVERSION',
-      'STORAGE',
-      'APP',
-    ]) {
+    for (final String section in <String>['CONVERSION', 'STORAGE', 'APP']) {
       await tester.scrollUntilVisible(
         find.text(section),
         200,
@@ -67,24 +62,17 @@ void main() {
   ) async {
     await pumpSettings(tester);
 
-    expect(find.text('System'), findsOneWidget);
     expect(find.text('MP3'), findsOneWidget);
     expect(find.text('192 kbps'), findsOneWidget);
   });
 
-  testWidgets('picking a theme persists it and updates the row', (
+  testWidgets('there is no theme row: the app is dark-only', (
     WidgetTester tester,
   ) async {
     await pumpSettings(tester);
 
-    await tester.tap(find.text('Theme'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Dark').last);
-    await tester.pumpAndSettle();
-
-    expect(repository.stored.themeMode, AppThemeMode.dark);
-    expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('Theme'), findsNothing);
+    expect(find.text('Appearance'), findsNothing);
   });
 
   testWidgets('picking an output format persists it', (
