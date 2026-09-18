@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
-import '../../../../core/routes/app_routes.dart';
-import '../../../../core/widgets/ad_free_button.dart';
 import '../../domain/entities/app_settings.dart';
 import '../controllers/settings_controller.dart';
 import '../widgets/settings_section.dart';
@@ -78,46 +76,8 @@ class SettingsPage extends GetView<SettingsController> {
                     ],
                   ),
                   SettingsSection(
-                    title: 'Ads',
-                    children: const <Widget>[
-                      Padding(
-                        padding: EdgeInsets.all(AppDimens.spaceLg),
-                        child: AdFreeButton(),
-                      ),
-                    ],
-                  ),
-                  SettingsSection(
-                    title: 'Storage',
-                    children: <Widget>[
-                      SettingsTile(
-                        icon: Icons.storage_rounded,
-                        title: 'Storage information',
-                        subtitle: 'What the app is keeping on this device',
-                        onTap: () => Get.toNamed<void>(AppRoutes.storage),
-                      ),
-                      SettingsTile(
-                        icon: Icons.delete_sweep_rounded,
-                        title: 'Clear converted files',
-                        isDestructive: true,
-                        // Deleting everything is confirmed on the storage
-                        // screen, where the figure it frees is in view.
-                        onTap: () => Get.toNamed<void>(AppRoutes.storage),
-                      ),
-                    ],
-                  ),
-                  SettingsSection(
                     title: 'App',
                     children: <Widget>[
-                      SettingsTile(
-                        icon: Icons.star_rounded,
-                        title: 'Rate App',
-                        onTap: () => _showComingSoon(context, 'Rating'),
-                      ),
-                      SettingsTile(
-                        icon: Icons.share_rounded,
-                        title: 'Share App',
-                        onTap: () => _showComingSoon(context, 'Sharing'),
-                      ),
                       SettingsTile(
                         icon: Icons.privacy_tip_rounded,
                         title: 'Privacy Policy',

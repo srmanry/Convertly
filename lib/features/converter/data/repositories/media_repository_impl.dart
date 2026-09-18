@@ -116,7 +116,10 @@ class MediaRepositoryImpl implements MediaRepository {
       if (picked == null) {
         return const Result<MediaInfo?>.success(null);
       }
-      return _validate(picked, requireVideo: requireVideo);
+      // Awaited rather than returned directly: the catch below only reaches
+      // a failure that happens before control leaves this block, and
+      // validating the pick can still throw.
+      return await _validate(picked, requireVideo: requireVideo);
     } catch (error) {
       return Result<MediaInfo?>.failure(
         FileFailure(debugMessage: error.toString()),

@@ -196,6 +196,12 @@ class _BottomDockItem extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
+            // The circle behind the icon already shows what's selected; a
+            // ripple over the whole tab on top of that is one animation too
+            // many for a press that just switches tabs.
+            splashFactory: NoSplash.splashFactory,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[

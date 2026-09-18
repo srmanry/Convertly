@@ -47,7 +47,7 @@ void main() {
     await pumpSettings(tester);
 
     // The list is lazily built, so later sections must be scrolled into view.
-    for (final String section in <String>['CONVERSION', 'STORAGE', 'APP']) {
+    for (final String section in <String>['CONVERSION', 'APP']) {
       await tester.scrollUntilVisible(
         find.text(section),
         200,

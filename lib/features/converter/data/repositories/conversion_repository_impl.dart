@@ -56,7 +56,10 @@ class ConversionRepositoryImpl implements ConversionRepository {
           );
 
         case FfmpegOutcome.success:
-          return _buildResult(request);
+          // Awaited rather than returned directly: the catch below only
+          // reaches a failure that happens before control leaves this
+          // block, and building the result can still throw.
+          return await _buildResult(request);
       }
     } catch (error) {
       await _deletePartialOutput(request.outputPath);

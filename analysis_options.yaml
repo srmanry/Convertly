@@ -14,6 +14,12 @@ analyzer:
     # Build output, not our code. Swift Package Manager checks plugin sources
     # out under here, and their own tests would otherwise be analysed as ours.
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the
