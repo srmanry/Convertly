@@ -110,11 +110,10 @@ void main() {
     waveforms.finish(first.path, <double>[0.9, 0.9, 0.9]);
     await firstLoad;
 
-    expect(
-      controller.peaks.value,
-      <double>[0.2, 0.2],
-      reason: 'the abandoned file must not overwrite the current waveform',
-    );
+    expect(controller.peaks.value, <double>[
+      0.2,
+      0.2,
+    ], reason: 'the abandoned file must not overwrite the current waveform');
   });
 
   test(

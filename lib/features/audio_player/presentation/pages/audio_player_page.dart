@@ -18,7 +18,7 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
       appBar: AppBar(title: const Text('Now Playing')),
       // Someone listening is resting, not working, and the strip sits below
       // the transport controls rather than among them.
-      bottomNavigationBar: const BannerAdView(),
+      bottomNavigationBar: const BannerAdView(includeBottomSafeArea: true),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

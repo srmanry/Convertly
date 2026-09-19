@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../config/ad_ids.dart';
+import '../services/ads_service.dart';
 import 'ad_free_gate.dart';
 
 /// An ad shaped like a row, for placing among a list of real content.
@@ -26,49 +30,82 @@ class NativeAdTile extends StatefulWidget {
 class _NativeAdTileState extends State<NativeAdTile> {
   NativeAd? _ad;
   bool _loaded = false;
+  bool _loading = false;
+  bool _active = true;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  void _load() {
-    if (!AdIds.isSupportedPlatform) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _active = TickerMode.valuesOf(context).enabled;
+    if (!_active) {
+      _disposeAd();
       return;
     }
+    if (_ad == null) {
+      unawaited(_load());
+    }
+  }
 
-    final NativeAd ad = NativeAd(
-      adUnitId: AdIds.native,
-      factoryId: NativeAdTile.factoryId,
-      request: const AdRequest(),
-      listener: NativeAdListener(
-        onAdLoaded: (Ad ad) {
-          if (!mounted) {
-            ad.dispose();
-            return;
-          }
-          setState(() => _loaded = true);
-        },
-        onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          ad.dispose();
-          if (mounted) {
-            setState(() {
-              _ad = null;
-              _loaded = false;
-            });
-          }
-        },
-      ),
-    );
+  Future<void> _load() async {
+    if (_loading || !_active || !AdIds.isSupportedPlatform) {
+      return;
+    }
+    _loading = true;
 
-    _ad = ad;
-    ad.load();
+    try {
+      // No request goes out before consent has been settled and the SDK is up.
+      if (Get.isRegistered<AdsService>()) {
+        await Get.find<AdsService>().whenReady();
+        if (!mounted || !_active) {
+          return;
+        }
+      }
+
+      late final NativeAd ad;
+      ad = NativeAd(
+        adUnitId: AdIds.native,
+        factoryId: NativeAdTile.factoryId,
+        request: const AdRequest(),
+        listener: NativeAdListener(
+          onAdLoaded: (Ad loadedAd) {
+            if (!mounted || !_active || !identical(_ad, ad)) {
+              loadedAd.dispose();
+              return;
+            }
+            setState(() => _loaded = true);
+          },
+          onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
+            failedAd.dispose();
+            if (mounted && identical(_ad, ad)) {
+              setState(() {
+                _ad = null;
+                _loaded = false;
+              });
+            }
+          },
+        ),
+      );
+
+      _ad = ad;
+      await ad.load();
+    } finally {
+      _loading = false;
+    }
+  }
+
+  void _disposeAd() {
+    final NativeAd? ad = _ad;
+    _ad = null;
+    _loaded = false;
+    if (ad != null) {
+      unawaited(ad.dispose());
+    }
   }
 
   @override
   void dispose() {
-    _ad?.dispose();
+    _active = false;
+    _disposeAd();
     super.dispose();
   }
 

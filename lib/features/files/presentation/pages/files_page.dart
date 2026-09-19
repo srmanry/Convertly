@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/widgets/search_field_border.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/file_utils.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../../../core/widgets/native_ad_tile.dart';
@@ -72,7 +74,8 @@ class FilesPage extends GetView<FilesController> {
 
               return Column(
                 children: <Widget>[
-                  _SearchField(controller: controller),
+                  if (controller.searchOpen.value)
+                    _SearchField(controller: controller),
                   Expanded(
                     child: files.isEmpty
                         ? EmptyStateView(
@@ -294,24 +297,104 @@ class FilesPage extends GetView<FilesController> {
   }) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+      builder: (BuildContext dialogContext) {
+        final ThemeData theme = Theme.of(dialogContext);
+        final ColorScheme colors = theme.colorScheme;
+
+        return AlertDialog(
+          backgroundColor: colors.surfaceContainerHigh,
+          surfaceTintColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.spaceXl,
+            vertical: AppDimens.spaceXl,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
-              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.65),
             ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
           ),
-        ],
-      ),
+          iconPadding: const EdgeInsets.fromLTRB(
+            AppDimens.spaceXl,
+            AppDimens.spaceXl,
+            AppDimens.spaceXl,
+            0,
+          ),
+          icon: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.danger,
+              size: 30,
+            ),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(
+            AppDimens.spaceXl,
+            AppDimens.spaceLg,
+            AppDimens.spaceXl,
+            0,
+          ),
+          title: Text(title, textAlign: TextAlign.center),
+          contentPadding: const EdgeInsets.fromLTRB(
+            AppDimens.spaceXl,
+            AppDimens.spaceSm,
+            AppDimens.spaceXl,
+            AppDimens.spaceXl,
+          ),
+          content: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(
+            AppDimens.spaceXl,
+            0,
+            AppDimens.spaceXl,
+            AppDimens.spaceXl,
+          ),
+          actions: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, AppDimens.buttonHeight),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.spaceMd,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: AppDimens.spaceMd),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, AppDimens.buttonHeight),
+                      backgroundColor: AppColors.danger,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.spaceMd,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    label: const Text('Delete'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
 
     // Dismissing the dialog counts as "no", never as consent to delete.
@@ -319,45 +402,171 @@ class FilesPage extends GetView<FilesController> {
   }
 
   Future<void> _showRenameDialog(BuildContext context, MediaFile file) async {
-    final TextEditingController textController = TextEditingController(
-      text: file.name,
-    );
+    final String currentName = FileUtils.baseNameWithoutExtension(file.name);
+    final String extension = FileUtils.extensionOf(file.name);
 
     final String? value = await showDialog<String>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Rename file'),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'File name',
-              hintText: 'Enter a new file name',
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(textController.text),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+      builder: (_) =>
+          _RenameFileDialog(initialName: currentName, extension: extension),
     );
 
-    textController.dispose();
-
-    if (value == null || value.trim() == file.name) {
+    if (value == null || value.trim() == currentName) {
       return;
     }
 
     await controller.rename(file, value);
+  }
+}
+
+class _RenameFileDialog extends StatefulWidget {
+  const _RenameFileDialog({required this.initialName, required this.extension});
+
+  final String initialName;
+  final String extension;
+
+  @override
+  State<_RenameFileDialog> createState() => _RenameFileDialogState();
+}
+
+class _RenameFileDialogState extends State<_RenameFileDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialName)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.initialName.length,
+        );
+
+  bool get _canSave => _controller.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (_canSave) {
+      Navigator.of(context).pop(_controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+
+    return AlertDialog(
+      scrollable: true,
+      backgroundColor: colors.surfaceContainerHigh,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.spaceXl,
+        vertical: AppDimens.spaceXl,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.65)),
+      ),
+      iconPadding: const EdgeInsets.fromLTRB(
+        AppDimens.spaceXl,
+        AppDimens.spaceXl,
+        AppDimens.spaceXl,
+        0,
+      ),
+      icon: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.16),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.drive_file_rename_outline_rounded,
+          color: colors.primary,
+          size: 30,
+        ),
+      ),
+      titlePadding: const EdgeInsets.fromLTRB(
+        AppDimens.spaceXl,
+        AppDimens.spaceLg,
+        AppDimens.spaceXl,
+        0,
+      ),
+      title: const Text('Rename file', textAlign: TextAlign.center),
+      contentPadding: const EdgeInsets.fromLTRB(
+        AppDimens.spaceXl,
+        AppDimens.spaceSm,
+        AppDimens.spaceXl,
+        AppDimens.spaceXl,
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            'Give this file a short, easy-to-find name.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppDimens.spaceLg),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            autocorrect: false,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _save(),
+            decoration: InputDecoration(
+              labelText: 'File name',
+              prefixIcon: const Icon(Icons.audio_file_rounded),
+              suffixText: widget.extension.isEmpty
+                  ? null
+                  : '.${widget.extension}',
+            ),
+          ),
+        ],
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(
+        AppDimens.spaceXl,
+        0,
+        AppDimens.spaceXl,
+        AppDimens.spaceXl,
+      ),
+      actions: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, AppDimens.buttonHeight),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.spaceMd,
+                  ),
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(width: AppDimens.spaceMd),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, AppDimens.buttonHeight),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.spaceMd,
+                  ),
+                ),
+                onPressed: _canSave ? _save : null,
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Save'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -374,11 +583,28 @@ class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: const Text('My Files'),
-      actions: <Widget>[
-        Obx(
-          () => PopupMenuButton<MediaSortOrder>(
+    return Obx(() {
+      final bool searching = controller.searchOpen.value;
+
+      return AppBar(
+        title: const Text('My Files'),
+        actions: <Widget>[
+          if (controller.files.isNotEmpty)
+            IconButton(
+              tooltip: searching ? 'Close search' : 'Search files',
+              onPressed: () {
+                if (searching) {
+                  controller.closeSearch();
+                  FocusScope.of(context).unfocus();
+                } else {
+                  controller.openSearch();
+                }
+              },
+              icon: Icon(
+                searching ? Icons.search_off_rounded : Icons.search_rounded,
+              ),
+            ),
+          PopupMenuButton<MediaSortOrder>(
             initialValue: controller.sortOrder.value,
             tooltip: 'Sort files',
             onSelected: controller.setSortOrder,
@@ -393,9 +619,9 @@ class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {
                   .toList();
             },
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 }
 
@@ -442,11 +668,10 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Narrows the list by file name.
+/// Search box shown under the app bar while search is open.
 ///
-/// Sits under the app bar rather than replacing its title: the sort control
-/// and the selection count both live up there, and swapping the bar out for a
-/// search box would hide them exactly when a search makes them most useful.
+/// The app bar keeps its title, the search toggle and the sort control; the box
+/// sits below them so a search never hides those.
 class _SearchField extends StatefulWidget {
   const _SearchField({required this.controller});
 
@@ -497,6 +722,7 @@ class _SearchFieldState extends State<_SearchField> {
       child: Obx(
         () => TextField(
           controller: _field,
+          autofocus: true,
           onChanged: widget.controller.setQuery,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
@@ -514,10 +740,7 @@ class _SearchFieldState extends State<_SearchField> {
                 ? IconButton(
                     icon: const Icon(Icons.close_rounded),
                     tooltip: 'Clear search',
-                    onPressed: () {
-                      widget.controller.clearQuery();
-                      FocusScope.of(context).unfocus();
-                    },
+                    onPressed: widget.controller.clearQuery,
                   )
                 : null,
             contentPadding: const EdgeInsets.symmetric(

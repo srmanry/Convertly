@@ -7,6 +7,7 @@ abstract final class AppRoutes {
   static const String shell = '/';
 
   static const String settings = '/settings';
+  static const String privacyPolicy = '/privacy-policy';
 
   /// What the app is keeping on the device.
   static const String storage = '/storage';

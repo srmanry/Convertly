@@ -39,15 +39,29 @@ class ShellPage extends GetView<ShellController> {
           Navigator.of(context).maybePop();
         }
       },
-      child: Obx(
-        () => Scaffold(
+      child: Obx(() {
+        final int currentIndex = controller.currentIndex;
+
+        return Scaffold(
           body: IndexedStack(
-            index: controller.currentIndex,
-            children: const <Widget>[
-              HomePage(),
-              FilesPage(),
-              MusicLibraryPage(),
-              SettingsPage(showBackButton: false),
+            index: currentIndex,
+            children: <Widget>[
+              TickerMode(
+                enabled: currentIndex == ShellTab.home.index,
+                child: const HomePage(),
+              ),
+              TickerMode(
+                enabled: currentIndex == ShellTab.files.index,
+                child: const FilesPage(),
+              ),
+              TickerMode(
+                enabled: currentIndex == ShellTab.player.index,
+                child: const MusicLibraryPage(),
+              ),
+              TickerMode(
+                enabled: currentIndex == ShellTab.settings.index,
+                child: const SettingsPage(showBackButton: false),
+              ),
             ],
           ),
           bottomNavigationBar: Column(
@@ -66,14 +80,14 @@ class ShellPage extends GetView<ShellController> {
                   AppDimens.spaceSm,
                 ),
                 child: _BottomDock(
-                  selectedIndex: controller.currentIndex,
+                  selectedIndex: currentIndex,
                   onSelected: controller.changeTab,
                 ),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

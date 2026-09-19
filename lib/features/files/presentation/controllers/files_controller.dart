@@ -40,6 +40,9 @@ class FilesController extends GetxController {
 
   bool get isSearching => query.value.trim().isNotEmpty;
 
+  /// Whether the app bar is showing the search box instead of the title.
+  final RxBool searchOpen = false.obs;
+
   /// Ids the user has ticked. Selection mode is on whenever this is non-empty.
   final RxSet<int> selectedIds = <int>{}.obs;
 
@@ -231,6 +234,15 @@ class FilesController extends GetxController {
   void setQuery(String value) => query.value = value;
 
   void clearQuery() => query.value = '';
+
+  void openSearch() => searchOpen.value = true;
+
+  /// Closing the box also lifts the filter, so a hidden search never keeps
+  /// narrowing the list.
+  void closeSearch() {
+    searchOpen.value = false;
+    clearQuery();
+  }
 
   Future<void> open(MediaFile file) async {
     if (!File(file.path).existsSync()) {

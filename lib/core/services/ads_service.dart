@@ -144,6 +144,30 @@ class AdsService {
   bool _initialised = false;
   bool get isReady => _initialised;
 
+  final ValueNotifier<bool> _readiness = ValueNotifier<bool>(false);
+
+  /// Completes once ads may be requested: consent gathered where it is
+  /// required and the SDK started. Never completes when they cannot be, so a
+  /// banner waiting on it simply stays empty.
+  ///
+  /// Every ad is requested only after this, so no request goes out ahead of a
+  /// consent choice the law requires.
+  Future<void> whenReady() {
+    if (_readiness.value) {
+      return Future<void>.value();
+    }
+    final Completer<void> ready = Completer<void>();
+    void onChange() {
+      if (_readiness.value && !ready.isCompleted) {
+        _readiness.removeListener(onChange);
+        ready.complete();
+      }
+    }
+
+    _readiness.addListener(onChange);
+    return ready.future;
+  }
+
   InterstitialAd? _interstitial;
   bool _loadingInterstitial = false;
 
@@ -166,6 +190,11 @@ class AdsService {
       return;
     }
     try {
+      // Consent comes before the SDK starts: where the law requires a choice,
+      // no ad may be requested until it has been made.
+      if (!await _gatherConsent()) {
+        return;
+      }
       // A slow or unresponsive network must not hold this open indefinitely:
       // nothing awaits this call, but it still runs on the same isolate as
       // everything else, so a hang here can still stall the app around it.
@@ -173,12 +202,71 @@ class AdsService {
         const Duration(seconds: 10),
       );
       _initialised = true;
+      _readiness.value = true;
       unawaited(_loadInterstitial());
       unawaited(_loadRewarded());
     } catch (error) {
       // A network failure or timeout at startup must not stop the app
       // opening; ads simply stay absent for this run.
       _initialised = false;
+    }
+  }
+
+  /// Whether the user has to be able to reopen their ad-privacy choices.
+  ///
+  /// True only where the law asks for it (the EEA, the UK, Switzerland), so
+  /// the settings entry appears exactly there and nowhere else.
+  final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
+
+  /// Asks Google's consent service what is needed, shows the message if one
+  /// is due, and reports whether ads may now be requested.
+  ///
+  /// A failure at any step (no network on a first launch, no message set up
+  /// yet) leaves ads off for this run rather than guessing: requesting ads
+  /// without a needed consent is the one thing that must not happen.
+  Future<bool> _gatherConsent() async {
+    try {
+      final Completer<void> updated = Completer<void>();
+      ConsentInformation.instance.requestConsentInfoUpdate(
+        ConsentRequestParameters(),
+        () {
+          if (!updated.isCompleted) {
+            updated.complete();
+          }
+        },
+        (FormError error) {
+          if (!updated.isCompleted) {
+            updated.complete();
+          }
+        },
+      );
+      await updated.future.timeout(const Duration(seconds: 10));
+
+      // Shows the message only when one is required and not yet answered. It
+      // waits for the user, so it is deliberately not given a timeout.
+      await ConsentForm.loadAndShowConsentFormIfRequired((FormError? error) {});
+    } catch (error) {
+      // Fall through to what is already known from an earlier launch.
+    }
+
+    try {
+      final PrivacyOptionsRequirementStatus status = await ConsentInformation
+          .instance
+          .getPrivacyOptionsRequirementStatus();
+      privacyOptionsRequired.value =
+          status == PrivacyOptionsRequirementStatus.required;
+      return await ConsentInformation.instance.canRequestAds();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /// Reopens the consent message so a choice can be changed.
+  Future<void> showPrivacyOptions() async {
+    try {
+      await ConsentForm.showPrivacyOptionsForm((FormError? error) {});
+    } catch (error) {
+      // Nothing to show; the entry point only offers itself where it can work.
     }
   }
 
@@ -391,5 +479,7 @@ class AdsService {
     _rewarded?.dispose();
     _rewarded = null;
     isAdFree.dispose();
+    privacyOptionsRequired.dispose();
+    _readiness.dispose();
   }
 }

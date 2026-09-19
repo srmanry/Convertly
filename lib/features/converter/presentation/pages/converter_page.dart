@@ -16,7 +16,6 @@ import '../../../../core/enums/noise_strength.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/depth_surface.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_track.dart';
@@ -219,8 +218,11 @@ class _ConfigurationView extends StatelessWidget {
                 if (controller.mode.picksMultiple &&
                     !_offersLibraryPicker(controller)) ...<Widget>[
                   const SizedBox(height: AppDimens.spaceMd),
+                  _PickingProgress(controller: controller),
                   OutlinedButton.icon(
-                    onPressed: controller.pickSource,
+                    onPressed: controller.isPicking.value
+                        ? null
+                        : controller.pickSource,
                     icon: const Icon(Icons.add_rounded),
                     label: const Text('Add more files'),
                   ),
@@ -271,7 +273,7 @@ class _ConfigurationView extends StatelessWidget {
             child: Obx(
               () => FilledButton.icon(
                 onPressed: controller.canConvert ? controller.convert : null,
-                icon: const Icon(Icons.bolt_rounded),
+                icon: Icon(_iconFor(controller.mode)),
                 label: Text(_actionLabel(controller)),
               ),
             ),
@@ -328,14 +330,19 @@ int? _previewingClip(ConverterController controller) {
 
 /// Label for the export button.
 ///
-/// "Convert" is wrong for a mixer, which is producing a new track rather than
-/// changing the format of an existing one.
+/// Says what the tool does. "Convert" is wrong for a cutter or a mixer, which
+/// are producing a new track rather than changing the format of an existing
+/// one. The button's icon comes from [_iconFor], so the two always agree.
 String _actionLabel(ConverterController controller) =>
     switch (controller.mode) {
+      ToolMode.videoToAudio => 'Extract Audio',
+      ToolMode.audioConvert => 'Convert',
+      ToolMode.cut => 'Cut Audio',
+      ToolMode.merge => 'Merge Files',
+      ToolMode.compress => 'Compress',
       ToolMode.mix => 'Mix Tracks',
       ToolMode.arrange => 'Build Track',
       ToolMode.cleanup => 'Clean Audio',
-      _ => 'Convert',
     };
 
 /// Whether this tool also offers the app's own converted files as input.
@@ -372,10 +379,9 @@ class _EmptySelection extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
-                  child: DepthSurface(
-                    tint: accent,
-                    elevation: 0.9,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+                  // No card around it: the icon, title and buttons sit
+                  // straight on the page.
+                  child: Padding(
                     padding: const EdgeInsets.all(AppDimens.spaceXl),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -476,12 +482,18 @@ class _EmptySelection extends StatelessWidget {
                         if (_offersLibraryPicker(controller))
                           _SourcePickerActions(controller: controller)
                         else
-                          FilledButton.icon(
-                            onPressed: controller.isPicking.value
-                                ? null
-                                : controller.pickSource,
-                            icon: const Icon(Icons.folder_open_rounded),
-                            label: Text(controller.mode.actionLabel),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              _PickingProgress(controller: controller),
+                              FilledButton.icon(
+                                onPressed: controller.isPicking.value
+                                    ? null
+                                    : controller.pickSource,
+                                icon: const Icon(Icons.folder_open_rounded),
+                                label: Text(controller.mode.actionLabel),
+                              ),
+                            ],
                           ),
                       ],
                     ),
@@ -515,6 +527,48 @@ Color _accentFor(ToolMode mode) => switch (mode) {
   ToolMode.arrange => AppColors.accentPremium,
   ToolMode.cleanup => AppColors.success,
 };
+
+/// Shows that a chosen file is being brought in and checked.
+///
+/// The picker hands the file over and the app then copies and inspects it,
+/// which takes a moment for a long recording. Without a sign of life the
+/// disabled buttons look like a frozen screen. Nothing reports how far along
+/// the copy is, so the bar is indeterminate rather than a made-up percentage.
+class _PickingProgress extends StatelessWidget {
+  const _PickingProgress({required this.controller});
+
+  final ConverterController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (!controller.isPicking.value) {
+        return const SizedBox.shrink();
+      }
+      final ThemeData theme = Theme.of(context);
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              'Uploading file…',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: AppDimens.spaceSm),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.radiusPill),
+              child: const LinearProgressIndicator(minHeight: 6),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
 
 class _SourcePickerActions extends StatelessWidget {
   const _SourcePickerActions({required this.controller, this.compact = false});
@@ -654,19 +708,27 @@ class _SourcePickerActions extends StatelessWidget {
       ];
 
       if (compact) {
-        return Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: AppDimens.spaceSm,
-            runSpacing: AppDimens.spaceSm,
-            children: buttons,
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _PickingProgress(controller: controller),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: AppDimens.spaceSm,
+                runSpacing: AppDimens.spaceSm,
+                children: buttons,
+              ),
+            ),
+          ],
         );
       }
 
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          _PickingProgress(controller: controller),
           buttons.first,
           const SizedBox(height: AppDimens.spaceSm),
           Row(
@@ -1049,7 +1111,7 @@ class _PlayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
 
-    final Color tint = onPressed == null
+    final Color backgroundColor = onPressed == null
         ? colors.onSurfaceVariant
         : colors.primary;
 
@@ -1057,7 +1119,7 @@ class _PlayButton extends StatelessWidget {
       width: 48,
       height: 48,
       child: Material(
-        color: Colors.transparent,
+        color: backgroundColor,
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -1069,15 +1131,13 @@ class _PlayButton extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: tint,
+                      color: Colors.white,
                     ),
                   )
-                // The icons carry their own circle, so the button behind them
-                // stays transparent rather than putting a disc inside a disc.
                 : Icon(
-                    isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    color: tint,
-                    size: 46,
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 32,
                   ),
           ),
         ),

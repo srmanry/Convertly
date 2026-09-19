@@ -121,10 +121,14 @@ abstract final class AppTheme {
             borderRadius: BorderRadius.circular(AppDimens.radiusMd),
           ),
           textStyle: base.textTheme.labelLarge,
+          foregroundColor: Colors.white,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(textStyle: base.textTheme.labelLarge),
+        style: TextButton.styleFrom(
+          textStyle: base.textTheme.labelLarge,
+          foregroundColor: Colors.white,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

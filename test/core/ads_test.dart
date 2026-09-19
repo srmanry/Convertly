@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:convertly/core/config/ad_ids.dart';
 import 'package:convertly/core/services/ads_service.dart';
 import 'package:convertly/core/services/storage_service.dart';
@@ -413,6 +415,30 @@ void main() {
     test('asking to watch with nothing loaded earns nothing', () async {
       expect(await ads.watchForBonusExports(), isFalse);
       expect(ads.adFreeExportsLeft, 0);
+    });
+  });
+
+  group('ads wait for consent and the SDK', () {
+    test('nothing is ready before the SDK has started', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+      await ads.initialise();
+
+      bool released = false;
+      unawaited(ads.whenReady().then((_) => released = true));
+      await Future<void>.delayed(Duration.zero);
+
+      // Where ads never start (here, no Android), a banner waiting on this
+      // must simply stay empty rather than request an ad regardless.
+      expect(released, isFalse);
+      expect(ads.isReady, isFalse);
+    });
+
+    test('the ad-privacy entry is off until the law asks for it', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      expect(ads.privacyOptionsRequired.value, isFalse);
     });
   });
 

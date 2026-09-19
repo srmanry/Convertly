@@ -18,8 +18,6 @@ class ConversionResultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ConversionResult? result = Get.arguments as ConversionResult?;
-    final ColorScheme colors = Theme.of(context).colorScheme;
-
     if (result == null) {
       // Reached only if the route is opened without arguments, e.g. by a
       // deep link; going back is the sane recovery.
@@ -42,101 +40,130 @@ class ConversionResultPage extends StatelessWidget {
             constraints: const BoxConstraints(
               maxWidth: AppDimens.maxContentWidth,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppDimens.pagePadding),
-              child: Column(
-                children: <Widget>[
-                  const Spacer(),
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
+            // Scrolls when the screen is too short for everything, so a small
+            // phone or a large font never overflows; on a tall screen the
+            // spacers still centre the result and pin the buttons low.
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppDimens.pagePadding),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight:
+                          constraints.maxHeight - AppDimens.pagePadding * 2,
                     ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      size: 52,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimens.spaceXl),
-                  Text(
-                    'Conversion Complete',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: AppDimens.spaceXl),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppDimens.spaceLg),
+                    child: IntrinsicHeight(
                       child: Column(
                         children: <Widget>[
-                          _DetailRow(label: 'File', value: result.name),
-                          _DetailRow(
-                            label: 'Size',
-                            value: Formatters.fileSize(result.sizeInBytes),
-                          ),
-                          if (result.duration case final Duration duration)
-                            _DetailRow(
-                              label: 'Duration',
-                              value: Formatters.duration(duration),
+                          const Spacer(),
+                          Container(
+                            width: 96,
+                            height: 96,
+                            decoration: const BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
                             ),
-                          _DetailRow(label: 'Format', value: result.format),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 52,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimens.spaceXl),
+                          Text(
+                            'Conversion Complete',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: AppDimens.spaceXl),
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppDimens.spaceLg),
+                              child: Column(
+                                children: <Widget>[
+                                  _DetailRow(
+                                    label: 'File',
+                                    value: result.name,
+                                    maxLines: 2,
+                                  ),
+                                  _DetailRow(
+                                    label: 'Size',
+                                    value: Formatters.fileSize(
+                                      result.sizeInBytes,
+                                    ),
+                                  ),
+                                  if (result.duration
+                                      case final Duration duration)
+                                    _DetailRow(
+                                      label: 'Duration',
+                                      value: Formatters.duration(duration),
+                                    ),
+                                  _DetailRow(
+                                    label: 'Format',
+                                    value: result.format,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          FilledButton.icon(
+                            onPressed: () => Get.toNamed<void>(
+                              AppRoutes.audioPlayer,
+                              arguments: <String, String>{
+                                'path': result.outputPath,
+                                'title': result.name,
+                              },
+                            ),
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: const Text('Play Audio'),
+                          ),
+                          const SizedBox(height: AppDimens.spaceMd),
+                          OutlinedButton.icon(
+                            onPressed: () => _saveToPhone(context, result),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: const Icon(Icons.download_rounded),
+                            label: const Text('Save to phone'),
+                          ),
+                          const SizedBox(height: AppDimens.spaceMd),
+                          OutlinedButton.icon(
+                            onPressed: () => _share(context, result),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: const Icon(Icons.share_rounded),
+                            label: const Text('Share'),
+                          ),
+                          const SizedBox(height: AppDimens.spaceMd),
+                          // The moment a file is ready is when more files are on the
+                          // user's mind, so the offer to make them ad-free sits here.
+                          const AdFreeButton(),
+                          const SizedBox(height: AppDimens.spaceSm),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: _openFiles,
+                                  child: const Text('Open Files'),
+                                ),
+                              ),
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Get.until(
+                                    (Route<dynamic> r) => r.isFirst,
+                                  ),
+                                  child: const Text('Done'),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: () => Get.toNamed<void>(
-                      AppRoutes.audioPlayer,
-                      arguments: <String, String>{
-                        'path': result.outputPath,
-                        'title': result.name,
-                      },
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Play Audio'),
-                  ),
-                  const SizedBox(height: AppDimens.spaceMd),
-                  OutlinedButton.icon(
-                    onPressed: () => _saveToPhone(context, result),
-                    icon: const Icon(Icons.download_rounded),
-                    label: const Text('Save to phone'),
-                  ),
-                  const SizedBox(height: AppDimens.spaceMd),
-                  OutlinedButton.icon(
-                    onPressed: () => _share(context, result),
-                    icon: const Icon(Icons.share_rounded),
-                    label: const Text('Share'),
-                  ),
-                  const SizedBox(height: AppDimens.spaceMd),
-                  // The moment a file is ready is when more files are on the
-                  // user's mind, so the offer to make them ad-free sits here.
-                  const AdFreeButton(),
-                  const SizedBox(height: AppDimens.spaceSm),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: TextButton(
-                          onPressed: _openFiles,
-                          child: const Text('Open Files'),
-                        ),
-                      ),
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () =>
-                              Get.until((Route<dynamic> r) => r.isFirst),
-                          child: Text(
-                            'Done',
-                            style: TextStyle(color: colors.primary),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -192,10 +219,13 @@ class ConversionResultPage extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({required this.label, required this.value, this.maxLines});
 
   final String label;
   final String value;
+
+  /// Caps a long value, which then ends in an ellipsis. Null shows it all.
+  final int? maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +248,8 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
+              maxLines: maxLines,
+              overflow: maxLines == null ? null : TextOverflow.ellipsis,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodyMedium,
             ),

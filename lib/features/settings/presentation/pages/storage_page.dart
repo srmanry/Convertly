@@ -290,9 +290,6 @@ class _ClearAllCard extends StatelessWidget {
                 onPressed: usage.convertedCount == 0 || isClearing
                     ? null
                     : () => _confirm(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                ),
                 icon: const Icon(Icons.delete_sweep_rounded),
                 label: const Text('Delete all converted files'),
               );

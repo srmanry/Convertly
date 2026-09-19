@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
+import '../../../../core/routes/app_routes.dart';
+import '../../../../core/services/ads_service.dart';
 import '../../domain/entities/app_settings.dart';
 import '../controllers/settings_controller.dart';
 import '../widgets/settings_section.dart';
@@ -11,9 +13,9 @@ import '../widgets/settings_tile.dart';
 
 /// Settings skeleton for Phase 1.
 ///
-/// The app is dark-only, so there is no appearance choice to offer here.
-/// Conversion defaults are fully wired; storage and legal rows are
-/// placeholders until the features they describe exist.
+/// The app is dark-only, so there is no appearance choice to offer here. Every
+/// row does something: the two conversion defaults are applied to each tool,
+/// and the privacy rows open the policy and the ad-consent choices.
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({super.key, this.showBackButton = true});
 
@@ -66,13 +68,6 @@ class SettingsPage extends GetView<SettingsController> {
                           settings.defaultAudioQuality,
                         ),
                       ),
-                      SettingsTile(
-                        icon: Icons.folder_rounded,
-                        title: 'Output folder',
-                        subtitle: settings.outputFolder ?? 'App default folder',
-                        onTap: () =>
-                            _showComingSoon(context, 'Custom output folder'),
-                      ),
                     ],
                   ),
                   SettingsSection(
@@ -81,8 +76,25 @@ class SettingsPage extends GetView<SettingsController> {
                       SettingsTile(
                         icon: Icons.privacy_tip_rounded,
                         title: 'Privacy Policy',
-                        onTap: () => _showComingSoon(context, 'Privacy Policy'),
+                        onTap: () => Get.toNamed<void>(AppRoutes.privacyPolicy),
                       ),
+                      // Shown only where the law asks for it, so it is absent
+                      // everywhere else and when ads never started.
+                      if (Get.isRegistered<AdsService>())
+                        ValueListenableBuilder<bool>(
+                          valueListenable:
+                              Get.find<AdsService>().privacyOptionsRequired,
+                          builder: (BuildContext context, bool required, _) {
+                            if (!required) {
+                              return const SizedBox.shrink();
+                            }
+                            return SettingsTile(
+                              icon: Icons.tune_rounded,
+                              title: 'Ad privacy settings',
+                              onTap: Get.find<AdsService>().showPrivacyOptions,
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ],
@@ -167,11 +179,5 @@ class SettingsPage extends GetView<SettingsController> {
     if (picked != null && picked != current) {
       await onSelected(picked);
     }
-  }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature is coming in a later update.')),
-    );
   }
 }

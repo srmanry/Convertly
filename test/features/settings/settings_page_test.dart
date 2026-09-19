@@ -1,3 +1,4 @@
+import 'package:convertly/core/routes/app_routes.dart';
 import 'package:convertly/core/theme/app_theme.dart';
 import 'package:convertly/core/types/result.dart';
 import 'package:convertly/features/settings/domain/entities/app_settings.dart';
@@ -5,6 +6,7 @@ import 'package:convertly/features/settings/domain/repositories/settings_reposit
 import 'package:convertly/features/settings/domain/usecases/get_settings.dart';
 import 'package:convertly/features/settings/domain/usecases/save_settings.dart';
 import 'package:convertly/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:convertly/features/settings/presentation/pages/privacy_policy_page.dart';
 import 'package:convertly/features/settings/presentation/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +40,16 @@ void main() {
 
   Future<void> pumpSettings(WidgetTester tester) async {
     await tester.pumpWidget(
-      GetMaterialApp(theme: AppTheme.light, home: const SettingsPage()),
+      GetMaterialApp(
+        theme: AppTheme.light,
+        home: const SettingsPage(),
+        getPages: <GetPage<dynamic>>[
+          GetPage<dynamic>(
+            name: AppRoutes.privacyPolicy,
+            page: () => const PrivacyPolicyPage(),
+          ),
+        ],
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -87,5 +98,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.stored.defaultOutputFormat.label, 'WAV');
+  });
+
+  testWidgets('every row does something: no coming-soon stubs remain', (
+    WidgetTester tester,
+  ) async {
+    await pumpSettings(tester);
+
+    expect(find.text('Output folder'), findsNothing);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+
+    await tester.tap(find.text('Privacy Policy'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('coming'), findsNothing);
+    expect(find.byType(PrivacyPolicyPage), findsOneWidget);
+  });
+
+  testWidgets('the ad-privacy row is hidden unless the law asks for it', (
+    WidgetTester tester,
+  ) async {
+    await pumpSettings(tester);
+
+    expect(find.text('Ad privacy settings'), findsNothing);
   });
 }

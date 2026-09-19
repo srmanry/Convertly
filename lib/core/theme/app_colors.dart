@@ -11,6 +11,7 @@ abstract final class AppColors {
 
   static const Color success = Color(0xFF42E8A4);
   static const Color warning = Color(0xFFFFC857);
+  static const Color danger = Color(0xFFC9364A);
 
   /// Cycled across the mixer's tracks so each one reads as a distinct voice
   /// without introducing any colour the rest of the app does not already use
