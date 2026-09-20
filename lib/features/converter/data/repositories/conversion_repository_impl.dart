@@ -9,6 +9,7 @@ import '../../domain/entities/conversion_request.dart';
 import '../../domain/entities/conversion_result.dart';
 import '../../domain/repositories/conversion_repository.dart';
 import '../ffmpeg_command_builder.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class ConversionRepositoryImpl implements ConversionRepository {
   const ConversionRepositoryImpl(this._ffmpeg, this._directories);
@@ -23,17 +24,14 @@ class ConversionRepositoryImpl implements ConversionRepository {
   }) async {
     if (!request.isValid) {
       return const Result<ConversionResult>.failure(
-        FileFailure(message: 'That conversion could not be started.'),
+        FileFailure(messageKey: K.errorConversionNotStarted),
       );
     }
 
     try {
       if (!await _directories.canWrite()) {
         return const Result<ConversionResult>.failure(
-          StorageFailure(
-            message:
-                'There is not enough free space to save the converted file.',
-          ),
+          StorageFailure(messageKey: K.errorNoFreeSpace),
         );
       }
 
@@ -93,7 +91,7 @@ class ConversionRepositoryImpl implements ConversionRepository {
     // trim range selected an empty span.
     if (!output.existsSync()) {
       return const Result<ConversionResult>.failure(
-        ConversionFailure(message: 'The converted file could not be created.'),
+        ConversionFailure(messageKey: K.errorOutputMissing),
       );
     }
 
@@ -102,7 +100,7 @@ class ConversionRepositoryImpl implements ConversionRepository {
       await _deletePartialOutput(request.outputPath);
       return const Result<ConversionResult>.failure(
         ConversionFailure(
-          message: 'The converted file was empty. Please try again.',
+          messageKey: K.errorOutputEmpty,
         ),
       );
     }

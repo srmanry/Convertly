@@ -1,6 +1,8 @@
+import 'package:get/get.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../domain/entities/onboarding_slide.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Local persistence and static content for onboarding.
 abstract interface class OnboardingLocalDataSource {
@@ -25,21 +27,22 @@ class OnboardingLocalDataSourceImpl implements OnboardingLocalDataSource {
       _storage.writeBool(StorageKeys.onboardingCompleted, true);
 
   @override
-  List<OnboardingSlide> readSlides() => const <OnboardingSlide>[
+  // Read each time rather than held in a const list: the slides are words,
+  // and the language they are read in can change.
+  List<OnboardingSlide> readSlides() => <OnboardingSlide>[
     OnboardingSlide(
-      title: 'Convert Videos Easily',
-      description:
-          'Extract high-quality audio from your videos in just a few taps.',
+      title: K.onboardingConvertTitle.tr,
+      description: K.onboardingConvertBody.tr,
       art: OnboardingArt.convert,
     ),
     OnboardingSlide(
-      title: 'Fast & Offline',
-      description: 'Your media stays on your device. No cloud upload required.',
+      title: K.onboardingOfflineTitle.tr,
+      description: K.onboardingOfflineBody.tr,
       art: OnboardingArt.offline,
     ),
     OnboardingSlide(
-      title: 'Manage Your Media',
-      description: 'Play, rename, share and organize your converted files.',
+      title: K.onboardingManageTitle.tr,
+      description: K.onboardingManageBody.tr,
       art: OnboardingArt.manage,
     ),
   ];

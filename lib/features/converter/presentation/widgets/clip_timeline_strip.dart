@@ -63,6 +63,7 @@ class ClipTimelineStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final int totalMs = total.inMilliseconds;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     if (clips.isEmpty || totalMs <= 0) {
       return const SizedBox.shrink();
@@ -71,42 +72,80 @@ class ClipTimelineStrip extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          child: Container(
-            height: stripHeight,
-            // The background is what a gap between two clips looks like: no
-            // block, so nothing plays there.
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final double width = constraints.maxWidth;
-
-                return Stack(
-                  children: <Widget>[
-                    for (int index = 0; index < clips.length; index++)
-                      _block(theme, index, width, totalMs),
-                    if (playhead case final Duration position)
-                      _playhead(theme, position, width, totalMs),
-                  ],
-                );
-              },
+        Container(
+          height: stripHeight,
+          // A square, borderless ribbon keeps the waveform continuous. The
+          // soft light in the gradient provides separation from the page
+          // without drawing a frame around it.
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                Color.alphaBlend(
+                  Colors.white.withValues(alpha: isDark ? 0.065 : 0.32),
+                  theme.colorScheme.surfaceContainerHighest,
+                ),
+                Color.alphaBlend(
+                  theme.colorScheme.primary.withValues(
+                    alpha: isDark ? 0.07 : 0.04,
+                  ),
+                  theme.colorScheme.surfaceContainerHighest,
+                ),
+              ],
             ),
+          ),
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final double width = constraints.maxWidth;
+
+              return Stack(
+                children: <Widget>[
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: (stripHeight - 1) / 2,
+                    height: 1,
+                    child: ColoredBox(
+                      color: Colors.white.withValues(
+                        alpha: isDark ? 0.12 : 0.42,
+                      ),
+                    ),
+                  ),
+                  for (int index = 0; index < clips.length; index++)
+                    _block(index, width, totalMs),
+                  if (playhead case final Duration position)
+                    _playhead(theme, position, width, totalMs),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: AppDimens.spaceXs),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('0:00', style: theme.textTheme.bodySmall),
-            Text(Formatters.duration(total), style: theme.textTheme.bodySmall),
+            Text(
+              '0:00',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              Formatters.duration(total),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _block(ThemeData theme, int index, double width, int totalMs) {
+  Widget _block(int index, double width, int totalMs) {
     final TimelineClip clip = clips[index];
     // Cycled from the same accents the mixer gives each of its tracks, so a
     // clip reads as its own voice here too, rather than just alternating
@@ -122,23 +161,11 @@ class ClipTimelineStrip extends StatelessWidget {
       top: 0,
       bottom: 0,
       width: blockWidth,
-      // No fill behind a clip: the strip's own background carries through
-      // underneath every block, so the picture reads as one waveform ribbon
-      // rather than a row of solid colour tiles. A hairline is enough to
-      // mark where one clip ends and the next begins, without reading as a
-      // gap in playback.
+      // No fill or separator behind a clip: the strip's background carries
+      // through every block, so it reads as one continuous waveform ribbon.
       child: DecoratedBox(
         key: blockKey(index),
-        decoration: BoxDecoration(
-          border: index == 0
-              ? null
-              : Border(
-                  left: BorderSide(
-                    color: theme.colorScheme.outlineVariant,
-                    width: 1.5,
-                  ),
-                ),
-        ),
+        decoration: const BoxDecoration(),
         // Too narrow for the bars to read as anything but noise; the number
         // badge alone ties a sliver of a clip to its card.
         child: blockWidth < 16
@@ -201,19 +228,22 @@ class _WaveformTexturePainter extends CustomPainter {
     }
 
     final math.Random random = math.Random(seed);
-    final Paint paint = Paint()..color = color.withValues(alpha: 0.85);
+    final Paint glow = Paint()
+      ..color = color.withValues(alpha: 0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final Paint paint = Paint()..color = color.withValues(alpha: 0.95);
     final double middle = size.height / 2;
 
     for (double x = 2; x < size.width - _barWidth; x += _barWidth + _gap) {
       final double reach = 0.2 + random.nextDouble() * 0.65;
       final double barHeight = (size.height * reach).clamp(2.0, size.height);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, middle - barHeight / 2, _barWidth, barHeight),
-          const Radius.circular(1.5),
-        ),
-        paint,
+      final RRect bar = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, middle - barHeight / 2, _barWidth, barHeight),
+        const Radius.circular(1.5),
       );
+      canvas
+        ..drawRRect(bar, glow)
+        ..drawRRect(bar, paint);
     }
   }
 
@@ -239,8 +269,9 @@ class _ClipBadge extends StatelessWidget {
       height: _size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color,
+        color: Color.alphaBlend(Colors.black.withValues(alpha: 0.22), color),
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -254,16 +285,10 @@ class _ClipBadge extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.clip,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: _readableOn(color),
+          color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
-
-/// Black or white, whichever reads on [background].
-Color _readableOn(Color background) =>
-    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
-    ? Colors.white
-    : Colors.black87;

@@ -5,6 +5,7 @@ import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/storage_usage.dart';
 import '../../domain/usecases/storage_usecases.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Drives the storage screen.
 class StorageController extends GetxController {
@@ -60,8 +61,8 @@ class StorageController extends GetxController {
     ) {
       final int freed = before - after.workingBytes;
       return freed > 0
-          ? 'Working files removed.'
-          : 'There were no working files to remove.';
+          ? K.storageWorkingRemoved.tr
+          : K.storageNoWorkingFiles.tr;
     });
   }
 
@@ -74,8 +75,8 @@ class StorageController extends GetxController {
       StorageUsage after,
     ) {
       return after.convertedCount == 0
-          ? 'All converted files deleted.'
-          : 'Some files could not be deleted and were kept.';
+          ? K.storageAllDeleted.tr
+          : K.storageSomeKept.tr;
     });
   }
 

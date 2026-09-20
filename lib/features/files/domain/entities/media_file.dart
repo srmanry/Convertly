@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:get/get.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// What produced a file in the library.
 enum MediaSourceType {
@@ -75,12 +77,14 @@ class MediaFile extends Equatable {
 
 /// Ordering offered in the files list.
 enum MediaSortOrder {
-  newest('Newest'),
-  oldest('Oldest'),
-  name('Name'),
-  size('Size');
+  newest(K.sortNewest),
+  oldest(K.sortOldest),
+  name(K.sortName),
+  size(K.sortSize);
 
-  const MediaSortOrder(this.label);
+  const MediaSortOrder(this.labelKey);
 
-  final String label;
+  final String labelKey;
+
+  String get label => labelKey.tr;
 }

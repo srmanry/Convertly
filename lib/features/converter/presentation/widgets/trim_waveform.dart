@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// The waveform the user drags a selection out of.
 ///
@@ -279,7 +281,7 @@ class _TrimWaveformState extends State<TrimWaveform>
 
     return Semantics(
       container: true,
-      label: 'Trim selection',
+      label: K.trimSelection.tr,
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           _trackWidth = math.max(
@@ -334,8 +336,8 @@ class _TrimWaveformState extends State<TrimWaveform>
                     width: _semanticsWidth,
                     child: _HandleSemantics(
                       label: handle == _Handle.start
-                          ? 'Selection start'
-                          : 'Selection end',
+                          ? K.selectionStart.tr
+                          : K.selectionEnd.tr,
                       value: handle == _Handle.start
                           ? widget.start
                           : widget.end,

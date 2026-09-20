@@ -6,6 +6,7 @@ import '../../../../core/utils/file_utils.dart';
 import '../../domain/entities/media_file.dart';
 import '../../domain/repositories/media_library_repository.dart';
 import '../datasources/media_library_local_datasource.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
   const MediaLibraryRepositoryImpl(this._localDataSource);
@@ -19,7 +20,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     } catch (error) {
       return Result<List<MediaFile>>.failure(
         CacheFailure(
-          message: 'Your files could not be loaded.',
+          messageKey: K.errorFilesNotLoaded,
           debugMessage: error.toString(),
         ),
       );
@@ -33,7 +34,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     } catch (error) {
       return Result<MediaFile>.failure(
         CacheFailure(
-          message: 'This file could not be saved to your library.',
+          messageKey: K.errorFileNotSaved,
           debugMessage: error.toString(),
         ),
       );
@@ -45,7 +46,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     final String? sanitized = FileUtils.sanitizeFileName(newName);
     if (sanitized == null) {
       return const Result<MediaFile>.failure(
-        FileFailure(message: 'Please enter a valid file name.'),
+        FileFailure(messageKey: K.errorInvalidFileName),
       );
     }
 
@@ -53,7 +54,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
       final File source = File(file.path);
       if (!source.existsSync()) {
         return const Result<MediaFile>.failure(
-          FileFailure(message: 'This file no longer exists on your device.'),
+          FileFailure(messageKey: K.errorFileGone),
         );
       }
 
@@ -81,7 +82,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     } on FileSystemException catch (error) {
       return Result<MediaFile>.failure(
         FileFailure(
-          message: 'This file could not be renamed.',
+          messageKey: K.errorFileNotRenamed,
           debugMessage: error.toString(),
         ),
       );
@@ -110,7 +111,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     } catch (error) {
       return Result<void>.failure(
         FileFailure(
-          message: 'This file could not be deleted.',
+          messageKey: K.errorFileNotDeleted,
           debugMessage: error.toString(),
         ),
       );
@@ -147,7 +148,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
 
       if (deletedIds.isEmpty) {
         return const Result<int>.failure(
-          FileFailure(message: 'Those files could not be deleted.'),
+          FileFailure(messageKey: K.errorFilesNotDeleted),
         );
       }
 
@@ -155,7 +156,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
     } catch (error) {
       return Result<int>.failure(
         FileFailure(
-          message: 'Those files could not be deleted.',
+          messageKey: K.errorFilesNotDeleted,
           debugMessage: error.toString(),
         ),
       );

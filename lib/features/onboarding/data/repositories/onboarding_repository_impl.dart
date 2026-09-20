@@ -4,6 +4,7 @@ import '../../../../core/types/result.dart';
 import '../../domain/entities/onboarding_slide.dart';
 import '../../domain/repositories/onboarding_repository.dart';
 import '../datasources/onboarding_local_datasource.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class OnboardingRepositoryImpl implements OnboardingRepository {
   const OnboardingRepositoryImpl(this._localDataSource);
@@ -32,7 +33,7 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
     } on CacheException catch (error) {
       return Result<void>.failure(
         CacheFailure(
-          message: 'Could not save your progress. Please try again.',
+          messageKey: K.errorProgressNotSaved,
           debugMessage: error.toString(),
         ),
       );

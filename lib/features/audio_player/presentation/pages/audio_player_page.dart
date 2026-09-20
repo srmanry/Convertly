@@ -6,6 +6,7 @@ import '../../../../core/widgets/banner_ad_view.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../controllers/audio_player_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class AudioPlayerPage extends GetView<AudioPlayerController> {
   const AudioPlayerPage({super.key});
@@ -15,7 +16,7 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
     final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Now Playing')),
+      appBar: AppBar(title: Text(K.nowPlaying.tr)),
       // Someone listening is resting, not working, and the strip sits below
       // the transport controls rather than among them.
       bottomNavigationBar: const BannerAdView(includeBottomSafeArea: true),
@@ -29,11 +30,11 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
               if (controller.errorMessage.value.isNotEmpty) {
                 return EmptyStateView(
                   icon: Icons.music_off_rounded,
-                  title: 'Cannot play this file',
+                  title: K.cannotPlayFile.tr,
                   message: controller.errorMessage.value,
                   action: FilledButton(
                     onPressed: Get.back<void>,
-                    child: const Text('Go Back'),
+                    child: Text(K.goBack.tr),
                   ),
                 );
               }
@@ -79,8 +80,10 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
                           if (controller.queue.length > 1) ...<Widget>[
                             const SizedBox(height: AppDimens.spaceXs),
                             Text(
-                              'Track ${controller.index.value + 1} '
-                              'of ${controller.queue.length}',
+                              K.trackOf.trParams(<String, String>{
+                                'index': '${controller.index.value + 1}',
+                                'total': '${controller.queue.length}',
+                              }),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: colors.onSurfaceVariant),
                             ),
@@ -168,14 +171,14 @@ class _TransportControls extends StatelessWidget {
           if (controller.queue.length > 1)
             Obx(
               () => IconButton(
-                tooltip: 'Previous track',
+                tooltip: K.previousTrack.tr,
                 iconSize: AppDimens.iconLg,
                 onPressed: controller.hasPrevious ? controller.previous : null,
                 icon: const Icon(Icons.skip_previous_rounded),
               ),
             ),
           IconButton(
-            tooltip: 'Back 10 seconds',
+            tooltip: K.backTenSeconds.tr,
             iconSize: AppDimens.iconLg,
             onPressed: () => controller.skip(const Duration(seconds: -10)),
             icon: const Icon(Icons.replay_10_rounded),
@@ -198,7 +201,7 @@ class _TransportControls extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Forward 10 seconds',
+            tooltip: K.forwardTenSeconds.tr,
             iconSize: AppDimens.iconLg,
             onPressed: () => controller.skip(const Duration(seconds: 10)),
             icon: const Icon(Icons.forward_10_rounded),
@@ -206,7 +209,7 @@ class _TransportControls extends StatelessWidget {
           if (controller.queue.length > 1)
             Obx(
               () => IconButton(
-                tooltip: 'Next track',
+                tooltip: K.nextTrack.tr,
                 iconSize: AppDimens.iconLg,
                 onPressed: controller.hasNext ? controller.next : null,
                 icon: const Icon(Icons.skip_next_rounded),

@@ -10,6 +10,7 @@ import '../../../../core/widgets/empty_state_view.dart';
 import '../../../../core/widgets/native_ad_tile.dart';
 import '../../domain/entities/media_file.dart';
 import '../controllers/files_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class FilesPage extends GetView<FilesController> {
   const FilesPage({super.key});
@@ -45,11 +46,11 @@ class FilesPage extends GetView<FilesController> {
                   controller.files.isEmpty) {
                 return EmptyStateView(
                   icon: Icons.error_outline_rounded,
-                  title: 'Could not load files',
+                  title: K.couldNotLoadFiles.tr,
                   message: controller.errorMessage.value,
                   action: FilledButton(
                     onPressed: controller.load,
-                    child: const Text('Try Again'),
+                    child: Text(K.tryAgain.tr),
                   ),
                 );
               }
@@ -60,12 +61,12 @@ class FilesPage extends GetView<FilesController> {
               if (controller.files.isEmpty) {
                 return EmptyStateView(
                   icon: Icons.folder_open_rounded,
-                  title: 'No files yet',
-                  message: 'Your converted files will appear here.',
+                  title: K.noFilesYet.tr,
+                  message: K.noFilesYetMessage.tr,
                   action: FilledButton.icon(
                     onPressed: controller.load,
                     icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Refresh'),
+                    label: Text(K.refresh.tr),
                   ),
                 );
               }
@@ -80,13 +81,13 @@ class FilesPage extends GetView<FilesController> {
                     child: files.isEmpty
                         ? EmptyStateView(
                             icon: Icons.search_off_rounded,
-                            title: 'No matching files',
-                            message:
-                                'Nothing here is called '
-                                '"${controller.query.value.trim()}".',
+                            title: K.noMatchingFiles.tr,
+                            message: K.nothingCalled.trParams(<String, String>{
+                              'query': controller.query.value.trim(),
+                            }),
                             action: TextButton(
                               onPressed: controller.clearQuery,
-                              child: const Text('Clear search'),
+                              child: Text(K.clearSearch.tr),
                             ),
                           )
                         : _fileList(context, files),
@@ -179,26 +180,26 @@ class FilesPage extends GetView<FilesController> {
                         }
                       },
                       itemBuilder: (BuildContext context) =>
-                          const <PopupMenuEntry<_FileAction>>[
+                          <PopupMenuEntry<_FileAction>>[
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.play,
-                              child: Text('Play'),
+                              child: Text(K.play.tr),
                             ),
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.saveToPhone,
-                              child: Text('Save to phone'),
+                              child: Text(K.saveToPhone.tr),
                             ),
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.share,
-                              child: Text('Share'),
+                              child: Text(K.share.tr),
                             ),
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.rename,
-                              child: Text('Rename'),
+                              child: Text(K.rename.tr),
                             ),
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.delete,
-                              child: Text('Delete'),
+                              child: Text(K.delete.tr),
                             ),
                           ],
                     ),
@@ -232,8 +233,8 @@ class FilesPage extends GetView<FilesController> {
       SnackBar(
         content: Text(
           saved
-              ? 'Saved to Music / AudioForge on this phone.'
-              : 'Could not save that file to the phone.',
+              ? K.savedToPhoneMessage.tr
+              : K.couldNotSaveToPhone.tr,
         ),
       ),
     );
@@ -246,8 +247,8 @@ class FilesPage extends GetView<FilesController> {
   ) async {
     final bool confirmed = await _confirmDelete(
       context,
-      title: 'Delete file?',
-      message: '"${file.name}" will be permanently deleted from your device.',
+      title: K.deleteFileTitle.tr,
+      message: K.deleteFileMessage.tr,
     );
 
     if (confirmed) {
@@ -263,10 +264,12 @@ class FilesPage extends GetView<FilesController> {
 
     final bool confirmed = await _confirmDelete(
       context,
-      title: count == 1 ? 'Delete file?' : 'Delete $count files?',
+      title: count == 1
+          ? K.deleteFileTitle.tr
+          : K.deleteFilesTitle.trParams(<String, String>{'count': '$count'}),
       message: count == 1
-          ? 'This file will be permanently deleted from your device.'
-          : 'These $count files will be permanently deleted from your device.',
+          ? K.deleteFileMessage.tr
+          : K.deleteFilesMessage.trParams(<String, String>{'count': '$count'}),
     );
 
     if (!confirmed) {
@@ -280,7 +283,7 @@ class FilesPage extends GetView<FilesController> {
 
     final String message = switch (outcome) {
       DeleteSelectionOutcome(errorMessage: final String error?) => error,
-      DeleteSelectionOutcome(deletedCount: 1) => 'File deleted.',
+      DeleteSelectionOutcome(deletedCount: 1) => K.fileDeleted.tr,
       DeleteSelectionOutcome(:final int deletedCount) =>
         '$deletedCount files deleted.',
     };
@@ -371,7 +374,7 @@ class FilesPage extends GetView<FilesController> {
                       ),
                     ),
                     onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: const Text('Cancel'),
+                    child: Text(K.cancel.tr),
                   ),
                 ),
                 const SizedBox(width: AppDimens.spaceMd),
@@ -387,7 +390,7 @@ class FilesPage extends GetView<FilesController> {
                     ),
                     onPressed: () => Navigator.of(dialogContext).pop(true),
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Delete'),
+                    label: Text(K.delete.tr),
                   ),
                 ),
               ],
@@ -493,7 +496,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
         AppDimens.spaceXl,
         0,
       ),
-      title: const Text('Rename file', textAlign: TextAlign.center),
+      title: Text(K.renameFile.tr, textAlign: TextAlign.center),
       contentPadding: const EdgeInsets.fromLTRB(
         AppDimens.spaceXl,
         AppDimens.spaceSm,
@@ -504,7 +507,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
-            'Give this file a short, easy-to-find name.',
+            K.renameHint.tr,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colors.onSurfaceVariant,
@@ -519,7 +522,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _save(),
             decoration: InputDecoration(
-              labelText: 'File name',
+              labelText: K.fileNameLabel.tr,
               prefixIcon: const Icon(Icons.audio_file_rounded),
               suffixText: widget.extension.isEmpty
                   ? null
@@ -546,7 +549,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
                   ),
                 ),
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(K.cancel.tr),
               ),
             ),
             const SizedBox(width: AppDimens.spaceMd),
@@ -560,7 +563,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
                 ),
                 onPressed: _canSave ? _save : null,
                 icon: const Icon(Icons.check_rounded, size: 18),
-                label: const Text('Save'),
+                label: Text(K.save.tr),
               ),
             ),
           ],
@@ -587,11 +590,11 @@ class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {
       final bool searching = controller.searchOpen.value;
 
       return AppBar(
-        title: const Text('My Files'),
+        title: Text(K.myFiles.tr),
         actions: <Widget>[
           if (controller.files.isNotEmpty)
             IconButton(
-              tooltip: searching ? 'Close search' : 'Search files',
+              tooltip: searching ? K.closeSearch.tr : K.searchFiles.tr,
               onPressed: () {
                 if (searching) {
                   controller.closeSearch();
@@ -606,7 +609,7 @@ class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           PopupMenuButton<MediaSortOrder>(
             initialValue: controller.sortOrder.value,
-            tooltip: 'Sort files',
+            tooltip: K.sortFiles.tr,
             onSelected: controller.setSortOrder,
             itemBuilder: (BuildContext context) {
               return MediaSortOrder.values
@@ -639,7 +642,7 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       leading: IconButton(
-        tooltip: 'Cancel selection',
+        tooltip: K.cancelSelection.tr,
         onPressed: controller.clearSelection,
         icon: const Icon(Icons.close_rounded),
       ),
@@ -647,7 +650,9 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: <Widget>[
         Obx(
           () => IconButton(
-            tooltip: controller.isAllSelected ? 'Clear all' : 'Select all',
+            tooltip: controller.isAllSelected
+                ? K.clearAll.tr
+                : K.selectAll.tr,
             onPressed: controller.isAllSelected
                 ? controller.clearSelection
                 : controller.selectAll,
@@ -659,7 +664,7 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Delete selected',
+          tooltip: K.deleteSelected.tr,
           onPressed: onDelete,
           icon: const Icon(Icons.delete_outline_rounded),
         ),
@@ -726,7 +731,7 @@ class _SearchFieldState extends State<_SearchField> {
           onChanged: widget.controller.setQuery,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            hintText: 'Search files',
+            hintText: K.searchFiles.tr,
             prefixIcon: const Icon(Icons.search_rounded),
             border: searchFieldBorder(),
             enabledBorder: searchFieldBorder(),
@@ -739,7 +744,7 @@ class _SearchFieldState extends State<_SearchField> {
             suffixIcon: widget.controller.isSearching
                 ? IconButton(
                     icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Clear search',
+                    tooltip: K.clearSearch.tr,
                     onPressed: widget.controller.clearQuery,
                   )
                 : null,

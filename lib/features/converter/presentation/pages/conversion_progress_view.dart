@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/widgets/banner_ad_view.dart';
 import '../controllers/converter_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Progress state of an in-flight conversion, with a cancel action.
 class ConversionProgressView extends GetView<ConverterController> {
@@ -45,12 +46,14 @@ class ConversionProgressView extends GetView<ConverterController> {
                 ),
                 const SizedBox(height: AppDimens.spaceXl),
                 Text(
-                  'Converting ${controller.mode.title.toLowerCase()}...',
+                  K.converting.trParams(<String, String>{
+                    'tool': controller.mode.title.toLowerCase(),
+                  }),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppDimens.spaceSm),
                 Text(
-                  'Please wait. Keep the app open.',
+                  K.keepAppOpen.tr,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
@@ -78,7 +81,7 @@ class ConversionProgressView extends GetView<ConverterController> {
           OutlinedButton.icon(
             onPressed: controller.cancel,
             icon: const Icon(Icons.close_rounded),
-            label: const Text('Cancel'),
+            label: Text(K.cancel.tr),
           ),
           // The one screen where the user has nothing to do but wait, so an
           // ad here costs them nothing. Kept well below Cancel: an ad within

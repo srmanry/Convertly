@@ -8,6 +8,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/music_library_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Plays what is already on the phone, and what the app has made.
 class MusicLibraryPage extends GetView<MusicLibraryController> {
@@ -16,7 +17,7 @@ class MusicLibraryPage extends GetView<MusicLibraryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Player')),
+      appBar: AppBar(title: Text(K.navPlayer.tr)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -81,7 +82,7 @@ class _SourceTabs extends StatelessWidget {
                 children: <Widget>[
                   Expanded(
                     child: _SourceTabButton(
-                      label: 'Phone',
+                      label: K.sourcePhone.tr,
                       icon: Icons.smartphone_rounded,
                       selected: controller.tab.value == SongTab.phone,
                       onTap: () => controller.setTab(SongTab.phone),
@@ -90,7 +91,7 @@ class _SourceTabs extends StatelessWidget {
                   const SizedBox(width: AppDimens.spaceXs),
                   Expanded(
                     child: _SourceTabButton(
-                      label: 'In app',
+                      label: K.sourceInApp.tr,
                       icon: Icons.library_music_rounded,
                       selected: controller.tab.value == SongTab.app,
                       onTap: () => controller.setTab(SongTab.app),
@@ -214,7 +215,7 @@ class _SearchField extends StatelessWidget {
       child: TextField(
         onChanged: controller.setQuery,
         decoration: InputDecoration(
-          hintText: 'Search',
+          hintText: K.search.tr,
           suffixIcon: const Icon(Icons.search_rounded),
           isDense: true,
           border: searchFieldBorder(),
@@ -249,15 +250,12 @@ class _SongList extends StatelessWidget {
           !controller.hasDeviceAccess.value) {
         return EmptyStateView(
           icon: Icons.lock_outline_rounded,
-          title: 'Let the app see your music',
-          message:
-              'To list the songs already on this phone, the app needs '
-              'permission to read audio files. Nothing else is read, and '
-              'nothing leaves the device.',
+          title: K.musicPermissionTitle.tr,
+          message: K.musicPermissionMessage.tr,
           action: FilledButton.icon(
             onPressed: controller.grantDeviceAccess,
             icon: const Icon(Icons.lock_open_rounded),
-            label: const Text('Allow'),
+            label: Text(K.allow.tr),
           ),
         );
       }
@@ -267,13 +265,13 @@ class _SongList extends StatelessWidget {
         return EmptyStateView(
           icon: Icons.music_off_rounded,
           title: controller.query.value.isNotEmpty
-              ? 'Nothing matches that'
-              : 'No music here yet',
+              ? K.nothingMatchesThat.tr
+              : K.noMusicYet.tr,
           message: controller.query.value.isNotEmpty
-              ? 'Try a different word.'
+              ? K.tryDifferentWord.tr
               : controller.tab.value == SongTab.phone
-              ? 'No songs were found on this phone.'
-              : 'Files you convert will show up here.',
+              ? K.noSongsFound.tr
+              : K.convertedWillShowUp.tr,
         );
       }
 

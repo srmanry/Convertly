@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
 import '../../domain/entities/song.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Reads the songs the device already knows about.
 ///
@@ -91,6 +93,6 @@ class DeviceAudioDataSourceImpl implements DeviceAudioDataSource {
   static String _nameFromUri(String uri) {
     final int slash = uri.lastIndexOf('/');
     final String tail = slash < 0 ? uri : uri.substring(slash + 1);
-    return tail.isEmpty ? 'Unknown track' : tail;
+    return tail.isEmpty ? K.unknownTrack.tr : tail;
   }
 }

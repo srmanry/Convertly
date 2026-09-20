@@ -5,6 +5,7 @@ import 'package:convertly/features/files/domain/entities/media_file.dart';
 import 'package:convertly/features/files/domain/repositories/media_library_repository.dart';
 import 'package:convertly/features/files/domain/usecases/media_library_usecases.dart';
 import 'package:convertly/features/files/presentation/controllers/files_controller.dart';
+import 'package:convertly/core/i18n/translation_keys.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 MediaFile buildFile(int id, {String? name, int size = 1024}) {
@@ -51,7 +52,7 @@ class _FakeLibraryRepository implements MediaLibraryRepository {
     lastBatchDeleted = files;
     if (failBatchDelete) {
       return const Result<int>.failure(
-        FileFailure(message: 'Those files could not be deleted.'),
+        FileFailure(messageKey: K.errorFilesNotDeleted),
       );
     }
     final Set<int?> ids = files.map((MediaFile file) => file.id).toSet();

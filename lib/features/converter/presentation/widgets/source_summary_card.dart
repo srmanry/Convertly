@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/media_info.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Shows the selected file's name, size, duration and format.
 class SourceSummaryCard extends StatelessWidget {
@@ -11,11 +13,18 @@ class SourceSummaryCard extends StatelessWidget {
     super.key,
     this.onRemove,
     this.leading,
-  });
+    this.titleMaxLines = 2,
+  }) : assert(titleMaxLines > 0);
 
   final MediaInfo media;
   final VoidCallback? onRemove;
   final Widget? leading;
+
+  /// How many lines the file name may occupy before it is shortened.
+  ///
+  /// Timeline rows stay compact with one line, while standalone summaries
+  /// keep the more forgiving two-line default.
+  final int titleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +57,7 @@ class SourceSummaryCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     media.name,
-                    maxLines: 2,
+                    maxLines: titleMaxLines,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
@@ -70,7 +79,7 @@ class SourceSummaryCard extends StatelessWidget {
             ),
             if (onRemove != null)
               IconButton(
-                tooltip: 'Remove',
+                tooltip: K.remove.tr,
                 onPressed: onRemove,
                 icon: const Icon(Icons.close_rounded),
               ),

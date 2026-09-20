@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
+import '../../../../core/i18n/app_translations.dart';
+import '../../../../core/i18n/translation_keys.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/usecases/get_settings.dart';
@@ -52,8 +54,29 @@ class SettingsController extends GetxController {
   Future<void> setDefaultAudioQuality(AudioQuality quality) =>
       _update(settings.value.copyWith(defaultAudioQuality: quality));
 
-  Future<void> setLanguageCode(String code) =>
-      _update(settings.value.copyWith(languageCode: code));
+  /// The language in use, which is the saved one unless nothing is saved and
+  /// the phone's own language is one the app speaks.
+  AppLanguage get language =>
+      AppTranslations.languageFor(
+        AppTranslations.resolveLocale(
+          settings.value.languageCode,
+          Get.deviceLocale,
+        ).languageCode,
+      ) ??
+      AppTranslations.languages.first;
+
+  /// Switches the language and redraws every screen in it.
+  ///
+  /// Applied before saving so the change is instant; a save that fails is
+  /// reverted by [_update] along with the rest of the settings.
+  Future<void> setLanguageCode(String code) async {
+    final AppLanguage? picked = AppTranslations.languageFor(code);
+    if (picked == null) {
+      return;
+    }
+    await Get.updateLocale(picked.locale);
+    await _update(settings.value.copyWith(languageCode: code));
+  }
 
   /// Applies optimistically, then reverts if persistence failed so the UI never
   /// shows a preference that was not actually saved.
@@ -65,7 +88,7 @@ class SettingsController extends GetxController {
     result.fold((failure) {
       settings.value = previous;
       Get.snackbar(
-        'Settings',
+        K.navSettings.tr,
         failure.message,
         snackPosition: SnackPosition.BOTTOM,
         margin: const EdgeInsets.all(16),

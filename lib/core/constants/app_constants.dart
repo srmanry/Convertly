@@ -28,4 +28,11 @@ abstract final class StorageKeys {
 
   /// How far through the current round of ads the user is.
   static const String adCyclePosition = 'ads_cycle_position';
+
+  /// When the earned stretch with no ads runs out, as milliseconds since the
+  /// epoch. Kept so closing the app does not end it early or extend it.
+  static const String adBreakEndsAt = 'ads_break_ends_at';
+
+  /// Rewarded ads watched so far towards the next stretch.
+  static const String adBreakProgress = 'ads_break_progress';
 }

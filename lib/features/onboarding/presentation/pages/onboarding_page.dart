@@ -6,6 +6,7 @@ import '../../domain/entities/onboarding_slide.dart';
 import '../controllers/onboarding_controller.dart';
 import '../widgets/onboarding_slide_view.dart';
 import '../widgets/page_dots_indicator.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class OnboardingPage extends GetView<OnboardingController> {
   const OnboardingPage({super.key});
@@ -26,7 +27,7 @@ class OnboardingPage extends GetView<OnboardingController> {
                   child: Obx(
                     () => TextButton(
                       onPressed: controller.isLastPage ? null : controller.skip,
-                      child: const Text('Skip'),
+                      child: Text(K.skip.tr),
                     ),
                   ),
                 ),
@@ -64,7 +65,7 @@ class OnboardingPage extends GetView<OnboardingController> {
                           ? null
                           : controller.next,
                       child: Text(
-                        controller.isLastPage ? 'Get Started' : 'Next',
+                        controller.isLastPage ? K.getStarted.tr : K.next.tr,
                       ),
                     ),
                   ),

@@ -17,10 +17,11 @@ void main() {
 
   test('the policy says what a reviewer looks for', () {
     final String text = <String>[
-      PrivacyPolicy.intro,
+      ...PrivacyPolicy.introParagraphs,
       for (final PolicySection s in PrivacyPolicy.sections) ...<String>[
         s.title,
         ...s.paragraphs,
+        ...s.bullets,
       ],
     ].join('\n').toLowerCase();
 
@@ -31,6 +32,8 @@ void main() {
     expect(text, contains('children'));
     expect(text, contains('never uploaded'));
     expect(text, contains('policies.google.com'));
+    expect(PrivacyPolicy.sections, hasLength(11));
+    expect(PrivacyPolicy.lastUpdatedDate, 'September 3, 2026');
   });
 
   testWidgets('the page shows every section', (WidgetTester tester) async {

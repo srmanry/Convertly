@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../services/ads_service.dart';
+import '../../core/i18n/translation_keys.dart';
 
 /// Asks before playing the rewarded ad that makes the next files ad-free.
 ///
@@ -12,20 +12,16 @@ Future<bool> showRewardPrompt() async {
   final bool? agreed = await Get.dialog<bool>(
     AlertDialog(
       icon: const Icon(Icons.play_circle_outline_rounded),
-      title: const Text('Watch a short video'),
-      content: const Text(
-        'Watch one short video to make this file and the next '
-        '${AdsService.adFreeExportsReward - 1} without ads. Your file keeps '
-        'converting while you watch.',
-      ),
+      title: Text(K.adWatchShortVideo.tr),
+      content: Text(K.adRewardPromptMessage.tr),
       actions: <Widget>[
         TextButton(
           onPressed: () => Get.back<bool>(result: false),
-          child: const Text('No thanks'),
+          child: Text(K.adNoThanks.tr),
         ),
         FilledButton(
           onPressed: () => Get.back<bool>(result: true),
-          child: const Text('Watch video'),
+          child: Text(K.adWatchVideo.tr),
         ),
       ],
     ),

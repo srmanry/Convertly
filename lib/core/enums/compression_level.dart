@@ -1,14 +1,19 @@
+import 'package:get/get.dart';
+
+import '../i18n/translation_keys.dart';
 import 'audio_quality.dart';
 
 /// Preset compression strengths, mapped onto concrete bitrates.
 enum CompressionLevel {
-  high(label: 'High quality', quality: AudioQuality.kbps256),
-  medium(label: 'Medium', quality: AudioQuality.kbps128),
-  low(label: 'Small size', quality: AudioQuality.kbps96);
+  high(labelKey: K.compressionHigh, quality: AudioQuality.kbps256),
+  medium(labelKey: K.compressionMedium, quality: AudioQuality.kbps128),
+  low(labelKey: K.compressionLow, quality: AudioQuality.kbps96);
 
-  const CompressionLevel({required this.label, required this.quality});
+  const CompressionLevel({required this.labelKey, required this.quality});
 
-  final String label;
+  final String labelKey;
+
+  String get label => labelKey.tr;
   final AudioQuality quality;
 
   /// Rough output size for [duration] at this bitrate.

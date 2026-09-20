@@ -33,6 +33,7 @@ import '../../domain/usecases/pick_media.dart';
 import 'mix_preview_controller.dart';
 import 'timeline_preview_controller.dart';
 import 'trim_preview_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Where the user is in the conversion flow.
 enum ConverterStage { configuring, converting, completed, failed }
@@ -528,28 +529,41 @@ class ConverterController extends GetxController {
   }
 
   /// Adds a file from the app's library as an input.
-  Future<void> pickFromLibrary(MediaFile file) async {
-    if (isPicking.value) {
+  Future<void> pickFromLibrary(MediaFile file) =>
+      pickFromLibraryFiles(<MediaFile>[file]);
+
+  /// Adds one or more files from the app's library as inputs.
+  ///
+  /// Every selected file is inspected before the selection is changed. This
+  /// prevents a failed file in a batch from leaving a partially-added list.
+  Future<void> pickFromLibraryFiles(List<MediaFile> files) async {
+    if (isPicking.value || files.isEmpty) {
       return;
     }
     isPicking.value = true;
     errorMessage.value = '';
 
-    final Result<MediaInfo> result = await _inspectMedia(file.path);
+    final List<MediaInfo> inspected = <MediaInfo>[];
+    for (final MediaFile file in files) {
+      final Result<MediaInfo> result = await _inspectMedia(file.path);
+      final MediaInfo? info = result.valueOrNull;
+      if (info == null) {
+        errorMessage.value =
+            result.failureOrNull?.message ?? 'Unable to read ${file.name}.';
+        isPicking.value = false;
+        return;
+      }
+      inspected.add(info);
+    }
 
     isPicking.value = false;
-
-    result.fold((Failure failure) => errorMessage.value = failure.message, (
-      MediaInfo info,
-    ) {
-      _stopPreviewIfPresent();
-      if (_mode.picksMultiple) {
-        _appendSources(<MediaInfo>[info]);
-      } else {
-        _replaceSources(<MediaInfo>[info]);
-      }
-      _resetOutputForSelection();
-    });
+    _stopPreviewIfPresent();
+    if (_mode.picksMultiple) {
+      _appendSources(inspected);
+    } else {
+      _replaceSources(<MediaInfo>[inspected.first]);
+    }
+    _resetOutputForSelection();
   }
 
   void setQuality(AudioQuality value) => quality.value = value;
@@ -640,7 +654,7 @@ class ConverterController extends GetxController {
     } catch (error) {
       await _onConversionFailed(
         StorageFailure(
-          message: 'Could not find a place to save the converted file.',
+          messageKey: K.errorNoSaveLocation,
           debugMessage: error.toString(),
         ),
       );

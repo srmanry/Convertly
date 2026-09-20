@@ -6,6 +6,7 @@ import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/action_card.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Tools dashboard. Each card is wired up in its own later phase.
 class ToolsPage extends StatelessWidget {
@@ -14,66 +15,66 @@ class ToolsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<_Tool> tools = <_Tool>[
-      const _Tool(
+      _Tool(
         icon: Icons.movie_creation_rounded,
-        title: 'Video to Audio',
-        description: 'Extract audio from a video',
+        title: K.toolVideoToAudio.tr,
+        description: K.toolVideoToAudioDesc.tr,
         color: AppColors.accentVideo,
         mode: ToolMode.videoToAudio,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.swap_horiz_rounded,
-        title: 'Audio Converter',
-        description: 'Convert audio between formats',
+        title: K.toolAudioConvert.tr,
+        description: K.toolAudioConvertDesc.tr,
         color: AppColors.accentAudio,
         mode: ToolMode.audioConvert,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.content_cut_rounded,
-        title: 'Audio Cutter',
-        description: 'Trim a section out of an audio file',
+        title: K.toolCut.tr,
+        description: K.toolCutDesc.tr,
         color: AppColors.accentTools,
         mode: ToolMode.cut,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.merge_rounded,
-        title: 'Audio Merger',
-        description: 'Join several audio files into one',
+        title: K.toolMerge.tr,
+        description: K.toolMergeDesc.tr,
         color: AppColors.accentTools,
         mode: ToolMode.merge,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.compress_rounded,
-        title: 'Audio Compressor',
-        description: 'Reduce the size of an audio file',
+        title: K.toolCompress.tr,
+        description: K.toolCompressDesc.tr,
         color: AppColors.accentTools,
         mode: ToolMode.compress,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.layers_rounded,
-        title: 'Audio Mixer',
-        description: 'Layer several tracks so they play together',
+        title: K.toolMix.tr,
+        description: K.toolMixDesc.tr,
         color: AppColors.accentAudio,
         mode: ToolMode.mix,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.view_timeline_rounded,
-        title: 'Audio Timeline',
-        description: 'Add clips one after another into a single file',
+        title: K.toolArrange.tr,
+        description: K.toolArrangeDesc.tr,
         color: AppColors.accentAudio,
         mode: ToolMode.arrange,
       ),
-      const _Tool(
+      _Tool(
         icon: Icons.auto_fix_high_rounded,
-        title: 'Noise Remover',
-        description: 'Clean background noise out of an audio file',
+        title: K.toolCleanup.tr,
+        description: K.toolCleanupDesc.tr,
         color: AppColors.accentAudio,
         mode: ToolMode.cleanup,
       ),
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tools')),
+      appBar: AppBar(title: Text(K.toolsSection.tr)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(

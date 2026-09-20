@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/legal/privacy_policy.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// The privacy policy, readable without a connection.
 class PrivacyPolicyPage extends StatelessWidget {
@@ -13,7 +15,7 @@ class PrivacyPolicyPage extends StatelessWidget {
     final ColorScheme colors = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy Policy')),
+      appBar: AppBar(title: Text(K.privacyPolicy.tr)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -24,28 +26,29 @@ class PrivacyPolicyPage extends StatelessWidget {
               padding: const EdgeInsets.all(AppDimens.pagePadding),
               children: <Widget>[
                 Text(
-                  'Effective ${PrivacyPolicy.effectiveDate}',
+                  'Last Updated: ${PrivacyPolicy.lastUpdatedDate}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: AppDimens.spaceMd),
-                SelectableText(
-                  PrivacyPolicy.intro,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                for (final String paragraph
+                    in PrivacyPolicy.introParagraphs) ...<Widget>[
+                  const SizedBox(height: AppDimens.spaceMd),
+                  SelectableText(paragraph, style: theme.textTheme.bodyMedium),
+                ],
                 for (final PolicySection section in PrivacyPolicy.sections)
                   _Section(section: section),
-                if (PrivacyPolicy.contactEmail.isNotEmpty)
-                  _Section(
-                    section: PolicySection(
-                      title: 'Contact',
-                      paragraphs: <String>[
-                        'Questions about this policy: '
-                            '${PrivacyPolicy.contactEmail}',
-                      ],
+                const SizedBox(height: AppDimens.spaceXl),
+                Center(
+                  child: SelectableText(
+                    '${PrivacyPolicy.appName}\n'
+                    '${PrivacyPolicy.footerTagline}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
                 const SizedBox(height: AppDimens.spaceXl),
               ],
             ),
@@ -79,6 +82,21 @@ class _Section extends StatelessWidget {
           for (final String paragraph in section.paragraphs) ...<Widget>[
             const SizedBox(height: AppDimens.spaceSm),
             SelectableText(paragraph, style: theme.textTheme.bodyMedium),
+          ],
+          for (final String bullet in section.bullets) ...<Widget>[
+            const SizedBox(height: AppDimens.spaceSm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SelectableText('• ', style: theme.textTheme.bodyMedium),
+                Expanded(
+                  child: SelectableText(
+                    bullet,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
           ],
         ],
       ),

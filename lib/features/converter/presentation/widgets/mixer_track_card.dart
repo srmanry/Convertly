@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/volume_envelope.dart';
 import 'volume_lane.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// One mixer track, as a single card: who it is, its shape over time, and
 /// its base level, all in a colour that is this track's own — so a stack of
@@ -118,7 +120,7 @@ class MixerTrackCard extends StatelessWidget {
                       ),
                       if (canReset)
                         IconButton(
-                          tooltip: 'Reset to 100%',
+                          tooltip: K.resetToHundred.tr,
                           visualDensity: VisualDensity.compact,
                           onPressed: onEnvelopeCleared,
                           icon: const Icon(Icons.restart_alt_rounded),
@@ -179,7 +181,7 @@ class _CornerRemoveButton extends StatelessWidget {
     final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Tooltip(
-      message: 'Remove',
+      message: K.remove.tr,
       child: Material(
         color: colors.surfaceContainerHighest,
         shape: CircleBorder(side: BorderSide(color: colors.outlineVariant)),
@@ -252,7 +254,7 @@ class _PreviewPill extends StatelessWidget {
                 ),
               const SizedBox(width: AppDimens.spaceXs),
               Text(
-                playing ? 'Stop' : 'Preview',
+                playing ? K.stop.tr : K.preview.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: accent,
                   fontWeight: FontWeight.w700,
@@ -298,7 +300,7 @@ class _BaseLevelRow extends StatelessWidget {
         ),
         const SizedBox(width: AppDimens.spaceSm),
         Text(
-          'Base level',
+          K.baseLevel.tr,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

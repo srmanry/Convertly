@@ -1,3 +1,7 @@
+import 'package:get/get.dart';
+
+import '../i18n/translation_keys.dart';
+
 /// What the cleanup tool removes from a track.
 ///
 /// None of these separate a mixed recording into stems — that needs a trained
@@ -5,24 +9,25 @@
 /// and subtract noise, the third cancels whatever is common to both channels.
 enum CleanupMode {
   backgroundNoise(
-    label: 'Background noise',
-    description: 'Removes hiss, hum and room noise sitting behind the audio.',
+    labelKey: K.cleanupNoiseTitle,
+    descriptionKey: K.cleanupNoiseDesc,
   ),
   voiceFocus(
-    label: 'Voice focus',
-    description: 'Keeps the speech range and drops what falls outside it.',
+    labelKey: K.cleanupVoiceTitle,
+    descriptionKey: K.cleanupVoiceDesc,
   ),
   removeVocals(
-    label: 'Remove vocals',
-    description:
-        'Cancels the centre of a stereo mix, where lead vocals usually sit. '
-        'Needs a stereo track and leaves some vocal bleed behind.',
+    labelKey: K.cleanupVocalsTitle,
+    descriptionKey: K.cleanupVocalsDesc,
   );
 
-  const CleanupMode({required this.label, required this.description});
+  const CleanupMode({required this.labelKey, required this.descriptionKey});
 
-  final String label;
-  final String description;
+  final String labelKey;
+  final String descriptionKey;
+
+  String get label => labelKey.tr;
+  String get description => descriptionKey.tr;
 
   /// Only the denoising modes read a strength; vocal cancelling has no dial.
   bool get usesStrength => this != CleanupMode.removeVocals;

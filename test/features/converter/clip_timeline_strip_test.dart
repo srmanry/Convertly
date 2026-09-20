@@ -68,6 +68,25 @@ void main() {
       expect(find.text('2'), findsOneWidget);
     });
 
+    testWidgets('clip numbers stay white over every accent colour', (
+      WidgetTester tester,
+    ) async {
+      await pumpStrip(
+        tester,
+        clips: sequence,
+        total: const Duration(seconds: 60),
+      );
+
+      for (final Text number in tester.widgetList<Text>(
+        find.byWidgetPredicate(
+          (Widget widget) =>
+              widget is Text && (widget.data == '1' || widget.data == '2'),
+        ),
+      )) {
+        expect(number.style?.color, Colors.white);
+      }
+    });
+
     testWidgets('block width follows the clip length', (
       WidgetTester tester,
     ) async {

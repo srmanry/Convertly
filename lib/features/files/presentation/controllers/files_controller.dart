@@ -12,6 +12,7 @@ import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/media_file.dart';
 import '../../domain/usecases/media_library_usecases.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class FilesController extends GetxController {
   FilesController(
@@ -302,7 +303,7 @@ class FilesController extends GetxController {
     result.fold(
       (Failure failure) {
         Get.snackbar(
-          'Files',
+          K.navFiles.tr,
           failure.message,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -327,7 +328,7 @@ class FilesController extends GetxController {
     result.fold(
       (Failure failure) {
         Get.snackbar(
-          'Files',
+          K.navFiles.tr,
           failure.message,
           snackPosition: SnackPosition.BOTTOM,
         );
@@ -342,8 +343,8 @@ class FilesController extends GetxController {
     await _deleteMediaFile(file);
     files.removeWhere((MediaFile item) => item.id == file.id);
     Get.snackbar(
-      'Files',
-      'This file is no longer available on your device.',
+      K.navFiles.tr,
+      K.errorFileGone.tr,
       snackPosition: SnackPosition.BOTTOM,
     );
   }

@@ -1,11 +1,14 @@
 import 'package:convertly/core/theme/app_colors.dart';
 import 'package:convertly/core/theme/app_theme.dart';
+import 'package:convertly/core/i18n/app_translations.dart';
 import 'package:convertly/features/converter/domain/entities/media_info.dart';
 import 'package:convertly/features/converter/domain/entities/volume_envelope.dart';
 import 'package:convertly/features/converter/presentation/widgets/mix_track_list.dart';
+import 'package:convertly/features/converter/presentation/widgets/source_summary_card.dart';
 import 'package:convertly/features/converter/presentation/widgets/volume_lane.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 
 MediaInfo _track(String name, int seconds) => MediaInfo(
   path: '/music/$name.mp3',
@@ -20,6 +23,8 @@ MediaInfo _track(String name, int seconds) => MediaInfo(
 void main() {
   late int toggles;
   late int? removed;
+
+  tearDown(Get.reset);
 
   Future<void> pumpMixer(WidgetTester tester, {bool playing = false}) async {
     toggles = 0;
@@ -167,5 +172,47 @@ void main() {
     expect(colors[0], AppColors.mixTrackAccents[0]);
     expect(colors[1], AppColors.mixTrackAccents[1]);
     expect(colors[0], isNot(colors[1]));
+  });
+
+  testWidgets('timeline rows are compact and use a clear play control', (
+    WidgetTester tester,
+  ) async {
+    const String longName =
+        'A very long timeline track name that should stay on one line';
+    await tester.pumpWidget(
+      GetMaterialApp(
+        theme: AppTheme.dark,
+        translations: AppTranslations(),
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: MixTrackList(
+            sources: <MediaInfo>[_track(longName, 90)],
+            volumes: const <double>[1],
+            starts: const <Duration>[Duration.zero],
+            onVolumeChanged: null,
+            showsPositions: true,
+            trimRanges: const <(Duration, Duration)>[
+              (Duration.zero, Duration(seconds: 90)),
+            ],
+            onTrimChanged: (_, _, _) {},
+            onPreviewClip: (_) {},
+            onRemove: (_) {},
+            onReorder: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final SourceSummaryCard summary = tester.widget<SourceSummaryCard>(
+      find.byType(SourceSummaryCard),
+    );
+    final Text number = tester.widget<Text>(find.text('1'));
+
+    expect(summary.titleMaxLines, 1);
+    expect(find.byIcon(Icons.drag_handle_rounded), findsNothing);
+    expect(number.style?.color, Colors.white);
+    expect(find.widgetWithText(FilledButton, 'Play'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

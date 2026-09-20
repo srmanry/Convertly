@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Translated interface. The delegates ship with Flutter; intl supplies the
+  # date and number formats each locale expects.
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
   cupertino_icons: ^1.0.8
 
   # State management, dependency injection and routing.

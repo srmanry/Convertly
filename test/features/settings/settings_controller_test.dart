@@ -80,4 +80,14 @@ void main() {
       const AppSettings().defaultOutputFormat,
     );
   });
+
+  test('a language that is no longer offered is ignored', () async {
+    final repository = _FakeSettingsRepository();
+    final SettingsController controller = buildController(repository);
+
+    await controller.setLanguageCode('es');
+
+    expect(controller.settings.value.languageCode, 'en');
+    expect(repository.lastSaved, isNull);
+  });
 }

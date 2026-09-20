@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/volume_envelope.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// One track's level along its length, shaped with points the way a music
 /// mixer's automation lane is.
@@ -175,10 +177,11 @@ class _VolumeLaneState extends State<VolumeLane> {
       ScaffoldMessenger.maybeOf(context)
         ?..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'A track can have up to ${VolumeEnvelope.maxPoints} points. '
-              'Delete one to add another.',
+              K.volumeMaxPoints.trParams(<String, String>{
+                'max': '${VolumeEnvelope.maxPoints}',
+              }),
             ),
           ),
         );
@@ -338,9 +341,8 @@ class _VolumeLaneState extends State<VolumeLane> {
         else
           Text(
             _envelope.points.length <= 2
-                ? 'Tap the line to add a point. Drag it down for quieter, '
-                      'up for louder.'
-                : 'Drag a point to change it, or tap one to set it exactly.',
+                ? K.volumeLaneHint.tr
+                : K.volumeLaneAdjust.tr,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),
@@ -393,7 +395,7 @@ class _PointControls extends StatelessWidget {
       child: Row(
         children: <Widget>[
           IconButton.filledTonal(
-            tooltip: 'Quieter',
+            tooltip: K.quieter.tr,
             style: IconButton.styleFrom(foregroundColor: accent),
             onPressed: point.level <= 0
                 ? null
@@ -423,7 +425,7 @@ class _PointControls extends StatelessWidget {
             ),
           ),
           IconButton.filledTonal(
-            tooltip: 'Louder',
+            tooltip: K.louder.tr,
             style: IconButton.styleFrom(foregroundColor: accent),
             onPressed: point.level >= VolumeEnvelope.maxLevel
                 ? null
@@ -433,7 +435,7 @@ class _PointControls extends StatelessWidget {
           if (canDelete) ...<Widget>[
             const SizedBox(width: AppDimens.spaceSm),
             IconButton(
-              tooltip: 'Delete point',
+              tooltip: K.deletePoint.tr,
               onPressed: onDelete,
               color: colors.error,
               icon: const Icon(Icons.delete_outline_rounded),

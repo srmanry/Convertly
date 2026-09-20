@@ -1,3 +1,6 @@
+import 'package:get/get.dart';
+
+import '../i18n/translation_keys.dart';
 import 'audio_format.dart';
 
 /// The conversion tools offered by the app.
@@ -6,65 +9,76 @@ import 'audio_format.dart';
 /// what the user configures and which FFmpeg arguments that produces.
 enum ToolMode {
   videoToAudio(
-    title: 'Video to Audio',
-    description: 'Extract audio from a video',
-    actionLabel: 'Select Video',
+    titleKey: K.toolVideoToAudio,
+    descriptionKey: K.toolVideoToAudioDesc,
+    actionLabelKey: K.selectVideo,
     outputSuffix: '_audio',
   ),
   audioConvert(
-    title: 'Audio Converter',
-    description: 'Convert audio between formats',
-    actionLabel: 'Select Audio',
+    titleKey: K.toolAudioConvert,
+    descriptionKey: K.toolAudioConvertDesc,
+    actionLabelKey: K.selectAudio,
     outputSuffix: '_converted',
   ),
   cut(
-    title: 'Audio Cutter',
-    description: 'Trim a section out of an audio file',
-    actionLabel: 'Select Audio',
+    titleKey: K.toolCut,
+    descriptionKey: K.toolCutDesc,
+    actionLabelKey: K.selectAudio,
     outputSuffix: '_cut',
   ),
   merge(
-    title: 'Audio Merger',
-    description: 'Join several audio files into one',
-    actionLabel: 'Add Audio Files',
+    titleKey: K.toolMerge,
+    descriptionKey: K.toolMergeDesc,
+    actionLabelKey: K.addAudioFiles,
     outputSuffix: '_merged',
   ),
   compress(
-    title: 'Audio Compressor',
-    description: 'Reduce the size of an audio file',
-    actionLabel: 'Select Audio',
+    titleKey: K.toolCompress,
+    descriptionKey: K.toolCompressDesc,
+    actionLabelKey: K.selectAudio,
     outputSuffix: '_compressed',
   ),
   mix(
-    title: 'Audio Mixer',
-    description: 'Layer several tracks so they play together',
-    actionLabel: 'Add Audio Files',
+    titleKey: K.toolMix,
+    descriptionKey: K.toolMixDesc,
+    actionLabelKey: K.addAudioFiles,
     outputSuffix: '_mixed',
   ),
   arrange(
-    title: 'Audio Timeline',
-    description: 'Add clips one after another into a single file',
-    actionLabel: 'Add Audio Files',
+    titleKey: K.toolArrange,
+    descriptionKey: K.toolArrangeDesc,
+    actionLabelKey: K.addAudioFiles,
     outputSuffix: '_timeline',
   ),
   cleanup(
-    title: 'Noise Remover',
-    description: 'Clean background noise out of an audio file',
-    actionLabel: 'Select Audio',
+    titleKey: K.toolCleanup,
+    descriptionKey: K.toolCleanupDesc,
+    actionLabelKey: K.selectAudio,
     outputSuffix: '_cleaned',
   );
 
   const ToolMode({
-    required this.title,
-    required this.description,
-    required this.actionLabel,
+    required this.titleKey,
+    required this.descriptionKey,
+    required this.actionLabelKey,
     required this.outputSuffix,
   });
 
-  final String title;
-  final String description;
-  final String actionLabel;
+  /// Keys rather than text: an enum is built once, at startup, while the
+  /// language can change at any moment, so the words are looked up each time
+  /// they are read.
+  final String titleKey;
+  final String descriptionKey;
+  final String actionLabelKey;
+
+  /// Added to the output file name, so it stays the same in every language:
+  /// a file named on a phone set to Hindi must still be recognisable after
+  /// the language is switched back.
   final String outputSuffix;
+
+  String get title => titleKey.tr;
+  String get description => descriptionKey.tr;
+  String get actionLabel => actionLabelKey.tr;
 
   bool get picksVideo => this == ToolMode.videoToAudio;
 

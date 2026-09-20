@@ -15,6 +15,7 @@ import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/action_card.dart';
 import '../widgets/tool_tile.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({super.key});
@@ -41,20 +42,20 @@ class HomePage extends GetView<HomeController> {
                     children: <Widget>[
                       ActionCard(
                         icon: Icons.movie_creation_rounded,
-                        title: 'Video to Audio',
-                        description: 'Extract audio from a video',
+                        title: K.toolVideoToAudio.tr,
+                        description: K.toolVideoToAudioDesc.tr,
                         accentColor: AppColors.accentVideo,
                         onTap: () => _openTool(ToolMode.videoToAudio),
                       ),
                       const SizedBox(height: AppDimens.spaceMd),
                       ActionCard(
                         icon: Icons.swap_horiz_rounded,
-                        title: 'Audio Converter',
-                        description: 'Convert audio between formats',
+                        title: K.toolAudioConvert.tr,
+                        description: K.toolAudioConvertDesc.tr,
                         accentColor: AppColors.accentAudio,
                         onTap: () => _openTool(ToolMode.audioConvert),
                       ),
-                      const _SectionHeader(title: 'Tools'),
+                      _SectionHeader(title: K.toolsSection.tr),
                     ],
                   ),
                 ),
@@ -74,37 +75,37 @@ class HomePage extends GetView<HomeController> {
                     delegate: SliverChildListDelegate(<Widget>[
                       ToolTile(
                         icon: Icons.content_cut_rounded,
-                        label: 'Audio Cutter',
+                        label: K.toolCut.tr,
                         accentColor: AppColors.accentVideo,
                         onTap: () => _openTool(ToolMode.cut),
                       ),
                       ToolTile(
                         icon: Icons.merge_rounded,
-                        label: 'Audio Merger',
+                        label: K.toolMerge.tr,
                         accentColor: AppColors.accentTools,
                         onTap: () => _openTool(ToolMode.merge),
                       ),
                       ToolTile(
                         icon: Icons.layers_rounded,
-                        label: 'Audio Mixer',
+                        label: K.toolMix.tr,
                         accentColor: const Color(0xFF6F9BFF),
                         onTap: () => _openTool(ToolMode.mix),
                       ),
                       ToolTile(
                         icon: Icons.compress_rounded,
-                        label: 'Audio Compressor',
+                        label: K.toolCompress.tr,
                         accentColor: AppColors.accentAudio,
                         onTap: () => _openTool(ToolMode.compress),
                       ),
                       ToolTile(
                         icon: Icons.auto_fix_high_rounded,
-                        label: 'Noise Remover',
+                        label: K.toolCleanup.tr,
                         accentColor: AppColors.success,
                         onTap: () => _openTool(ToolMode.cleanup),
                       ),
                       ToolTile(
                         icon: Icons.view_timeline_rounded,
-                        label: 'Audio Timeline',
+                        label: K.toolArrange.tr,
                         accentColor: AppColors.accentPremium,
                         onTap: () => _openTool(ToolMode.arrange),
                       ),
@@ -117,14 +118,10 @@ class HomePage extends GetView<HomeController> {
                   ),
                   sliver: SliverList.list(
                     children: <Widget>[
-                      _SectionHeader(
-                        title: 'Recent Files',
-                        action: TextButton(
-                          onPressed: () =>
-                              Get.find<ShellController>().goToFiles(),
-                          child: const Text('See all'),
-                        ),
-                      ),
+                      // No "see all" beside the heading: the row at the foot
+                      // of the list says the same thing where the reader
+                      // actually runs out of files.
+                      _SectionHeader(title: K.recentFiles.tr),
                       Obx(() {
                         if (!controller.hasRecentFiles) {
                           return Column(
@@ -134,11 +131,11 @@ class HomePage extends GetView<HomeController> {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: AppDimens.spaceXl,
                                   ),
-                                  child: const EmptyStateView(
+                                  child: EmptyStateView(
                                     icon: Icons.folder_open_rounded,
-                                    title: 'No files yet',
+                                    title: K.noFilesYet.tr,
                                     message:
-                                        'Your converted files will appear here.',
+                                        K.noFilesYetMessage.tr,
                                   ),
                                 ),
                               ),
@@ -164,6 +161,14 @@ class HomePage extends GetView<HomeController> {
                               if (index < files.length - 1)
                                 const SizedBox(height: AppDimens.spaceSm),
                             ],
+                            // Only when the library holds more than these
+                            // few: otherwise it would promise a fuller list
+                            // than the Files tab actually has.
+                            if (controller.hasMoreFiles)
+                              _SeeAllFilesButton(
+                                total: controller.libraryCount.value,
+                                shown: files.length,
+                              ),
                           ],
                         );
                       }),
@@ -239,6 +244,65 @@ class _RecentFileCard extends StatelessWidget {
   }
 }
 
+/// Sends the reader to the full library once this list stops being all of it.
+///
+/// Shaped like the file cards above it and sitting in their column, so it
+/// reads as where the list continues rather than as a stray button.
+class _SeeAllFilesButton extends StatelessWidget {
+  const _SeeAllFilesButton({required this.total, required this.shown});
+
+  /// Everything in the library, so the row can say what is waiting there.
+  final int total;
+
+  /// How many of those the list above already shows.
+  final int shown;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+    final int remaining = total - shown;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppDimens.spaceSm),
+      child: Card(
+        color: colors.primary.withValues(alpha: 0.10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          side: BorderSide(color: colors.primary.withValues(alpha: 0.35)),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.spaceMd,
+            vertical: AppDimens.spaceXs,
+          ),
+          leading: CircleAvatar(
+            backgroundColor: colors.primary.withValues(alpha: 0.2),
+            child: Icon(Icons.folder_open_rounded, color: colors.primary),
+          ),
+          title: Text(
+            K.seeAllFiles.trParams(<String, String>{'count': '$total'}),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: colors.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            K.moreInLibrary.trParams(<String, String>{
+              'count': '$remaining',
+            }),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          trailing: Icon(Icons.chevron_right_rounded, color: colors.primary),
+          onTap: () => Get.find<ShellController>().goToFiles(),
+        ),
+      ),
+    );
+  }
+}
+
 class _InlineBanner extends StatelessWidget {
   const _InlineBanner();
 
@@ -298,10 +362,9 @@ class _Header extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.action});
+  const _SectionHeader({required this.title});
 
   final String title;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -310,14 +373,7 @@ class _SectionHeader extends StatelessWidget {
         top: AppDimens.spaceXl,
         bottom: AppDimens.spaceMd,
       ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-          ),
-          ?action,
-        ],
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }

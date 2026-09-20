@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../domain/entities/media_info.dart';
 import '../../domain/entities/volume_envelope.dart';
 import 'mixer_track_card.dart';
 import 'source_summary_card.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// The mixer's track list: every clip with its own start point and volume.
 ///
@@ -115,9 +117,11 @@ class MixTrackList extends StatelessWidget {
   /// first track is the one the others sit behind.
   String trackLabel(int index) {
     if (showsPositions) {
-      return 'Clip ${index + 1}';
+      return K.clipNumber.trParams(<String, String>{'number': '${index + 1}'});
     }
-    return index == 0 ? 'Main track' : 'Layer ${index + 1}';
+    return index == 0
+        ? K.mainTrack.tr
+        : K.layerNumber.trParams(<String, String>{'number': '${index + 1}'});
   }
 
   /// This track's own colour, cycled from the same accents the home screen
@@ -182,31 +186,23 @@ class MixTrackList extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // Press and hold anywhere on the card to move the clip; the
-              // handle picks it up straight away for anyone who finds it.
+              // Press and hold anywhere on the card to move the clip. Keeping
+              // the card itself as the target avoids a separate drag glyph
+              // competing with the clip number for the small leading space.
               ReorderableDelayedDragStartListener(
                 index: index,
                 child: SourceSummaryCard(
                   media: media,
+                  titleMaxLines: showsPositions ? 1 : 2,
                   onRemove: () => onRemove(index),
-                  leading: ReorderableDragStartListener(
-                    index: index,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.spaceSm,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Icon(Icons.drag_handle_rounded),
-                          if (showsPositions) ...<Widget>[
-                            const SizedBox(width: AppDimens.spaceSm),
-                            _ClipNumber(index: index),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
+                  leading: showsPositions
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimens.spaceSm,
+                          ),
+                          child: _ClipNumber(index: index),
+                        )
+                      : null,
                 ),
               ),
               if (onTrimChanged
@@ -249,20 +245,22 @@ class _ClipNumber extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     final bool isEven = index.isEven;
+    final Color accent = isEven ? colors.primary : colors.tertiary;
 
     return Container(
       width: 26,
       height: 26,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isEven ? colors.primary : colors.tertiary,
+        color: Color.alphaBlend(Colors.black.withValues(alpha: 0.14), accent),
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Text(
         '${index + 1}',
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: isEven ? colors.onPrimary : colors.onTertiary,
-          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -308,7 +306,7 @@ class _TrimRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Selection', style: theme.textTheme.labelMedium),
+          Text(K.selectionLabel.tr, style: theme.textTheme.labelMedium),
           RangeSlider(
             min: 0,
             max: maxMs,
@@ -326,19 +324,30 @@ class _TrimRow extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  'Start ${Formatters.duration(Duration(milliseconds: startMs.round()))}'
-                  '   End ${Formatters.duration(Duration(milliseconds: endMs.round()))}',
+                  '${K.startsAt.trParams(<String, String>{'time': Formatters.duration(Duration(milliseconds: startMs.round()))})}   ${K.endLabel.tr} '
+                  '${Formatters.duration(Duration(milliseconds: endMs.round()))}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              TextButton.icon(
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.spaceMd,
+                    vertical: AppDimens.spaceSm,
+                  ),
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  shape: const StadiumBorder(),
+                ),
                 onPressed: onPreview,
                 icon: Icon(
                   isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
                 ),
-                label: Text(isPlaying ? 'Stop' : 'Play'),
+                label: Text(isPlaying ? K.stop.tr : K.play.tr),
               ),
             ],
           ),
@@ -384,8 +393,7 @@ class _PlaysRow extends StatelessWidget {
           ),
           const SizedBox(width: AppDimens.spaceSm),
           Text(
-            'Plays ${Formatters.duration(start)}'
-            ' – ${Formatters.duration(end)}',
+            '${K.playsAt.trParams(<String, String>{'time': Formatters.duration(start)})} – ${Formatters.duration(end)}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

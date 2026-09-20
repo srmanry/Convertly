@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:get/get.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// One item in the player's queue.
 ///
@@ -32,7 +34,7 @@ class PlayerTrack extends Equatable {
     final Object? title = value['title'];
     return PlayerTrack(
       path: path,
-      title: title is String && title.isNotEmpty ? title : 'Audio',
+      title: title is String && title.isNotEmpty ? title : K.audio.tr,
     );
   }
 

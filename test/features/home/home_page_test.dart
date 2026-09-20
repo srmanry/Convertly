@@ -111,6 +111,37 @@ void main() {
     expect(find.byType(BannerAdView), findsOneWidget);
   });
 
+  testWidgets('a library larger than the list offers the rest of it', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester);
+    final HomeController controller = Get.find<HomeController>();
+    controller.recentFiles.assignAll(<MediaFile>[
+      for (int i = 1; i <= HomeController.recentLimit; i++) file(i, 'Track $i'),
+    ]);
+    controller.libraryCount.value = 12;
+    await tester.pump();
+    await scrollTo(tester, find.text('See all 12 files'));
+
+    await tester.tap(find.text('See all 12 files'));
+    await tester.pump();
+
+    expect(Get.find<ShellController>().currentTab.value, ShellTab.files);
+  });
+
+  testWidgets('a library the list already shows in full offers nothing more', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester);
+    final HomeController controller = Get.find<HomeController>();
+    controller.recentFiles.assignAll(<MediaFile>[file(1, 'Only track')]);
+    controller.libraryCount.value = 1;
+    await tester.pump();
+    await scrollTo(tester, find.text('Only track'));
+
+    expect(find.textContaining('See all 1 file'), findsNothing);
+  });
+
   testWidgets('greets the user and shows the app name', (
     WidgetTester tester,
   ) async {
@@ -118,18 +149,6 @@ void main() {
 
     expect(find.text('AudioForge'), findsOneWidget);
     expect(find.textContaining('Good '), findsOneWidget);
-  });
-
-  testWidgets('"See all" switches the shell to the Files tab', (
-    WidgetTester tester,
-  ) async {
-    await pumpHome(tester);
-    await scrollTo(tester, find.text('See all'));
-
-    await tester.tap(find.text('See all'));
-    await tester.pump();
-
-    expect(Get.find<ShellController>().currentTab.value, ShellTab.files);
   });
 
   // Regression cover: the tools grid previously derived tile height from screen

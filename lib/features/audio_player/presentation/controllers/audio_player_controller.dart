@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import '../../domain/entities/player_track.dart';
 
 import '../../../../core/utils/playable_audio_source.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Playback speeds offered in the player.
 const List<double> kPlaybackSpeeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -34,7 +35,7 @@ class AudioPlayerController extends GetxController {
 
   String get path => currentTrack?.path ?? '';
 
-  String get title => currentTrack?.title ?? 'Audio';
+  String get title => currentTrack?.title ?? K.audio.tr;
 
   bool get hasPrevious => queue.length > 1 && index.value > 0;
 

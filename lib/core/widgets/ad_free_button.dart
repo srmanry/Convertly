@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../constants/app_dimens.dart';
 import '../services/ads_service.dart';
+import '../../core/i18n/translation_keys.dart';
 
 /// Offers [AdsService.bonusExportsReward] ad-free files in exchange for
 /// watching one ad, outside the usual round of ads.
@@ -47,9 +48,10 @@ class _AdFreeButtonState extends State<AdFreeButton> {
         return OutlinedButton.icon(
           onPressed: _watching ? null : () => _watch(ads),
           icon: const Icon(Icons.play_circle_outline_rounded),
-          label: const Text(
-            'Watch an ad for '
-            '${AdsService.bonusExportsReward} files without ads',
+          label: Text(
+            K.adWatchForFiles.trParams(<String, String>{
+              'count': '${AdsService.bonusExportsReward}',
+            }),
           ),
         );
       },
@@ -77,9 +79,9 @@ class _RemainingNotice extends StatelessWidget {
         const SizedBox(width: AppDimens.spaceSm),
         Expanded(
           child: Text(switch (filesLeft) {
-            0 => 'No ads for this file.',
-            1 => 'No ads for your next file.',
-            _ => 'No ads for your next $filesLeft files.',
+            0 => K.adNoAdsThisFile.tr,
+            1 => K.adNoAdsNextFile.tr,
+            _ => K.adNoAdsNextFiles.trParams(<String, String>{'count': '\$filesLeft'}),
           }, style: theme.textTheme.bodyMedium),
         ),
       ],

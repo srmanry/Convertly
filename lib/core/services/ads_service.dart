@@ -48,6 +48,47 @@ class AdsService {
   /// it carries on from the same place once they are used up.
   static const int bonusExportsReward = 4;
 
+  /// Rewarded ads that buy a stretch with no ads at all.
+  ///
+  /// Two rather than one: a single video for ten quiet minutes would be worth
+  /// more than the whole round of ads it replaces.
+  static const int adsPerBreak = 2;
+
+  /// How long that stretch lasts.
+  static const Duration breakDuration = Duration(minutes: 10);
+
+  /// [breakDuration] as the offer states it, so every screen says the same
+  /// thing and changing the length changes the wording with it.
+  String get breakDurationLabel => '${breakDuration.inMinutes} minutes';
+
+  /// Rewarded ads watched so far towards the next stretch, from zero to
+  /// [adsPerBreak] minus one.
+  final ValueNotifier<int> adsWatchedTowardBreak = ValueNotifier<int>(0);
+
+  /// When the current stretch ends, or null when there is none.
+  ///
+  /// A listenable so the settings row can count it down and the banners can
+  /// come back the moment it runs out.
+  final ValueNotifier<DateTime?> breakEndsAt = ValueNotifier<DateTime?>(null);
+
+  Timer? _breakTimer;
+
+  /// How much of the stretch is left, zero when it is over or never started.
+  Duration get breakRemaining {
+    final DateTime? endsAt = breakEndsAt.value;
+    if (endsAt == null) {
+      return Duration.zero;
+    }
+    final Duration left = endsAt.difference(DateTime.now());
+    return left.isNegative ? Duration.zero : left;
+  }
+
+  /// Whether the earned stretch is running right now.
+  bool get isOnAdFreeBreak => breakRemaining > Duration.zero;
+
+  /// Whether a rewarded ad can be offered for the stretch.
+  bool get canOfferBreak => _initialised && _rewarded != null;
+
   /// Whether ads are currently switched off.
   ///
   /// Exposed as a listenable so the banner and the in-list ad can disappear
@@ -92,6 +133,7 @@ class AdsService {
   bool get isRewardTurn =>
       _exportsInCycle == rewardBeforeExport - 1 &&
       adFreeExportsLeft == 0 &&
+      !isOnAdFreeBreak &&
       !_rewardOffered;
 
   /// Whether the next export should show the interstitial, loaded or not.
@@ -102,6 +144,7 @@ class AdsService {
   bool get isInterstitialTurn =>
       _exportsInCycle == exportsPerCycle - 1 &&
       adFreeExportsLeft == 0 &&
+      !isOnAdFreeBreak &&
       !_interstitialShown;
 
   /// Reads back what was earned, and where the round was, before the app was
@@ -109,6 +152,7 @@ class AdsService {
   void _restoreAdState() {
     _adFreeExportsLeft = _readCount(StorageKeys.adFreeExportsLeft);
     _bonusExportsLeft = _readCount(StorageKeys.adBonusExportsLeft);
+    _restoreAdFreeBreak();
 
     final int position = _storage.readInt(StorageKeys.adCyclePosition) ?? 0;
     _exportsInCycle = position >= 0 && position < exportsPerCycle
@@ -118,13 +162,104 @@ class AdsService {
     _syncAdFreeState();
   }
 
+  /// Picks the stretch back up where the app left it.
+  ///
+  /// Minutes keep running while the app is closed: the stretch is ten
+  /// minutes of the user's time, not ten minutes of screen time. One that
+  /// ran out in the meantime is simply gone.
+  void _restoreAdFreeBreak() {
+    adsWatchedTowardBreak.value = _readCount(StorageKeys.adBreakProgress).clamp(
+      0,
+      adsPerBreak - 1,
+    );
+
+    final int? endsAtMillis = _storage.readInt(StorageKeys.adBreakEndsAt);
+    if (endsAtMillis == null) {
+      return;
+    }
+
+    final DateTime endsAt = DateTime.fromMillisecondsSinceEpoch(endsAtMillis);
+    if (endsAt.isAfter(DateTime.now())) {
+      breakEndsAt.value = endsAt;
+      _scheduleBreakEnd();
+      return;
+    }
+    unawaited(_storage.remove(StorageKeys.adBreakEndsAt));
+  }
+
   int _readCount(String key) {
     final int stored = _storage.readInt(key) ?? 0;
     return stored < 0 ? 0 : stored;
   }
 
+  /// Starts, or extends, the stretch with no ads.
+  ///
+  /// Extends from wherever the current one ends rather than from now, so a
+  /// second stretch earned early does not throw away the minutes left in the
+  /// first.
+  void _startAdFreeBreak() {
+    final DateTime now = DateTime.now();
+    final DateTime from = switch (breakEndsAt.value) {
+      final DateTime endsAt when endsAt.isAfter(now) => endsAt,
+      _ => now,
+    };
+    _setBreakEnd(from.add(breakDuration));
+  }
+
+  void _setBreakEnd(DateTime? endsAt) {
+    breakEndsAt.value = endsAt;
+    unawaited(
+      endsAt == null
+          ? _storage.remove(StorageKeys.adBreakEndsAt)
+          : _storage.writeInt(
+              StorageKeys.adBreakEndsAt,
+              endsAt.millisecondsSinceEpoch,
+            ),
+    );
+    _scheduleBreakEnd();
+    _syncAdFreeState();
+  }
+
+  /// Brings the ads back the moment the stretch runs out.
+  ///
+  /// Without this nothing would notice until the next export, and the banner
+  /// would stay hidden for a screen that is no longer paid for.
+  void _scheduleBreakEnd() {
+    _breakTimer?.cancel();
+    _breakTimer = null;
+
+    final Duration left = breakRemaining;
+    if (left == Duration.zero) {
+      return;
+    }
+    _breakTimer = Timer(left, () {
+      _breakTimer = null;
+      _setBreakEnd(null);
+    });
+  }
+
+  /// Counts one watched ad towards the stretch, starting it on the last one.
+  ///
+  /// Public like the other rewards so the count and the minutes can be tested
+  /// without a live ad, which no test can play.
+  void grantAdFreeBreakProgress() {
+    final int watched = adsWatchedTowardBreak.value + 1;
+    if (watched >= adsPerBreak) {
+      _setBreakProgress(0);
+      _startAdFreeBreak();
+      return;
+    }
+    _setBreakProgress(watched);
+  }
+
+  void _setBreakProgress(int watched) {
+    adsWatchedTowardBreak.value = watched;
+    _persistCount(StorageKeys.adBreakProgress, watched);
+  }
+
   void _syncAdFreeState() {
-    final bool active = adFreeExportsLeft > 0 || _currentExportCovered;
+    final bool active =
+        adFreeExportsLeft > 0 || _currentExportCovered || isOnAdFreeBreak;
     if (isAdFree.value != active) {
       isAdFree.value = active;
     }
@@ -293,6 +428,15 @@ class AdsService {
   /// without that question itself counting as an export. Uses up one earned
   /// ad-free file when there is one, and moves the round along.
   void recordExport() {
+    // The stretch with no ads sits outside the round entirely: it neither
+    // spends an earned file nor moves the round on, so the round resumes
+    // exactly where it was once the minutes run out.
+    if (isOnAdFreeBreak) {
+      _currentExportCovered = true;
+      _syncAdFreeState();
+      return;
+    }
+
     // A file from a reward watched by choice sits outside the round: no ad,
     // and the round does not move, so it picks up where it left off.
     if (_bonusExportsLeft > 0) {
@@ -387,6 +531,13 @@ class AdsService {
   /// Plays a rewarded ad the user asked for from a button.
   Future<bool> watchForBonusExports() => _watchRewarded(grantBonusExports);
 
+  /// Plays a rewarded ad towards the stretch with no ads.
+  ///
+  /// Every [adsPerBreak] of these starts the stretch; the ones before it only
+  /// move the count along. Returns whether the reward was earned.
+  Future<bool> watchForAdFreeBreak() =>
+      _watchRewarded(grantAdFreeBreakProgress);
+
   Future<bool> _watchRewarded(void Function() grant) async {
     final RewardedAd? ad = _rewarded;
     if (ad == null) {
@@ -474,6 +625,10 @@ class AdsService {
   }
 
   void dispose() {
+    _breakTimer?.cancel();
+    _breakTimer = null;
+    adsWatchedTowardBreak.dispose();
+    breakEndsAt.dispose();
     _interstitial?.dispose();
     _interstitial = null;
     _rewarded?.dispose();

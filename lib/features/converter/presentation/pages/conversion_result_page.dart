@@ -10,6 +10,7 @@ import '../../../../core/widgets/ad_free_button.dart';
 import '../../../../core/services/media_export_service.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../domain/entities/conversion_result.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Confirmation screen shown after a successful conversion.
 class ConversionResultPage extends StatelessWidget {
@@ -26,14 +27,14 @@ class ConversionResultPage extends StatelessWidget {
         body: Center(
           child: TextButton(
             onPressed: Get.back<void>,
-            child: const Text('Go Back'),
+            child: Text(K.goBack.tr),
           ),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversion Complete')),
+      appBar: AppBar(title: Text(K.conversionComplete.tr)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -71,7 +72,7 @@ class ConversionResultPage extends StatelessWidget {
                           ),
                           const SizedBox(height: AppDimens.spaceXl),
                           Text(
-                            'Conversion Complete',
+                            K.conversionComplete.tr,
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: AppDimens.spaceXl),
@@ -81,12 +82,12 @@ class ConversionResultPage extends StatelessWidget {
                               child: Column(
                                 children: <Widget>[
                                   _DetailRow(
-                                    label: 'File',
+                                    label: K.labelFile.tr,
                                     value: result.name,
                                     maxLines: 2,
                                   ),
                                   _DetailRow(
-                                    label: 'Size',
+                                    label: K.labelSize.tr,
                                     value: Formatters.fileSize(
                                       result.sizeInBytes,
                                     ),
@@ -94,11 +95,11 @@ class ConversionResultPage extends StatelessWidget {
                                   if (result.duration
                                       case final Duration duration)
                                     _DetailRow(
-                                      label: 'Duration',
+                                      label: K.labelDuration.tr,
                                       value: Formatters.duration(duration),
                                     ),
                                   _DetailRow(
-                                    label: 'Format',
+                                    label: K.labelFormat.tr,
                                     value: result.format,
                                   ),
                                 ],
@@ -115,7 +116,7 @@ class ConversionResultPage extends StatelessWidget {
                               },
                             ),
                             icon: const Icon(Icons.play_arrow_rounded),
-                            label: const Text('Play Audio'),
+                            label: Text(K.playAudio.tr),
                           ),
                           const SizedBox(height: AppDimens.spaceMd),
                           OutlinedButton.icon(
@@ -124,7 +125,7 @@ class ConversionResultPage extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             icon: const Icon(Icons.download_rounded),
-                            label: const Text('Save to phone'),
+                            label: Text(K.saveToPhone.tr),
                           ),
                           const SizedBox(height: AppDimens.spaceMd),
                           OutlinedButton.icon(
@@ -133,7 +134,7 @@ class ConversionResultPage extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             icon: const Icon(Icons.share_rounded),
-                            label: const Text('Share'),
+                            label: Text(K.share.tr),
                           ),
                           const SizedBox(height: AppDimens.spaceMd),
                           // The moment a file is ready is when more files are on the
@@ -145,7 +146,7 @@ class ConversionResultPage extends StatelessWidget {
                               Expanded(
                                 child: TextButton(
                                   onPressed: _openFiles,
-                                  child: const Text('Open Files'),
+                                  child: Text(K.openFiles.tr),
                                 ),
                               ),
                               Expanded(
@@ -153,7 +154,7 @@ class ConversionResultPage extends StatelessWidget {
                                   onPressed: () => Get.until(
                                     (Route<dynamic> r) => r.isFirst,
                                   ),
-                                  child: const Text('Done'),
+                                  child: Text(K.done.tr),
                                 ),
                               ),
                             ],
@@ -191,8 +192,8 @@ class ConversionResultPage extends StatelessWidget {
       SnackBar(
         content: Text(
           saved == null
-              ? 'Could not save that file to the phone.'
-              : 'Saved to Music / AudioForge on this phone.',
+              ? K.couldNotSaveToPhone.tr
+              : K.savedToPhoneMessage.tr,
         ),
       ),
     );
@@ -205,7 +206,7 @@ class ConversionResultPage extends StatelessWidget {
     );
     if (!shared && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This file is no longer available.')),
+        SnackBar(content: Text(K.fileNoLongerAvailable.tr)),
       );
     }
   }

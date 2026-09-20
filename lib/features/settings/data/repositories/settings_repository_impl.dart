@@ -5,6 +5,7 @@ import '../../domain/entities/app_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../datasources/settings_local_datasource.dart';
 import '../models/app_settings_model.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class SettingsRepositoryImpl implements SettingsRepository {
   const SettingsRepositoryImpl(this._localDataSource);
@@ -19,7 +20,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       // Corrupt or unreadable preferences must not stop the app from starting.
       return Result<AppSettings>.failure(
         CacheFailure(
-          message: 'Could not load your settings. Defaults are being used.',
+          messageKey: K.errorSettingsNotLoaded,
           debugMessage: error.toString(),
         ),
       );
@@ -35,7 +36,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
     } on CacheException catch (error) {
       return Result<AppSettings>.failure(
         CacheFailure(
-          message: 'Could not save your settings. Please try again.',
+          messageKey: K.errorSettingsNotSaved,
           debugMessage: error.toString(),
         ),
       );

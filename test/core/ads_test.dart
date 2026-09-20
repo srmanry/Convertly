@@ -534,4 +534,105 @@ void main() {
       expect(ads.adFreeExportsLeft, 0);
     });
   });
+
+  group('the earned break turns every ad off for a while', () {
+    test('one video only moves the count along', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      ads.grantAdFreeBreakProgress();
+
+      expect(ads.adsWatchedTowardBreak.value, 1);
+      expect(ads.isOnAdFreeBreak, isFalse);
+      expect(ads.isAdFree.value, isFalse);
+    });
+
+    test('the last video starts the break and resets the count', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      for (int i = 0; i < AdsService.adsPerBreak; i++) {
+        ads.grantAdFreeBreakProgress();
+      }
+
+      expect(ads.adsWatchedTowardBreak.value, 0);
+      expect(ads.isOnAdFreeBreak, isTrue);
+      expect(ads.isAdFree.value, isTrue);
+      expect(ads.breakRemaining.inMinutes, greaterThan(0));
+      expect(ads.breakRemaining, lessThanOrEqualTo(AdsService.breakDuration));
+    });
+
+    test(
+      'no ad is due during the break, and the round is left where it was',
+      () async {
+        final AdsService ads = await newService();
+        addTearDown(ads.dispose);
+        await ads.initialise();
+
+        // Right up to the export that would carry the interstitial.
+        for (int i = 0; i < AdsService.exportsPerCycle - 1; i++) {
+          ads.recordExport();
+          ads.finishExport();
+        }
+        expect(ads.isInterstitialTurn, isTrue);
+
+        for (int i = 0; i < AdsService.adsPerBreak; i++) {
+          ads.grantAdFreeBreakProgress();
+        }
+
+        expect(ads.isInterstitialTurn, isFalse);
+        expect(ads.isRewardTurn, isFalse);
+
+        // Exports made during the break must not spend the round: the
+        // interstitial is still owed once the minutes run out.
+        ads.recordExport();
+        ads.finishExport();
+        ads.breakEndsAt.value = null;
+
+        expect(ads.isInterstitialTurn, isTrue);
+      },
+    );
+
+    test('a second break adds to the first rather than replacing it', () async {
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+
+      for (int i = 0; i < AdsService.adsPerBreak * 2; i++) {
+        ads.grantAdFreeBreakProgress();
+      }
+
+      expect(ads.breakRemaining, greaterThan(AdsService.breakDuration));
+    });
+
+    test('minutes keep running while the app is closed', () async {
+      final AdsService first = await newService();
+      for (int i = 0; i < AdsService.adsPerBreak; i++) {
+        first.grantAdFreeBreakProgress();
+      }
+      await Future<void>.delayed(Duration.zero);
+      first.dispose();
+
+      final AdsService second = await newService();
+      addTearDown(second.dispose);
+      await second.initialise();
+
+      expect(second.isOnAdFreeBreak, isTrue);
+      expect(second.isAdFree.value, isTrue);
+    });
+
+    test('a break that ran out while the app was closed is over', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'ads_break_ends_at': DateTime.now()
+            .subtract(const Duration(minutes: 1))
+            .millisecondsSinceEpoch,
+      });
+
+      final AdsService ads = await newService();
+      addTearDown(ads.dispose);
+      await ads.initialise();
+
+      expect(ads.isOnAdFreeBreak, isFalse);
+      expect(ads.isAdFree.value, isFalse);
+    });
+  });
 }

@@ -7,6 +7,7 @@ import '../../../files/domain/entities/media_file.dart';
 import '../../../files/domain/repositories/media_library_repository.dart';
 import '../../domain/entities/storage_usage.dart';
 import '../../domain/repositories/storage_repository.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class StorageRepositoryImpl implements StorageRepository {
   const StorageRepositoryImpl(this._library, this._directories);
@@ -21,7 +22,7 @@ class StorageRepositoryImpl implements StorageRepository {
       final List<MediaFile>? files = stored.valueOrNull;
       if (files == null) {
         return const Result<StorageUsage>.failure(
-          CacheFailure(message: 'Could not read what is stored on the device.'),
+          CacheFailure(messageKey: K.errorStorageNotRead),
         );
       }
 
@@ -67,7 +68,7 @@ class StorageRepositoryImpl implements StorageRepository {
     } catch (error) {
       return Result<StorageUsage>.failure(
         StorageFailure(
-          message: 'Could not read storage information.',
+          messageKey: K.errorStorageNotRead,
           debugMessage: error.toString(),
         ),
       );
@@ -82,7 +83,7 @@ class StorageRepositoryImpl implements StorageRepository {
     } catch (error) {
       return Result<void>.failure(
         StorageFailure(
-          message: 'Could not remove the working files.',
+          messageKey: K.errorWorkingNotRemoved,
           debugMessage: error.toString(),
         ),
       );
@@ -95,7 +96,7 @@ class StorageRepositoryImpl implements StorageRepository {
     final List<MediaFile>? files = stored.valueOrNull;
     if (files == null) {
       return const Result<int>.failure(
-        CacheFailure(message: 'Could not read what is stored on the device.'),
+        CacheFailure(messageKey: K.errorStorageNotRead),
       );
     }
     if (files.isEmpty) {

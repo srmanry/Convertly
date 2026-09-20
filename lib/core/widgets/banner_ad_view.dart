@@ -39,6 +39,9 @@ class BannerAdView extends StatefulWidget {
 
 class _BannerAdViewState extends State<BannerAdView> {
   BannerAd? _ad;
+
+  /// The size the loaded creative actually occupies, not the one requested.
+  AdSize? _renderedSize;
   bool _loaded = false;
   bool _loading = false;
   bool _active = true;
@@ -81,6 +84,8 @@ class _BannerAdViewState extends State<BannerAdView> {
 
       // Sized to the device rather than a fixed 320x50, so the banner fills
       // the width properly on a phone and does not look stranded on a tablet.
+      // This is only what is asked for; the creative that arrives is often
+      // shorter, so [_showLoaded] measures the real one before reserving room.
       final AdSize? size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(
         width,
       );
@@ -99,7 +104,7 @@ class _BannerAdViewState extends State<BannerAdView> {
               loadedAd.dispose();
               return;
             }
-            setState(() => _loaded = true);
+            unawaited(_showLoaded(ad));
           },
           onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
             // No fill is normal, especially on a new account. The strip stays
@@ -108,6 +113,7 @@ class _BannerAdViewState extends State<BannerAdView> {
             if (mounted && identical(_ad, ad)) {
               setState(() {
                 _ad = null;
+                _renderedSize = null;
                 _loaded = false;
               });
             }
@@ -122,9 +128,26 @@ class _BannerAdViewState extends State<BannerAdView> {
     }
   }
 
+  /// Shows the banner at the height the platform actually gave it.
+  ///
+  /// The requested size is an upper bound: a 60dp creative delivered into a
+  /// 100dp slot would otherwise sit in a band of dead space. Falls back to the
+  /// requested size when the platform cannot report one.
+  Future<void> _showLoaded(BannerAd ad) async {
+    final AdSize? platformSize = await ad.getPlatformAdSize();
+    if (!mounted || !_active || !identical(_ad, ad)) {
+      return;
+    }
+    setState(() {
+      _renderedSize = platformSize ?? ad.size;
+      _loaded = true;
+    });
+  }
+
   void _disposeAd() {
     final BannerAd? ad = _ad;
     _ad = null;
+    _renderedSize = null;
     _loaded = false;
     if (ad != null) {
       unawaited(ad.dispose());
@@ -145,9 +168,10 @@ class _BannerAdViewState extends State<BannerAdView> {
       return const SizedBox.shrink();
     }
 
+    final AdSize size = _renderedSize ?? ad.size;
     final Widget banner = SizedBox(
-      width: ad.size.width.toDouble(),
-      height: ad.size.height.toDouble(),
+      width: size.width.toDouble(),
+      height: size.height.toDouble(),
       child: AdWidget(ad: ad),
     );
 

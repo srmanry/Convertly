@@ -7,6 +7,7 @@ import '../../../../core/utils/file_utils.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/repositories/media_repository.dart';
 import '../datasources/media_picker_datasource.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class MediaRepositoryImpl implements MediaRepository {
   const MediaRepositoryImpl(this._picker, this._ffmpeg);
@@ -46,7 +47,7 @@ class MediaRepositoryImpl implements MediaRepository {
       if (picked.isNotEmpty && valid.isEmpty) {
         return const Result<List<MediaInfo>>.failure(
           FileFailure(
-            message: 'None of those files could be read. Please try others.',
+            messageKey: K.errorNoFilesReadable,
           ),
         );
       }
@@ -66,7 +67,7 @@ class MediaRepositoryImpl implements MediaRepository {
       if (!file.existsSync()) {
         return const Result<MediaInfo>.failure(
           FileFailure(
-            message: 'This file is no longer available on your device.',
+            messageKey: K.errorFileGone,
           ),
         );
       }
@@ -74,13 +75,13 @@ class MediaRepositoryImpl implements MediaRepository {
       final MediaProbeResult? probe = await _ffmpeg.probe(path);
       if (probe == null) {
         return const Result<MediaInfo>.failure(
-          FileFailure(message: 'This file could not be read.'),
+          FileFailure(messageKey: K.errorFileUnreadable),
         );
       }
 
       if (!probe.hasAudio) {
         return const Result<MediaInfo>.failure(
-          FileFailure(message: 'This file has no audio to convert.'),
+          FileFailure(messageKey: K.errorNoAudioInFile),
         );
       }
 
@@ -135,14 +136,14 @@ class MediaRepositoryImpl implements MediaRepository {
   }) async {
     if (picked.sizeInBytes <= 0) {
       return const Result<MediaInfo?>.failure(
-        FileFailure(message: 'That file is empty. Please choose another one.'),
+        FileFailure(messageKey: K.errorFileEmpty),
       );
     }
 
     if (picked.sizeInBytes > maxInputSizeInBytes) {
       return const Result<MediaInfo?>.failure(
         FileFailure(
-          message: 'That file is too large to convert on this device.',
+          messageKey: K.errorFileTooLarge,
         ),
       );
     }
@@ -150,30 +151,30 @@ class MediaRepositoryImpl implements MediaRepository {
     final String? readablePath = await _ffmpeg.resolveReadablePath(picked.uri);
     if (readablePath == null) {
       return const Result<MediaInfo?>.failure(
-        FileFailure(message: 'That file could not be opened.'),
+        FileFailure(messageKey: K.errorFileNotOpened),
       );
     }
 
     final MediaProbeResult? probe = await _ffmpeg.probe(readablePath);
     if (probe == null) {
       return const Result<MediaInfo?>.failure(
-        FileFailure(message: 'That file is not a media file we can convert.'),
+        FileFailure(messageKey: K.errorNotMedia),
       );
     }
 
     if (!probe.hasAudio) {
       return Result<MediaInfo?>.failure(
         FileFailure(
-          message: requireVideo
-              ? 'That video has no audio track to extract.'
-              : 'That file has no audio to convert.',
+          messageKey: requireVideo
+              ? K.errorNoAudioTrack
+              : K.errorNoAudioInFile,
         ),
       );
     }
 
     if (requireVideo && !probe.hasVideo) {
       return const Result<MediaInfo?>.failure(
-        FileFailure(message: 'That file is not a video.'),
+        FileFailure(messageKey: K.errorNotVideo),
       );
     }
 

@@ -28,7 +28,8 @@ class DeviceAudioChannel(private val activity: Activity) :
 
     companion object {
         const val CHANNEL = "convertly/device_audio"
-        private const val REQUEST_CODE = 4471
+        private const val READ_PERMISSION_REQUEST_CODE = 4471
+        private const val WRITE_PERMISSION_REQUEST_CODE = 4472
 
         /** Audio-only from Android 13; before that there was no such split. */
         private val PERMISSION =
@@ -42,7 +43,14 @@ class DeviceAudioChannel(private val activity: Activity) :
         private const val MIN_DURATION_MS = 20_000L
     }
 
-    private var pendingPermission: MethodChannel.Result? = null
+    private data class PendingSave(
+        val sourcePath: String,
+        val displayName: String,
+        val result: MethodChannel.Result
+    )
+
+    private var pendingReadPermission: MethodChannel.Result? = null
+    private var pendingSave: PendingSave? = null
 
     fun attach(messenger: BinaryMessenger) {
         MethodChannel(messenger, CHANNEL).setMethodCallHandler(this)
@@ -76,15 +84,15 @@ class DeviceAudioChannel(private val activity: Activity) :
         }
         // Only one dialog can be in flight; a second request while one is open
         // would leave the first caller waiting forever.
-        if (pendingPermission != null) {
+        if (pendingReadPermission != null) {
             result.success(false)
             return
         }
-        pendingPermission = result
+        pendingReadPermission = result
         ActivityCompat.requestPermissions(
             activity,
             arrayOf(PERMISSION),
-            REQUEST_CODE
+            READ_PERMISSION_REQUEST_CODE
         )
     }
 
@@ -93,13 +101,30 @@ class DeviceAudioChannel(private val activity: Activity) :
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        if (requestCode != REQUEST_CODE) {
-            return
-        }
         val granted = grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
-        pendingPermission?.success(granted)
-        pendingPermission = null
+        when (requestCode) {
+            READ_PERMISSION_REQUEST_CODE -> {
+                pendingReadPermission?.success(granted)
+                pendingReadPermission = null
+            }
+            WRITE_PERMISSION_REQUEST_CODE -> {
+                val save = pendingSave
+                pendingSave = null
+                if (save == null) {
+                    return
+                }
+                if (granted) {
+                    writeToMusic(save.sourcePath, save.displayName, save.result)
+                } else {
+                    save.result.error(
+                        "denied",
+                        "Storage permission is required to save on this Android version",
+                        null
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -107,7 +132,9 @@ class DeviceAudioChannel(private val activity: Activity) :
      *
      * Written through MediaStore rather than to a path: that is what puts the
      * track in the index every other music app reads, and it needs no write
-     * permission on any supported version.
+     * permission on Android 10 and newer. Android 9 and older still require
+     * the legacy write permission, which is requested only when the user taps
+     * Save to phone.
      */
     private fun saveToMusic(call: MethodCall, result: MethodChannel.Result) {
         val sourcePath = call.argument<String>("path")
@@ -118,6 +145,40 @@ class DeviceAudioChannel(private val activity: Activity) :
             return
         }
 
+        if (!File(sourcePath).exists()) {
+            result.error("missing", "That file is no longer on the device", null)
+            return
+        }
+
+        if (needsLegacyWritePermission()) {
+            if (pendingSave != null) {
+                result.error("busy", "Another save request is already open", null)
+                return
+            }
+            pendingSave = PendingSave(sourcePath, displayName, result)
+            ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                WRITE_PERMISSION_REQUEST_CODE
+            )
+            return
+        }
+
+        writeToMusic(sourcePath, displayName, result)
+    }
+
+    private fun needsLegacyWritePermission(): Boolean =
+        Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+
+    private fun writeToMusic(
+        sourcePath: String,
+        displayName: String,
+        result: MethodChannel.Result
+    ) {
         val source = File(sourcePath)
         if (!source.exists()) {
             result.error("missing", "That file is no longer on the device", null)

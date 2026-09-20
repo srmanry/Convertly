@@ -5,6 +5,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/storage_usage.dart';
 import '../controllers/storage_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// What the app is keeping on the device, and how to reclaim it.
 class StoragePage extends GetView<StorageController> {
@@ -13,7 +14,7 @@ class StoragePage extends GetView<StorageController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Storage information')),
+      appBar: AppBar(title: Text(K.storageInformation.tr)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -32,7 +33,7 @@ class StoragePage extends GetView<StorageController> {
                     const SizedBox(height: AppDimens.spaceXl),
                     if (usage.byFormat.isNotEmpty) ...<Widget>[
                       Text(
-                        'By format',
+                        K.storageByFormat.tr,
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: AppDimens.spaceSm),
@@ -75,7 +76,7 @@ class _TotalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Used by AudioForge', style: theme.textTheme.bodyMedium),
+            Text(K.storageUsedByApp.tr, style: theme.textTheme.bodyMedium),
             const SizedBox(height: AppDimens.spaceXs),
             Text(
               Formatters.fileSize(usage.totalBytes),
@@ -187,7 +188,7 @@ class _WorkingFilesCard extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: Text(
-                    'Working files',
+                    K.storageWorkingFiles.tr,
                     style: theme.textTheme.titleSmall,
                   ),
                 ),
@@ -199,8 +200,7 @@ class _WorkingFilesCard extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.spaceXs),
             Text(
-              'Leftovers from conversions that were stopped. Removing them '
-              'never touches a finished file.',
+              K.storageWorkingFilesDesc.tr,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -217,7 +217,7 @@ class _WorkingFilesCard extends StatelessWidget {
                     ? null
                     : controller.clearWorkingFiles,
                 icon: const Icon(Icons.cleaning_services_rounded),
-                label: const Text('Remove working files'),
+                label: Text(K.storageRemoveWorking.tr),
               );
             }),
           ],
@@ -238,21 +238,21 @@ class _ClearAllCard extends StatelessWidget {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Delete all converted files?'),
+        title: Text(K.storageDeleteAllTitle.tr),
         content: Text(
-          'This removes ${usage.convertedCount} '
-          '${usage.convertedCount == 1 ? 'file' : 'files'} from the device, '
-          'freeing ${Formatters.fileSize(usage.convertedBytes)}. '
-          'It cannot be undone.',
+          K.storageDeleteAllFreeing.trParams(<String, String>{
+            'count': '${usage.convertedCount}',
+            'size': Formatters.fileSize(usage.convertedBytes),
+          }),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(K.cancel.tr),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete all'),
+            child: Text(K.deleteAll.tr),
           ),
         ],
       ),
@@ -273,11 +273,10 @@ class _ClearAllCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Converted files', style: theme.textTheme.titleSmall),
+            Text(K.storageConvertedFiles.tr, style: theme.textTheme.titleSmall),
             const SizedBox(height: AppDimens.spaceXs),
             Text(
-              'Deleting a file from the Files tab frees its space too; this '
-              'clears every one of them at once.',
+              K.storageConvertedDesc.tr,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -291,7 +290,7 @@ class _ClearAllCard extends StatelessWidget {
                     ? null
                     : () => _confirm(context),
                 icon: const Icon(Icons.delete_sweep_rounded),
-                label: const Text('Delete all converted files'),
+                label: Text(K.storageDeleteAllConverted.tr),
               );
             }),
           ],
@@ -346,7 +345,7 @@ class _SaveLocation extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('Files are saved in', style: theme.textTheme.labelMedium),
+        Text(K.storageSavedIn.tr, style: theme.textTheme.labelMedium),
         const SizedBox(height: AppDimens.spaceXs),
         Text(
           path,

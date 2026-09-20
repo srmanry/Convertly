@@ -5,6 +5,7 @@ import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../files/domain/entities/media_file.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Home dashboard state.
 ///
@@ -15,9 +16,21 @@ class HomeController extends GetxController {
 
   final GetMediaFiles? _getMediaFiles;
 
+  /// How many files the home list shows before handing over to the Files tab.
+  ///
+  /// Past this the list stops being a glance at recent work and turns into a
+  /// second, worse copy of the library.
+  static const int recentLimit = 5;
+
   final RxList<MediaFile> recentFiles = <MediaFile>[].obs;
 
+  /// Everything in the library, not just what is shown here.
+  final RxInt libraryCount = 0.obs;
+
   bool get hasRecentFiles => recentFiles.isNotEmpty;
+
+  /// Whether the library holds more than this list is showing.
+  bool get hasMoreFiles => libraryCount.value > recentFiles.length;
 
   @override
   void onInit() {
@@ -29,18 +42,19 @@ class HomeController extends GetxController {
   String get greeting {
     final int hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Good morning';
+      return K.greetingMorning.tr;
     }
     if (hour < 17) {
-      return 'Good afternoon';
+      return K.greetingAfternoon.tr;
     }
-    return 'Good evening';
+    return K.greetingEvening.tr;
   }
 
   Future<void> loadRecentFiles() async {
     final GetMediaFiles? getMediaFiles = _getMediaFiles;
     if (getMediaFiles == null) {
       recentFiles.clear();
+      libraryCount.value = 0;
       return;
     }
 
@@ -51,9 +65,11 @@ class HomeController extends GetxController {
     result.fold(
       (Failure _) {
         recentFiles.clear();
+        libraryCount.value = 0;
       },
       (List<MediaFile> files) {
-        recentFiles.assignAll(files.take(3));
+        recentFiles.assignAll(files.take(recentLimit));
+        libraryCount.value = files.length;
       },
     );
   }

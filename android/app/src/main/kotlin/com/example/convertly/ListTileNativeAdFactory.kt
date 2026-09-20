@@ -2,6 +2,7 @@ package com.example.convertly
 
 import android.view.LayoutInflater
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import com.google.android.gms.ads.nativead.NativeAd
@@ -22,8 +23,14 @@ class ListTileNativeAdFactory(private val layoutInflater: LayoutInflater) :
         nativeAd: NativeAd,
         customOptions: MutableMap<String, Any>?
     ): NativeAdView {
-        val adView = layoutInflater.inflate(R.layout.native_ad_list_tile, null)
-            as NativeAdView
+        // A temporary parent lets Android resolve the root layout parameters;
+        // the Flutter native-ad container remains the actual parent on screen.
+        val layoutParent = FrameLayout(layoutInflater.context)
+        val adView = layoutInflater.inflate(
+            R.layout.native_ad_list_tile,
+            layoutParent,
+            false
+        ) as NativeAdView
 
         val headline = adView.findViewById<TextView>(R.id.ad_headline)
         headline.text = nativeAd.headline

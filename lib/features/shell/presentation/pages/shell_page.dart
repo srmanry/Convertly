@@ -10,6 +10,7 @@ import '../../../music_library/presentation/pages/music_library_page.dart';
 import '../../../../core/widgets/banner_ad_view.dart';
 import '../../../../core/widgets/glass_surface.dart';
 import '../controllers/shell_controller.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 /// Root scaffold hosting the four primary destinations.
 ///
@@ -98,24 +99,26 @@ class _BottomDock extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  static const List<_DockDestination> _destinations = <_DockDestination>[
+  /// Rebuilt on each read, not held in a static list: the labels are words,
+  /// and a list built once would keep the language the app first opened in.
+  static List<_DockDestination> get _destinations => <_DockDestination>[
     _DockDestination(
-      label: 'Home',
+      label: K.navHome.tr,
       icon: Icons.home_outlined,
       selectedIcon: Icons.home_rounded,
     ),
     _DockDestination(
-      label: 'Files',
+      label: K.navFiles.tr,
       icon: Icons.folder_outlined,
       selectedIcon: Icons.folder_rounded,
     ),
     _DockDestination(
-      label: 'Player',
+      label: K.navPlayer.tr,
       icon: Icons.play_circle_outline_rounded,
       selectedIcon: Icons.play_circle_filled_rounded,
     ),
     _DockDestination(
-      label: 'Settings',
+      label: K.navSettings.tr,
       icon: Icons.settings_outlined,
       selectedIcon: Icons.settings_rounded,
     ),

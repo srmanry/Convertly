@@ -5,6 +5,7 @@ import '../../../files/domain/repositories/media_library_repository.dart';
 import '../../domain/entities/song.dart';
 import '../../domain/repositories/music_library_repository.dart';
 import '../datasources/device_audio_datasource.dart';
+import '../../../../core/i18n/translation_keys.dart';
 
 class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   const MusicLibraryRepositoryImpl(this._device, this._appFiles);
@@ -39,7 +40,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
     } catch (error) {
       return Result<List<Song>>.failure(
         FileFailure(
-          message: 'Could not read the music on this device.',
+          messageKey: K.errorMusicNotRead,
           debugMessage: error.toString(),
         ),
       );
