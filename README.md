@@ -1,10 +1,28 @@
 # AudioForge — Media Converter & Audio Toolkit
 
-Offline-first Flutter app for converting video and audio on-device. User media
-is never uploaded; all processing happens locally.
+AudioForge is a simple and powerful offline media converter and audio toolkit
+for everyday use. It helps you extract audio from video, convert audio between
+popular formats, trim unwanted parts, merge multiple files, and compress audio
+to save storage.
 
-Target platform for V1 is Android. The architecture is platform-agnostic so iOS
-can be added later.
+Everything is processed directly on your device for better privacy, faster
+access, and a smoother experience. There are no unnecessary uploads,
+complicated steps, or confusing tools.
+
+Whether you want to turn a video into audio, make a ringtone, combine voice
+clips, or reduce file size, AudioForge gives you a clean and easy workflow in
+one place.
+
+## Key features
+
+- Extract audio from video
+- Convert audio between popular formats
+- Trim and cut audio files
+- Merge multiple audio files
+- Compress audio to reduce file size
+- Fast offline processing
+- Simple and user-friendly interface
+- Privacy-focused, on-device conversion
 
 ## Architecture
 
@@ -63,12 +81,7 @@ Controllers are registered per route through `Bindings`; only genuinely
 app-wide dependencies (`StorageService`, `SettingsController`) are permanent,
 and they are registered in `InitialBinding`.
 
-## Current status — Phase 1 complete
-
-Implemented: architecture, theme, routing, splash, onboarding, home dashboard,
-bottom-navigation shell, settings skeleton.
-
-Placeholders (built in later phases): Files, Tools actions, conversion.
+AudioForge is built for people who want quick results with a clean experience.
 
 ## Running
 
