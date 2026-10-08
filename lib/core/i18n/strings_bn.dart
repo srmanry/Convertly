@@ -178,7 +178,8 @@ const Map<String, String> stringsBn = <String, String>{
   K.lengthFollowsMain: 'দৈর্ঘ্য মূল ট্র্যাক অনুযায়ী হবে, লেয়ার বারবার বাজবে।',
   K.previewAll: 'সব শুনুন',
   K.previewAllHint: 'আপনার ঠিক করা মাত্রায় সব ট্র্যাক একসাথে বাজে।',
-  K.previewBalanceNote: 'এটি শুধু ভারসাম্য দেখার জন্য। পুরো মিক্স এক্সপোর্টে তৈরি হবে।',
+  K.previewBalanceNote:
+      'এটি শুধু ভারসাম্য দেখার জন্য। পুরো মিক্স এক্সপোর্টে তৈরি হবে।',
   K.timelineSection: 'টাইমলাইন',
   K.timelineTotalUnknown: 'সব ক্লিপ পড়া হলে মোট দৈর্ঘ্য জানা যাবে।',
   K.timelineTotal: 'মোট দৈর্ঘ্য @duration',
@@ -186,6 +187,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.previewTheTrack: 'ট্র্যাকটি শুনুন',
   K.previewTrackHint: 'প্রতিটি ক্লিপ ক্রম অনুযায়ী বাজে, একটার পরেই আরেকটা।',
 
+  K.cleanupEngineSection: 'প্রসেসিং',
   K.removeSection: 'সরান',
   K.strengthSection: 'মাত্রা',
   K.outputFormatSection: 'আউটপুট ফরম্যাট',
@@ -240,7 +242,8 @@ const Map<String, String> stringsBn = <String, String>{
   K.adBreakActive: 'আরও @time বিজ্ঞাপন নেই',
   K.adBreakStartHint:
       '@count টি ছোট ভিডিও দেখুন, তারপর @minutes সব বিজ্ঞাপন বন্ধ।',
-  K.adBreakProgressHint: '@total টির মধ্যে @watched টি দেখা হয়েছে। বাকি @left টি।',
+  K.adBreakProgressHint:
+      '@total টির মধ্যে @watched টি দেখা হয়েছে। বাকি @left টি।',
   K.adBreakExtendHint: 'আরও @minutes যোগ করতে আরেকটি ভিডিও দেখুন।',
   K.adBreakEarned: 'পরের @minutes বিজ্ঞাপন বন্ধ।',
   K.adBreakOneMore: 'আর একটি ভিডিও, তাহলেই @minutes বিজ্ঞাপন চুপ।',
@@ -259,8 +262,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.adNoAdsNextFiles: 'আপনার পরের @count টি ফাইলে কোনো বিজ্ঞাপন নেই।',
 
   K.onboardingConvertTitle: 'সহজে ভিডিও কনভার্ট করুন',
-  K.onboardingConvertBody:
-      'কয়েকটি চাপেই ভিডিও থেকে ভালো মানের অডিও বের করুন।',
+  K.onboardingConvertBody: 'কয়েকটি চাপেই ভিডিও থেকে ভালো মানের অডিও বের করুন।',
   K.onboardingOfflineTitle: 'দ্রুত ও অফলাইন',
   K.onboardingOfflineBody:
       'আপনার ফাইল আপনার ডিভাইসেই থাকে। কোথাও আপলোড করতে হয় না।',
@@ -272,6 +274,16 @@ const Map<String, String> stringsBn = <String, String>{
   K.noiseLight: 'হালকা',
   K.noiseMedium: 'মাঝারি',
   K.noiseStrong: 'জোরালো',
+  K.cleanupEngineNormal: 'সাধারণ',
+  K.cleanupEngineNormalDesc:
+      'বর্তমান দ্রুত ও অফলাইন FFmpeg নয়েজ ফিল্টার ব্যবহার করে।',
+  K.cleanupEngineAi: 'AI',
+  K.cleanupEngineAiDesc:
+      'আরও বুদ্ধিমান নয়েজ রিমুভালের জন্য AI মডেলভিত্তিক ভয়েস উন্নতি।',
+  K.cleanupComingSoon: 'শীঘ্রই আসছে',
+  K.cleanupAiPending:
+      'AI যুক্ত করার জায়গা প্রস্তুত আছে। পরীক্ষিত AI মডেল বসানোর পর '
+      'প্রসেসিং চালু হবে।',
   K.mixLengthMain: 'মূল ট্র্যাক',
   K.mixLengthLongest: 'সবচেয়ে লম্বা ট্র্যাক',
   K.cleanupNoiseTitle: 'ব্যাকগ্রাউন্ড নয়েজ',
@@ -293,7 +305,8 @@ const Map<String, String> stringsBn = <String, String>{
   K.errorConversion: 'এই ফাইলটি কনভার্ট করা যায়নি। অন্যটি চেষ্টা করুন।',
   K.errorCancelled: 'কনভার্ট বাতিল হয়েছে।',
   K.errorUnknown: 'কিছু একটা গোলমাল হয়েছে। আবার চেষ্টা করুন।',
-  K.errorNoFilesReadable: 'ওই ফাইলগুলোর একটিও পড়া যায়নি। অন্যগুলো চেষ্টা করুন।',
+  K.errorNoFilesReadable:
+      'ওই ফাইলগুলোর একটিও পড়া যায়নি। অন্যগুলো চেষ্টা করুন।',
   K.errorFileGone: 'ফাইলটি আর আপনার ডিভাইসে নেই।',
   K.errorFileUnreadable: 'ফাইলটি পড়া যায়নি।',
   K.errorNoAudioInFile: 'এই ফাইলে কনভার্ট করার মতো অডিও নেই।',
@@ -330,6 +343,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.errorStorageNotRead: 'ডিভাইসে কী আছে তা পড়া যায়নি।',
   K.errorWorkingNotRemoved: 'অস্থায়ী ফাইল সরানো যায়নি।',
   K.errorMusicNotRead: 'এই ডিভাইসের গান পড়া যায়নি।',
-  K.errorProgressNotSaved: 'আপনার অগ্রগতি সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+  K.errorProgressNotSaved:
+      'আপনার অগ্রগতি সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
   K.errorPlaybackFailed: 'ফাইলটি বাজানো যায়নি।',
 };

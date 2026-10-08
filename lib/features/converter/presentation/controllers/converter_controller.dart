@@ -9,6 +9,7 @@ import '../../../../core/enums/compression_level.dart';
 import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/mix_length_mode.dart';
 import '../../../../core/enums/noise_strength.dart';
+import '../../../../core/enums/noise_removal_engine.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
@@ -90,6 +91,8 @@ class ConverterController extends GetxController {
 
   final Rx<CleanupMode> cleanupMode = CleanupMode.backgroundNoise.obs;
   final Rx<NoiseStrength> noiseStrength = NoiseStrength.medium.obs;
+  final Rx<NoiseRemovalEngine> noiseRemovalEngine =
+      NoiseRemovalEngine.normal.obs;
 
   /// Files already converted in this app, offered as an input source.
   final RxList<MediaFile> libraryFiles = <MediaFile>[].obs;
@@ -106,6 +109,7 @@ class ConverterController extends GetxController {
   bool get canConvert =>
       sources.isNotEmpty &&
       (!_mode.needsTwoSources || sources.length >= 2) &&
+      (!_mode.isCleanup || noiseRemovalEngine.value.isReady) &&
       !isCleanupUnsupported &&
       fileName.value.trim().isNotEmpty &&
       stage.value != ConverterStage.converting;
@@ -179,7 +183,9 @@ class ConverterController extends GetxController {
   /// Cancelling the centre of a mono track subtracts it from itself, which
   /// leaves silence, so the export is blocked instead of producing that.
   bool get isCleanupUnsupported {
-    if (!_mode.isCleanup || !cleanupMode.value.requiresStereo) {
+    if (!_mode.isCleanup ||
+        noiseRemovalEngine.value != NoiseRemovalEngine.normal ||
+        !cleanupMode.value.requiresStereo) {
       return false;
     }
     final int? channels = primarySource?.channels;
@@ -501,6 +507,11 @@ class ConverterController extends GetxController {
     errorMessage.value = '';
   }
 
+  void setNoiseRemovalEngine(NoiseRemovalEngine value) {
+    noiseRemovalEngine.value = value;
+    errorMessage.value = '';
+  }
+
   void setNoiseStrength(NoiseStrength value) => noiseStrength.value = value;
 
   void setSpeed(ExportSpeed value) {
@@ -685,6 +696,7 @@ class ConverterController extends GetxController {
           ? CleanupSettings(
               mode: cleanupMode.value,
               strength: noiseStrength.value,
+              engine: noiseRemovalEngine.value,
             )
           : null,
     );

@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit_config.dart';
-import 'package:ffmpeg_kit_flutter_new/ffmpeg_session.dart';
-import 'package:ffmpeg_kit_flutter_new/ffprobe_kit.dart';
-import 'package:ffmpeg_kit_flutter_new/media_information.dart';
-import 'package:ffmpeg_kit_flutter_new/media_information_session.dart';
-import 'package:ffmpeg_kit_flutter_new/return_code.dart';
-import 'package:ffmpeg_kit_flutter_new/statistics.dart';
-import 'package:ffmpeg_kit_flutter_new/stream_information.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_kit_config.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/ffmpeg_session.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/ffprobe_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/media_information.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/media_information_session.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/return_code.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/statistics.dart';
+import 'package:ffmpeg_kit_flutter_new_audio/stream_information.dart';
 
 /// How an FFmpeg execution ended.
 enum FfmpegOutcome { success, cancelled, failure }

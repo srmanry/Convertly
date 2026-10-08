@@ -94,7 +94,8 @@ const Map<String, String> stringsEn = <String, String>{
   K.couldNotSaveToPhone: 'Could not save that file to the phone.',
   K.deleteFileTitle: 'Delete file?',
   K.deleteFilesTitle: 'Delete @count files?',
-  K.deleteFileMessage: 'This file will be permanently deleted from your device.',
+  K.deleteFileMessage:
+      'This file will be permanently deleted from your device.',
   K.deleteFilesMessage:
       'These @count files will be permanently deleted from your device.',
   K.fileDeleted: 'File deleted.',
@@ -171,7 +172,8 @@ const Map<String, String> stringsEn = <String, String>{
   K.deletePoint: 'Delete point',
   K.volumeLaneHint:
       'Tap the line to add a point. Drag it down for quieter, up for louder.',
-  K.volumeLaneAdjust: 'Drag a point to change it, or tap one to set it exactly.',
+  K.volumeLaneAdjust:
+      'Drag a point to change it, or tap one to set it exactly.',
   K.volumeMaxPoints:
       'A track can have up to @max points. Delete one to add another.',
 
@@ -181,14 +183,18 @@ const Map<String, String> stringsEn = <String, String>{
   K.lengthFollowsMain: 'Length follows the main track while layers repeat.',
   K.previewAll: 'Preview all',
   K.previewAllHint: 'All tracks play together, following the levels you set.',
-  K.previewBalanceNote: 'A preview for balance. The export renders the finished mix.',
+  K.previewBalanceNote:
+      'A preview for balance. The export renders the finished mix.',
   K.timelineSection: 'Timeline',
   K.timelineTotalUnknown: 'Total length will be known once every clip is read.',
   K.timelineTotal: 'Total length @duration',
-  K.timelineOrderNote: 'Clips play straight through in this order, with no gap between them.',
+  K.timelineOrderNote:
+      'Clips play straight through in this order, with no gap between them.',
   K.previewTheTrack: 'Preview the track',
-  K.previewTrackHint: 'Plays every clip in order, one running straight into the next.',
+  K.previewTrackHint:
+      'Plays every clip in order, one running straight into the next.',
 
+  K.cleanupEngineSection: 'Processing',
   K.removeSection: 'Remove',
   K.strengthSection: 'Strength',
   K.outputFormatSection: 'Output format',
@@ -275,6 +281,16 @@ const Map<String, String> stringsEn = <String, String>{
   K.noiseLight: 'Light',
   K.noiseMedium: 'Medium',
   K.noiseStrong: 'Strong',
+  K.cleanupEngineNormal: 'Normal',
+  K.cleanupEngineNormalDesc:
+      'Uses the current fast, offline FFmpeg noise filters.',
+  K.cleanupEngineAi: 'AI',
+  K.cleanupEngineAiDesc:
+      'Reserved for model-based voice enhancement with smarter noise removal.',
+  K.cleanupComingSoon: 'COMING SOON',
+  K.cleanupAiPending:
+      'The AI integration point is ready. Processing will unlock after a '
+      'tested AI model is installed.',
   K.mixLengthMain: 'Main track',
   K.mixLengthLongest: 'Longest track',
   K.cleanupNoiseTitle: 'Background noise',
@@ -298,7 +314,8 @@ const Map<String, String> stringsEn = <String, String>{
   K.errorConversion: 'Unable to convert this file. Please try another one.',
   K.errorCancelled: 'Conversion cancelled.',
   K.errorUnknown: 'Something went wrong. Please try again.',
-  K.errorNoFilesReadable: 'None of those files could be read. Please try others.',
+  K.errorNoFilesReadable:
+      'None of those files could be read. Please try others.',
   K.errorFileGone: 'This file is no longer available on your device.',
   K.errorFileUnreadable: 'This file could not be read.',
   K.errorNoAudioInFile: 'This file has no audio to convert.',
@@ -330,7 +347,8 @@ const Map<String, String> stringsEn = <String, String>{
   K.errorFileNotRenamed: 'This file could not be renamed.',
   K.errorFileNotDeleted: 'This file could not be deleted.',
   K.errorFilesNotDeleted: 'Those files could not be deleted.',
-  K.errorSettingsNotLoaded: 'Could not load your settings. Defaults are being used.',
+  K.errorSettingsNotLoaded:
+      'Could not load your settings. Defaults are being used.',
   K.errorSettingsNotSaved: 'Could not save your settings. Please try again.',
   K.errorStorageNotRead: 'Could not read what is stored on the device.',
   K.errorWorkingNotRemoved: 'Could not remove the working files.',

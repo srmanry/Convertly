@@ -6,6 +6,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/storage_usage.dart';
 import '../../domain/usecases/storage_usecases.dart';
 import '../../../../core/i18n/translation_keys.dart';
+import '../../../../core/services/waveform_service.dart';
 
 /// Drives the storage screen.
 class StorageController extends GetxController {
@@ -70,6 +71,11 @@ class StorageController extends GetxController {
   Future<void> clearConvertedFiles() async {
     if (isClearing.value) {
       return;
+    }
+    // The waveforms worked out for those files describe audio that is about
+    // to stop existing, so they are dropped with it.
+    if (Get.isRegistered<WaveformService>()) {
+      Get.find<WaveformService>().clearCache();
     }
     await _clear(() => _clearConvertedFiles(const NoParams()), (
       StorageUsage after,

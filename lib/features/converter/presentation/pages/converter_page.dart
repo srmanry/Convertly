@@ -13,6 +13,7 @@ import '../../../../core/enums/compression_level.dart';
 import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/mix_length_mode.dart';
 import '../../../../core/enums/noise_strength.dart';
+import '../../../../core/enums/noise_removal_engine.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
@@ -430,6 +431,10 @@ class _EmptySelection extends StatelessWidget {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (controller.mode.isCleanup) ...<Widget>[
+                          const SizedBox(height: AppDimens.spaceXl),
+                          _CleanupEnginePicker(controller: controller),
+                        ],
                         if (error.isNotEmpty) ...<Widget>[
                           const SizedBox(height: AppDimens.spaceMd),
                           Container(
@@ -1795,55 +1800,308 @@ class _CleanupSection extends StatelessWidget {
     return Obx(() {
       final ThemeData theme = Theme.of(context);
       final CleanupMode mode = controller.cleanupMode.value;
+      final NoiseRemovalEngine engine = controller.noiseRemovalEngine.value;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          OptionChips<CleanupMode>(
-            title: K.removeSection.tr,
-            options: CleanupMode.values,
-            selected: mode,
-            labelBuilder: (CleanupMode value) => value.label,
-            onSelected: controller.setCleanupMode,
-          ),
-          const SizedBox(height: AppDimens.spaceMd),
-          Text(
-            mode.description,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          if (controller.isCleanupUnsupported) ...<Widget>[
-            const SizedBox(height: AppDimens.spaceMd),
-            Text(
-              'This track is mono, so it has no separate centre channel to '
-              'remove. Pick another option.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
-          ],
-          if (mode.usesStrength) ...<Widget>[
+          _CleanupEnginePicker(controller: controller),
+          if (engine == NoiseRemovalEngine.normal) ...<Widget>[
             const SizedBox(height: AppDimens.spaceXl),
-            OptionChips<NoiseStrength>(
-              title: K.strengthSection.tr,
-              options: NoiseStrength.values,
-              selected: controller.noiseStrength.value,
-              labelBuilder: (NoiseStrength value) => value.label,
-              onSelected: controller.setNoiseStrength,
+            OptionChips<CleanupMode>(
+              title: K.removeSection.tr,
+              options: CleanupMode.values,
+              selected: mode,
+              labelBuilder: (CleanupMode value) => value.label,
+              onSelected: controller.setCleanupMode,
             ),
             const SizedBox(height: AppDimens.spaceMd),
             Text(
-              'Stronger settings remove more noise and take more of the '
-              'audio with it. Start light if the result sounds hollow.',
+              mode.description,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            if (controller.isCleanupUnsupported) ...<Widget>[
+              const SizedBox(height: AppDimens.spaceMd),
+              Text(
+                'This track is mono, so it has no separate centre channel to '
+                'remove. Pick another option.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            if (mode.usesStrength) ...<Widget>[
+              const SizedBox(height: AppDimens.spaceXl),
+              OptionChips<NoiseStrength>(
+                title: K.strengthSection.tr,
+                options: NoiseStrength.values,
+                selected: controller.noiseStrength.value,
+                labelBuilder: (NoiseStrength value) => value.label,
+                onSelected: controller.setNoiseStrength,
+              ),
+              const SizedBox(height: AppDimens.spaceMd),
+              Text(
+                'Stronger settings remove more noise and take more of the '
+                'audio with it. Start light if the result sounds hollow.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ],
       );
     });
+  }
+}
+
+/// Selects the current filter engine before or after a source is picked.
+class _CleanupEnginePicker extends StatelessWidget {
+  const _CleanupEnginePicker({required this.controller});
+
+  final ConverterController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final ThemeData theme = Theme.of(context);
+      final NoiseRemovalEngine engine = controller.noiseRemovalEngine.value;
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppDimens.spaceLg),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.16,
+          ),
+          borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    size: 17,
+                    color: AppColors.success,
+                  ),
+                ),
+                const SizedBox(width: AppDimens.spaceSm),
+                Text(
+                  K.cleanupEngineSection.tr,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimens.spaceMd),
+            SizedBox(
+              height: 112,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (final NoiseRemovalEngine option
+                      in NoiseRemovalEngine.values) ...<Widget>[
+                    Expanded(
+                      child: _CleanupEngineCard(
+                        engine: option,
+                        selected: option == engine,
+                        onTap: () => controller.setNoiseRemovalEngine(option),
+                      ),
+                    ),
+                    if (option != NoiseRemovalEngine.values.last)
+                      const SizedBox(width: AppDimens.spaceSm),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimens.spaceMd),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: Text(
+                engine.description,
+                key: ValueKey<NoiseRemovalEngine>(engine),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            if (!engine.isReady) ...<Widget>[
+              const SizedBox(height: AppDimens.spaceMd),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppDimens.spaceMd),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: <Color>[
+                      AppColors.accentTools.withValues(alpha: 0.18),
+                      AppColors.accentAudio.withValues(alpha: 0.08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                  border: Border.all(
+                    color: AppColors.accentTools.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppColors.accentPremium,
+                      size: 20,
+                    ),
+                    const SizedBox(width: AppDimens.spaceSm),
+                    Expanded(
+                      child: Text(
+                        K.cleanupAiPending.tr,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _CleanupEngineCard extends StatelessWidget {
+  const _CleanupEngineCard({
+    required this.engine,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final NoiseRemovalEngine engine;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isAi = engine == NoiseRemovalEngine.ai;
+    final Color accent = isAi ? AppColors.accentTools : AppColors.success;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minHeight: 88),
+          padding: const EdgeInsets.all(AppDimens.spaceMd),
+          decoration: BoxDecoration(
+            color: selected
+                ? accent.withValues(alpha: 0.16)
+                : theme.colorScheme.surface.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            border: Border.all(
+              color: selected
+                  ? accent.withValues(alpha: 0.7)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.12),
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: selected ? 0.22 : 0.12),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    ),
+                    child: Icon(
+                      isAi
+                          ? Icons.auto_awesome_rounded
+                          : Icons.graphic_eq_rounded,
+                      size: 19,
+                      color: accent,
+                    ),
+                  ),
+                  const Spacer(),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 150),
+                    child: selected
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            key: const ValueKey<String>('selected'),
+                            size: 20,
+                            color: accent,
+                          )
+                        : Icon(
+                            Icons.circle_outlined,
+                            key: const ValueKey<String>('unselected'),
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.65),
+                          ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimens.spaceSm),
+              Text(
+                engine.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (isAi) ...<Widget>[
+                const SizedBox(height: AppDimens.spaceXs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPremium.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusPill),
+                  ),
+                  child: Text(
+                    K.cleanupComingSoon.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.accentPremium,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

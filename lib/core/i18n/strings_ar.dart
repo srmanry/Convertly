@@ -175,7 +175,8 @@ const Map<String, String> stringsAr = <String, String>{
   K.lengthFollowsMain: 'تتبع المدة المسار الرئيسي بينما تتكرر الطبقات.',
   K.previewAll: 'استماع للكل',
   K.previewAllHint: 'تعمل كل المسارات معًا بالمستويات التي ضبطتها.',
-  K.previewBalanceNote: 'استماع لضبط التوازن. المزيج النهائي يُنشأ عند التصدير.',
+  K.previewBalanceNote:
+      'استماع لضبط التوازن. المزيج النهائي يُنشأ عند التصدير.',
   K.timelineSection: 'المسار الزمني',
   K.timelineTotalUnknown: 'تُعرف المدة الكلية بعد قراءة كل المقاطع.',
   K.timelineTotal: 'المدة الكلية @duration',
@@ -183,6 +184,7 @@ const Map<String, String> stringsAr = <String, String>{
   K.previewTheTrack: 'استماع للمسار',
   K.previewTrackHint: 'يشغّل كل مقطع بالترتيب، واحدًا يتبع الآخر مباشرة.',
 
+  K.cleanupEngineSection: 'المعالجة',
   K.removeSection: 'إزالة',
   K.strengthSection: 'الشدة',
   K.outputFormatSection: 'صيغة الإخراج',
@@ -234,7 +236,8 @@ const Map<String, String> stringsAr = <String, String>{
 
   K.adBreakOffer: 'أوقف الإعلانات لمدة @minutes',
   K.adBreakActive: 'بلا إعلانات لمدة @time أخرى',
-  K.adBreakStartHint: 'شاهد @count مقاطع قصيرة، ثم تتوقف كل الإعلانات @minutes.',
+  K.adBreakStartHint:
+      'شاهد @count مقاطع قصيرة، ثم تتوقف كل الإعلانات @minutes.',
   K.adBreakProgressHint: 'شاهدت @watched من @total مقاطع. بقي @left.',
   K.adBreakExtendHint: 'شاهد مقطعًا آخر لإضافة @minutes.',
   K.adBreakEarned: 'الإعلانات متوقفة لمدة @minutes القادمة.',
@@ -254,18 +257,25 @@ const Map<String, String> stringsAr = <String, String>{
   K.adNoAdsNextFiles: 'لا إعلانات في ملفاتك الـ @count التالية.',
 
   K.onboardingConvertTitle: 'حوّل الفيديو بسهولة',
-  K.onboardingConvertBody:
-      'استخرج صوتًا عالي الجودة من مقاطعك بضغطات قليلة.',
+  K.onboardingConvertBody: 'استخرج صوتًا عالي الجودة من مقاطعك بضغطات قليلة.',
   K.onboardingOfflineTitle: 'سريع وبلا إنترنت',
-  K.onboardingOfflineBody: 'تبقى ملفاتك على جهازك. لا حاجة لأي رفع إلى السحابة.',
+  K.onboardingOfflineBody:
+      'تبقى ملفاتك على جهازك. لا حاجة لأي رفع إلى السحابة.',
   K.onboardingManageTitle: 'نظّم ملفاتك',
-  K.onboardingManageBody:
-      'شغّل ملفاتك المحوّلة وأعد تسميتها وشاركها ورتّبها.',
+  K.onboardingManageBody: 'شغّل ملفاتك المحوّلة وأعد تسميتها وشاركها ورتّبها.',
   K.getStarted: 'ابدأ',
 
   K.noiseLight: 'خفيف',
   K.noiseMedium: 'متوسط',
   K.noiseStrong: 'قوي',
+  K.cleanupEngineNormal: 'عادي',
+  K.cleanupEngineNormalDesc:
+      'يستخدم مرشحات FFmpeg الحالية السريعة والتي تعمل دون اتصال.',
+  K.cleanupEngineAi: 'ذكاء اصطناعي',
+  K.cleanupEngineAiDesc: 'مُعد لتحسين الصوت باستخدام نموذج ذكاء اصطناعي.',
+  K.cleanupComingSoon: 'قريبًا',
+  K.cleanupAiPending:
+      'نقطة التكامل جاهزة. ستتوفر المعالجة بعد تثبيت نموذج تم اختباره.',
   K.mixLengthMain: 'المسار الرئيسي',
   K.mixLengthLongest: 'أطول مسار',
   K.cleanupNoiseTitle: 'ضجيج الخلفية',
@@ -317,7 +327,8 @@ const Map<String, String> stringsAr = <String, String>{
   K.errorFileNotRenamed: 'تعذّرت إعادة تسمية هذا الملف.',
   K.errorFileNotDeleted: 'تعذّر حذف هذا الملف.',
   K.errorFilesNotDeleted: 'تعذّر حذف تلك الملفات.',
-  K.errorSettingsNotLoaded: 'تعذّر تحميل إعداداتك. يجري استخدام الإعدادات الافتراضية.',
+  K.errorSettingsNotLoaded:
+      'تعذّر تحميل إعداداتك. يجري استخدام الإعدادات الافتراضية.',
   K.errorSettingsNotSaved: 'تعذّر حفظ إعداداتك. حاول مرة أخرى.',
   K.errorStorageNotRead: 'تعذّرت قراءة ما هو مخزّن على الجهاز.',
   K.errorWorkingNotRemoved: 'تعذّرت إزالة ملفات العمل.',

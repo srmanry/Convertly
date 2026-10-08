@@ -133,7 +133,8 @@ const Map<String, String> stringsId = <String, String>{
   K.addFromApp: 'Tambah dari aplikasi',
   K.appFiles: 'File aplikasi',
   K.selectFromAppFiles: 'Pilih dari file aplikasi',
-  K.pickTapOrSelectAll: 'Ketuk file untuk memilihnya, atau pilih semua sekaligus.',
+  K.pickTapOrSelectAll:
+      'Ketuk file untuk memilihnya, atau pilih semua sekaligus.',
   K.pickOneFile: 'Pilih file audio yang sudah dikonversi sebelumnya.',
   K.searchAppFiles: 'Cari file aplikasi',
   K.noSavedAudio:
@@ -169,7 +170,8 @@ const Map<String, String> stringsId = <String, String>{
   K.deletePoint: 'Hapus titik',
   K.volumeLaneHint:
       'Ketuk garis untuk menambah titik. Tarik ke bawah untuk memelankan, ke atas untuk mengeraskan.',
-  K.volumeLaneAdjust: 'Tarik titik untuk mengubahnya, atau ketuk untuk mengatur nilainya.',
+  K.volumeLaneAdjust:
+      'Tarik titik untuk mengubahnya, atau ketuk untuk mengatur nilainya.',
   K.volumeMaxPoints:
       'Satu trek dapat memiliki hingga @max titik. Hapus satu untuk menambah '
       'yang baru.',
@@ -177,17 +179,23 @@ const Map<String, String> stringsId = <String, String>{
   K.orDivider: 'ATAU',
   K.endLabel: 'Akhir',
   K.stopAfter: 'Berhenti setelah',
-  K.lengthFollowsMain: 'Panjangnya mengikuti trek utama sementara lapisan diulang.',
+  K.lengthFollowsMain:
+      'Panjangnya mengikuti trek utama sementara lapisan diulang.',
   K.previewAll: 'Pratinjau semua',
-  K.previewAllHint: 'Semua trek berbunyi bersamaan sesuai level yang Anda atur.',
-  K.previewBalanceNote: 'Pratinjau untuk menyeimbangkan. Hasil akhir dibuat saat ekspor.',
+  K.previewAllHint:
+      'Semua trek berbunyi bersamaan sesuai level yang Anda atur.',
+  K.previewBalanceNote:
+      'Pratinjau untuk menyeimbangkan. Hasil akhir dibuat saat ekspor.',
   K.timelineSection: 'Linimasa',
   K.timelineTotalUnknown: 'Panjang total diketahui setelah semua klip dibaca.',
   K.timelineTotal: 'Panjang total @duration',
-  K.timelineOrderNote: 'Klip berbunyi berurutan seperti ini, tanpa jeda di antaranya.',
+  K.timelineOrderNote:
+      'Klip berbunyi berurutan seperti ini, tanpa jeda di antaranya.',
   K.previewTheTrack: 'Pratinjau trek',
-  K.previewTrackHint: 'Memutar tiap klip berurutan, satu langsung ke berikutnya.',
+  K.previewTrackHint:
+      'Memutar tiap klip berurutan, satu langsung ke berikutnya.',
 
+  K.cleanupEngineSection: 'Pemrosesan',
   K.removeSection: 'Hilangkan',
   K.strengthSection: 'Kekuatan',
   K.outputFormatSection: 'Format keluaran',
@@ -276,6 +284,14 @@ const Map<String, String> stringsId = <String, String>{
   K.noiseLight: 'Ringan',
   K.noiseMedium: 'Sedang',
   K.noiseStrong: 'Kuat',
+  K.cleanupEngineNormal: 'Normal',
+  K.cleanupEngineNormalDesc:
+      'Menggunakan filter noise FFmpeg saat ini yang cepat dan offline.',
+  K.cleanupEngineAi: 'AI',
+  K.cleanupEngineAiDesc: 'Disiapkan untuk peningkatan suara berbasis model AI.',
+  K.cleanupComingSoon: 'SEGERA HADIR',
+  K.cleanupAiPending:
+      'Titik integrasi AI sudah siap. Pemrosesan aktif setelah model teruji dipasang.',
   K.mixLengthMain: 'Trek utama',
   K.mixLengthLongest: 'Trek terpanjang',
   K.cleanupNoiseTitle: 'Suara latar',
@@ -299,12 +315,14 @@ const Map<String, String> stringsId = <String, String>{
   K.errorConversion: 'File ini tidak dapat dikonversi. Coba file lain.',
   K.errorCancelled: 'Konversi dibatalkan.',
   K.errorUnknown: 'Terjadi kesalahan. Silakan coba lagi.',
-  K.errorNoFilesReadable: 'Tidak satu pun file itu dapat dibaca. Coba yang lain.',
+  K.errorNoFilesReadable:
+      'Tidak satu pun file itu dapat dibaca. Coba yang lain.',
   K.errorFileGone: 'File ini sudah tidak ada di perangkat Anda.',
   K.errorFileUnreadable: 'File ini tidak dapat dibaca.',
   K.errorNoAudioInFile: 'File ini tidak punya audio untuk dikonversi.',
   K.errorFileEmpty: 'File itu kosong. Pilih file lain.',
-  K.errorFileTooLarge: 'File itu terlalu besar untuk dikonversi di perangkat ini.',
+  K.errorFileTooLarge:
+      'File itu terlalu besar untuk dikonversi di perangkat ini.',
   K.errorFileNotOpened: 'File itu tidak dapat dibuka.',
   K.errorNotMedia: 'File itu bukan file media yang dapat kami konversi.',
   K.errorNoAudioTrack: 'Video itu tidak punya trek audio untuk diambil.',

@@ -30,7 +30,12 @@ dependencies:
 
   # Media processing. The original ffmpeg_kit_flutter was retired in 2023;
   # this is the maintained community fork.
-  ffmpeg_kit_flutter_new: ^4.6.2
+  #
+  # The audio build, not the full-gpl one. This app only ever encodes MP3, AAC
+  # and PCM and only uses filters built into FFmpeg itself, so the video
+  # encoders in the full build were tens of megabytes of dead weight in every
+  # download. The audio build is also LGPL rather than GPL.
+  ffmpeg_kit_flutter_new_audio: ^2.5.7
 
   # Picking source media from device storage.
   file_picker: ^12.1.1
@@ -51,6 +56,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Generates the native launch screen from the settings at the bottom of this
+  # file. A tool, not a runtime dependency: it writes Android and iOS
+  # resources and is then out of the picture.
+  flutter_native_splash: ^2.4.8
+
+
   # Runs the real SQLite engine on the host, so database behaviour is tested
   # for real instead of against a mock.
   sqflite_common_ffi: ^2.4.2+1
@@ -70,3 +81,23 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/logo/audio.png
+
+# The screen Android and iOS show while the app process starts, before any
+# Dart code runs. Without this it is a white flash, which on a dark app reads
+# as a fault. Regenerate with: dart run flutter_native_splash:create
+flutter_native_splash:
+  # The top-left colour of the app's own backdrop, so the splash hands over to
+  # the first screen without a visible change.
+  color: "#100B2B"
+  image: assets/logo/splash.png
+  android: true
+  ios: true
+  web: false
+
+  # Android 12 and newer draw the icon themselves, inside a circle, and ignore
+  # the image above. They crop anything outside the middle two thirds, which
+  # is why this one sits on a larger canvas.
+  android_12:
+    color: "#100B2B"
+    image: assets/logo/splash_android12.png
+    icon_background_color: "#100B2B"

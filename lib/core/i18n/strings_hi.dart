@@ -176,10 +176,12 @@ const Map<String, String> stringsHi = <String, String>{
   K.orDivider: 'या',
   K.endLabel: 'अंत',
   K.stopAfter: 'इसके बाद रुकें',
-  K.lengthFollowsMain: 'लंबाई मुख्य ट्रैक के हिसाब से चलेगी, लेयर दोहराती रहेंगी।',
+  K.lengthFollowsMain:
+      'लंबाई मुख्य ट्रैक के हिसाब से चलेगी, लेयर दोहराती रहेंगी।',
   K.previewAll: 'सब सुनें',
   K.previewAllHint: 'सभी ट्रैक आपके तय किए स्तर पर एक साथ बजते हैं।',
-  K.previewBalanceNote: 'यह सिर्फ़ संतुलन देखने के लिए है। पूरा मिक्स एक्सपोर्ट में बनेगा।',
+  K.previewBalanceNote:
+      'यह सिर्फ़ संतुलन देखने के लिए है। पूरा मिक्स एक्सपोर्ट में बनेगा।',
   K.timelineSection: 'टाइमलाइन',
   K.timelineTotalUnknown: 'हर क्लिप पढ़ी जाने के बाद कुल लंबाई पता चलेगी।',
   K.timelineTotal: 'कुल लंबाई @duration',
@@ -187,6 +189,7 @@ const Map<String, String> stringsHi = <String, String>{
   K.previewTheTrack: 'ट्रैक सुनें',
   K.previewTrackHint: 'हर क्लिप क्रम से बजती है, एक के बाद सीधे दूसरी।',
 
+  K.cleanupEngineSection: 'प्रोसेसिंग',
   K.removeSection: 'हटाएँ',
   K.strengthSection: 'तीव्रता',
   K.outputFormatSection: 'आउटपुट फ़ॉर्मैट',
@@ -274,10 +277,20 @@ const Map<String, String> stringsHi = <String, String>{
   K.noiseLight: 'हल्का',
   K.noiseMedium: 'मध्यम',
   K.noiseStrong: 'तेज़',
+  K.cleanupEngineNormal: 'सामान्य',
+  K.cleanupEngineNormalDesc:
+      'मौजूदा तेज़ और ऑफ़लाइन FFmpeg नॉइज़ फ़िल्टर का उपयोग करता है।',
+  K.cleanupEngineAi: 'AI',
+  K.cleanupEngineAiDesc:
+      'बेहतर नॉइज़ हटाने के लिए मॉडल-आधारित वॉइस एन्हांसमेंट।',
+  K.cleanupComingSoon: 'जल्द आ रहा है',
+  K.cleanupAiPending:
+      'AI जोड़ने की जगह तैयार है। टेस्ट किया हुआ AI मॉडल इंस्टॉल होने के बाद प्रोसेसिंग उपलब्ध होगी।',
   K.mixLengthMain: 'मुख्य ट्रैक',
   K.mixLengthLongest: 'सबसे लंबा ट्रैक',
   K.cleanupNoiseTitle: 'बैकग्राउंड नॉइज़',
-  K.cleanupNoiseDesc: 'ऑडियो के पीछे की सरसराहट, भनभनाहट और कमरे की आवाज़ हटाता है।',
+  K.cleanupNoiseDesc:
+      'ऑडियो के पीछे की सरसराहट, भनभनाहट और कमरे की आवाज़ हटाता है।',
   K.cleanupVoiceTitle: 'आवाज़ पर ज़ोर',
   K.cleanupVoiceDesc: 'बोलने की रेंज रखता है और बाकी सब हटा देता है।',
   K.cleanupVocalsTitle: 'गायकी हटाएँ',
@@ -300,7 +313,8 @@ const Map<String, String> stringsHi = <String, String>{
   K.errorFileUnreadable: 'यह फ़ाइल पढ़ी नहीं जा सकी।',
   K.errorNoAudioInFile: 'इस फ़ाइल में कन्वर्ट करने लायक ऑडियो नहीं है।',
   K.errorFileEmpty: 'वह फ़ाइल खाली है। कोई और चुनें।',
-  K.errorFileTooLarge: 'वह फ़ाइल इस डिवाइस पर कन्वर्ट करने के लिए बहुत बड़ी है।',
+  K.errorFileTooLarge:
+      'वह फ़ाइल इस डिवाइस पर कन्वर्ट करने के लिए बहुत बड़ी है।',
   K.errorFileNotOpened: 'वह फ़ाइल नहीं खुल सकी।',
   K.errorNotMedia: 'वह ऐसी मीडिया फ़ाइल नहीं है जिसे हम कन्वर्ट कर सकें।',
   K.errorNoAudioTrack: 'उस वीडियो में निकालने लायक ऑडियो ट्रैक नहीं है।',

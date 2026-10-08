@@ -13,15 +13,11 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/settings/presentation/pages/storage_page.dart';
 import '../../features/shell/presentation/bindings/shell_binding.dart';
 import '../../features/shell/presentation/pages/shell_page.dart';
-import '../../features/splash/presentation/bindings/splash_binding.dart';
-import '../../features/splash/presentation/pages/splash_page.dart';
 import '../widgets/neon_backdrop.dart';
 import 'app_routes.dart';
 
 /// Central route table. Adding a screen means adding one entry here.
 abstract final class AppPages {
-  static const String initial = AppRoutes.splash;
-
   /// Gives a page its own copy of the app background.
   ///
   /// Scaffolds are transparent so the gradient shows through them. A page
@@ -32,11 +28,6 @@ abstract final class AppPages {
       () => NeonBackdrop(child: builder());
 
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
-    GetPage<void>(
-      name: AppRoutes.splash,
-      page: _opaque(SplashPage.new),
-      binding: SplashBinding(),
-    ),
     GetPage<void>(
       name: AppRoutes.onboarding,
       page: _opaque(OnboardingPage.new),

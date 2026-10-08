@@ -170,24 +170,30 @@ const Map<String, String> stringsPt = <String, String>{
   K.deletePoint: 'Excluir ponto',
   K.volumeLaneHint:
       'Toque na linha para adicionar um ponto. Arraste para baixo para abaixar e para cima para aumentar.',
-  K.volumeLaneAdjust: 'Arraste um ponto para mudá-lo, ou toque nele para definir o valor exato.',
+  K.volumeLaneAdjust:
+      'Arraste um ponto para mudá-lo, ou toque nele para definir o valor exato.',
   K.volumeMaxPoints:
       'Uma faixa pode ter até @max pontos. Exclua um para adicionar outro.',
 
   K.orDivider: 'OU',
   K.endLabel: 'Fim',
   K.stopAfter: 'Parar depois de',
-  K.lengthFollowsMain: 'A duração segue a faixa principal enquanto as camadas se repetem.',
+  K.lengthFollowsMain:
+      'A duração segue a faixa principal enquanto as camadas se repetem.',
   K.previewAll: 'Ouvir tudo',
-  K.previewAllHint: 'Todas as faixas tocam juntas, nos níveis que você definiu.',
-  K.previewBalanceNote: 'Uma prévia para equilibrar. A mixagem final é feita na exportação.',
+  K.previewAllHint:
+      'Todas as faixas tocam juntas, nos níveis que você definiu.',
+  K.previewBalanceNote:
+      'Uma prévia para equilibrar. A mixagem final é feita na exportação.',
   K.timelineSection: 'Linha do tempo',
-  K.timelineTotalUnknown: 'A duração total aparece depois que todos os clipes forem lidos.',
+  K.timelineTotalUnknown:
+      'A duração total aparece depois que todos os clipes forem lidos.',
   K.timelineTotal: 'Duração total @duration',
   K.timelineOrderNote: 'Os clipes tocam nesta ordem, sem intervalo entre eles.',
   K.previewTheTrack: 'Ouvir a faixa',
   K.previewTrackHint: 'Toca cada clipe em ordem, um emendando no outro.',
 
+  K.cleanupEngineSection: 'Processamento',
   K.removeSection: 'Remover',
   K.strengthSection: 'Intensidade',
   K.outputFormatSection: 'Formato de saída',
@@ -236,7 +242,8 @@ const Map<String, String> stringsPt = <String, String>{
   K.storageWorkingRemoved: 'Arquivos de trabalho removidos.',
   K.storageNoWorkingFiles: 'Não havia arquivos de trabalho para remover.',
   K.storageAllDeleted: 'Todos os arquivos convertidos foram excluídos.',
-  K.storageSomeKept: 'Alguns arquivos não puderam ser excluídos e foram mantidos.',
+  K.storageSomeKept:
+      'Alguns arquivos não puderam ser excluídos e foram mantidos.',
 
   K.adBreakOffer: 'Ficar @minutes sem anúncios',
   K.adBreakActive: 'Sem anúncios por mais @time',
@@ -256,7 +263,8 @@ const Map<String, String> stringsPt = <String, String>{
       'anúncios.',
   K.adNoThanks: 'Agora não',
   K.adWatchVideo: 'Assistir vídeo',
-  K.adWatchForFiles: 'Assista a um anúncio e ganhe @count arquivos sem anúncios',
+  K.adWatchForFiles:
+      'Assista a um anúncio e ganhe @count arquivos sem anúncios',
   K.adNoAdsThisFile: 'Sem anúncios para este arquivo.',
   K.adNoAdsNextFile: 'Sem anúncios no seu próximo arquivo.',
   K.adNoAdsNextFiles: 'Sem anúncios nos seus próximos @count arquivos.',
@@ -275,10 +283,20 @@ const Map<String, String> stringsPt = <String, String>{
   K.noiseLight: 'Leve',
   K.noiseMedium: 'Médio',
   K.noiseStrong: 'Forte',
+  K.cleanupEngineNormal: 'Normal',
+  K.cleanupEngineNormalDesc:
+      'Usa os filtros de ruído FFmpeg atuais, rápidos e offline.',
+  K.cleanupEngineAi: 'IA',
+  K.cleanupEngineAiDesc:
+      'Reservado para aprimoramento de voz com modelo de IA.',
+  K.cleanupComingSoon: 'EM BREVE',
+  K.cleanupAiPending:
+      'A integração está pronta. O processamento será liberado após instalar um modelo testado.',
   K.mixLengthMain: 'Faixa principal',
   K.mixLengthLongest: 'Faixa mais longa',
   K.cleanupNoiseTitle: 'Ruído de fundo',
-  K.cleanupNoiseDesc: 'Remove chiado, zumbido e o barulho da sala por trás do áudio.',
+  K.cleanupNoiseDesc:
+      'Remove chiado, zumbido e o barulho da sala por trás do áudio.',
   K.cleanupVoiceTitle: 'Foco na voz',
   K.cleanupVoiceDesc: 'Mantém a faixa da fala e descarta o que fica fora dela.',
   K.cleanupVocalsTitle: 'Remover vocais',
@@ -296,8 +314,7 @@ const Map<String, String> stringsPt = <String, String>{
   K.errorConversion: 'Não foi possível converter este arquivo. Tente outro.',
   K.errorCancelled: 'Conversão cancelada.',
   K.errorUnknown: 'Algo deu errado. Tente de novo.',
-  K.errorNoFilesReadable:
-      'Nenhum desses arquivos pôde ser lido. Tente outros.',
+  K.errorNoFilesReadable: 'Nenhum desses arquivos pôde ser lido. Tente outros.',
   K.errorFileGone: 'Este arquivo não está mais no seu aparelho.',
   K.errorFileUnreadable: 'Não foi possível ler este arquivo.',
   K.errorNoAudioInFile: 'Este arquivo não tem áudio para converter.',
@@ -327,16 +344,20 @@ const Map<String, String> stringsPt = <String, String>{
   K.errorTracksNotPlayed: 'Não foi possível tocar estas faixas juntas.',
   K.errorSectionNotPlayed: 'Não foi possível tocar este trecho.',
   K.errorFilesNotLoaded: 'Não foi possível carregar seus arquivos.',
-  K.errorFileNotSaved: 'Não foi possível salvar este arquivo na sua biblioteca.',
+  K.errorFileNotSaved:
+      'Não foi possível salvar este arquivo na sua biblioteca.',
   K.errorFileNotRenamed: 'Não foi possível renomear este arquivo.',
   K.errorFileNotDeleted: 'Não foi possível excluir este arquivo.',
   K.errorFilesNotDeleted: 'Não foi possível excluir esses arquivos.',
   K.errorSettingsNotLoaded:
       'Não foi possível carregar seus ajustes. Os padrões estão em uso.',
-  K.errorSettingsNotSaved: 'Não foi possível salvar seus ajustes. Tente de novo.',
-  K.errorStorageNotRead: 'Não foi possível ler o que está guardado no aparelho.',
+  K.errorSettingsNotSaved:
+      'Não foi possível salvar seus ajustes. Tente de novo.',
+  K.errorStorageNotRead:
+      'Não foi possível ler o que está guardado no aparelho.',
   K.errorWorkingNotRemoved: 'Não foi possível remover os arquivos de trabalho.',
   K.errorMusicNotRead: 'Não foi possível ler as músicas deste aparelho.',
-  K.errorProgressNotSaved: 'Não foi possível salvar seu progresso. Tente de novo.',
+  K.errorProgressNotSaved:
+      'Não foi possível salvar seu progresso. Tente de novo.',
   K.errorPlaybackFailed: 'Não foi possível tocar este arquivo.',
 };

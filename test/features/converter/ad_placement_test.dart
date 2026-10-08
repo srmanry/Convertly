@@ -41,13 +41,6 @@ void main() {
       );
     });
 
-    test('the splash screen shows no ad', () {
-      expect(
-        carriesAnAd('lib/features/splash/presentation/pages/splash_page.dart'),
-        isFalse,
-      );
-    });
-
     test('the result screen shows no banner or in-list ad', () {
       // It offers a rewarded ad when one is due, and nothing otherwise: a
       // finish should read as a finish.

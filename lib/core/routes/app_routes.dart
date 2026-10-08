@@ -1,6 +1,5 @@
 /// Named routes. Referenced everywhere instead of raw strings.
 abstract final class AppRoutes {
-  static const String splash = '/splash';
   static const String onboarding = '/onboarding';
 
   /// The bottom-navigation shell that hosts Home, Files, Tools and Settings.

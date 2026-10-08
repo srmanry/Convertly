@@ -177,6 +177,7 @@ abstract final class K {
   static const String volumeLaneHint = 'converter_volume_hint';
   static const String volumeMaxPoints = 'converter_volume_max_points';
   static const String volumeLaneAdjust = 'converter_volume_adjust_hint';
+  static const String cleanupEngineSection = 'converter_cleanup_engine';
   static const String removeSection = 'converter_remove_section';
   static const String strengthSection = 'converter_strength_section';
   static const String outputFormatSection = 'converter_output_format';
@@ -280,6 +281,12 @@ abstract final class K {
   static const String cleanupVoiceDesc = 'cleanup_voice_desc';
   static const String cleanupVocalsTitle = 'cleanup_vocals_title';
   static const String cleanupVocalsDesc = 'cleanup_vocals_desc';
+  static const String cleanupEngineNormal = 'cleanup_engine_normal';
+  static const String cleanupEngineNormalDesc = 'cleanup_engine_normal_desc';
+  static const String cleanupEngineAi = 'cleanup_engine_ai';
+  static const String cleanupEngineAiDesc = 'cleanup_engine_ai_desc';
+  static const String cleanupComingSoon = 'cleanup_coming_soon';
+  static const String cleanupAiPending = 'cleanup_ai_pending';
   static const String compressionHigh = 'compression_high';
   static const String compressionMedium = 'compression_medium';
   static const String compressionLow = 'compression_low';
@@ -302,7 +309,8 @@ abstract final class K {
   static const String errorNotMedia = 'error_not_media';
   static const String errorNoAudioTrack = 'error_no_audio_track';
   static const String errorNotVideo = 'error_not_video';
-  static const String errorConversionNotStarted = 'error_conversion_not_started';
+  static const String errorConversionNotStarted =
+      'error_conversion_not_started';
   static const String errorNoFreeSpace = 'error_no_free_space';
   static const String errorOutputMissing = 'error_output_missing';
   static const String errorOutputEmpty = 'error_output_empty';

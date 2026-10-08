@@ -4,6 +4,7 @@ import 'package:convertly/core/enums/cleanup_mode.dart';
 import 'package:convertly/core/enums/export_speed.dart';
 import 'package:convertly/core/enums/mix_length_mode.dart';
 import 'package:convertly/core/enums/noise_strength.dart';
+import 'package:convertly/core/enums/noise_removal_engine.dart';
 import 'package:convertly/features/converter/data/ffmpeg_command_builder.dart';
 import 'package:convertly/features/converter/domain/entities/cleanup_settings.dart';
 import 'package:convertly/features/converter/domain/entities/conversion_request.dart';
@@ -568,6 +569,7 @@ void mixTests() {
 ConversionRequest cleanupRequest(
   CleanupMode mode, {
   NoiseStrength strength = NoiseStrength.medium,
+  NoiseRemovalEngine engine = NoiseRemovalEngine.normal,
   ExportSpeed speed = ExportSpeed.normal,
 }) {
   return ConversionRequest(
@@ -576,7 +578,7 @@ ConversionRequest cleanupRequest(
     format: AudioFormat.mp3,
     quality: AudioQuality.kbps192,
     speed: speed,
-    cleanup: CleanupSettings(mode: mode, strength: strength),
+    cleanup: CleanupSettings(mode: mode, strength: strength, engine: engine),
   );
 }
 
@@ -669,6 +671,18 @@ void cleanupTests() {
       );
 
       expect(FfmpegCommandBuilder.build(request), isNot(contains('-filter:a')));
+    });
+
+    test('AI never falls back to the normal filter without a model', () {
+      expect(
+        () => FfmpegCommandBuilder.build(
+          cleanupRequest(
+            CleanupMode.backgroundNoise,
+            engine: NoiseRemovalEngine.ai,
+          ),
+        ),
+        throwsUnsupportedError,
+      );
     });
   });
 }

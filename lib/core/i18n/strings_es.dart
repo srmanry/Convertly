@@ -154,7 +154,8 @@ const Map<String, String> stringsEs = <String, String>{
   K.repeatLayersDesc:
       'Un sonido de fondo corto suena una y otra vez en lugar de parar antes '
       'de tiempo.',
-  K.adjustVolumeOverTime: 'Ajusta el volumen de cada pista a lo largo del tiempo.',
+  K.adjustVolumeOverTime:
+      'Ajusta el volumen de cada pista a lo largo del tiempo.',
   K.clipNumber: 'Clip @number',
   K.mainTrack: 'Pista principal',
   K.layerNumber: 'Capa @number',
@@ -171,24 +172,30 @@ const Map<String, String> stringsEs = <String, String>{
   K.deletePoint: 'Eliminar punto',
   K.volumeLaneHint:
       'Toca la línea para añadir un punto. Arrástralo hacia abajo para bajar el volumen y hacia arriba para subirlo.',
-  K.volumeLaneAdjust: 'Arrastra un punto para cambiarlo, o tócalo para fijar el valor exacto.',
+  K.volumeLaneAdjust:
+      'Arrastra un punto para cambiarlo, o tócalo para fijar el valor exacto.',
   K.volumeMaxPoints:
       'Una pista puede tener hasta @max puntos. Elimina uno para añadir otro.',
 
   K.orDivider: 'O',
   K.endLabel: 'Fin',
   K.stopAfter: 'Detener tras',
-  K.lengthFollowsMain: 'La duración sigue a la pista principal mientras las capas se repiten.',
+  K.lengthFollowsMain:
+      'La duración sigue a la pista principal mientras las capas se repiten.',
   K.previewAll: 'Escuchar todo',
-  K.previewAllHint: 'Todas las pistas suenan juntas, con los niveles que fijaste.',
-  K.previewBalanceNote: 'Una escucha para equilibrar. La mezcla final se crea al exportar.',
+  K.previewAllHint:
+      'Todas las pistas suenan juntas, con los niveles que fijaste.',
+  K.previewBalanceNote:
+      'Una escucha para equilibrar. La mezcla final se crea al exportar.',
   K.timelineSection: 'Línea de tiempo',
-  K.timelineTotalUnknown: 'La duración total se sabrá cuando se lean todos los clips.',
+  K.timelineTotalUnknown:
+      'La duración total se sabrá cuando se lean todos los clips.',
   K.timelineTotal: 'Duración total @duration',
   K.timelineOrderNote: 'Los clips suenan en este orden, sin pausa entre ellos.',
   K.previewTheTrack: 'Escuchar la pista',
   K.previewTrackHint: 'Reproduce cada clip en orden, uno seguido del otro.',
 
+  K.cleanupEngineSection: 'Procesamiento',
   K.removeSection: 'Quitar',
   K.strengthSection: 'Intensidad',
   K.outputFormatSection: 'Formato de salida',
@@ -237,7 +244,8 @@ const Map<String, String> stringsEs = <String, String>{
   K.storageWorkingRemoved: 'Archivos de trabajo eliminados.',
   K.storageNoWorkingFiles: 'No había archivos de trabajo que quitar.',
   K.storageAllDeleted: 'Se eliminaron todos los archivos convertidos.',
-  K.storageSomeKept: 'Algunos archivos no se pudieron eliminar y se conservaron.',
+  K.storageSomeKept:
+      'Algunos archivos no se pudieron eliminar y se conservaron.',
 
   K.adBreakOffer: 'Quitar los anuncios @minutes',
   K.adBreakActive: 'Sin anuncios por @time más',
@@ -276,13 +284,22 @@ const Map<String, String> stringsEs = <String, String>{
   K.noiseLight: 'Suave',
   K.noiseMedium: 'Medio',
   K.noiseStrong: 'Fuerte',
+  K.cleanupEngineNormal: 'Normal',
+  K.cleanupEngineNormalDesc:
+      'Usa los filtros de ruido FFmpeg actuales, rápidos y sin conexión.',
+  K.cleanupEngineAi: 'IA',
+  K.cleanupEngineAiDesc: 'Reservado para mejora de voz con un modelo de IA.',
+  K.cleanupComingSoon: 'PRÓXIMAMENTE',
+  K.cleanupAiPending:
+      'La integración está preparada. Se activará al instalar un modelo probado.',
   K.mixLengthMain: 'Pista principal',
   K.mixLengthLongest: 'Pista más larga',
   K.cleanupNoiseTitle: 'Ruido de fondo',
   K.cleanupNoiseDesc:
       'Quita el siseo, el zumbido y el ruido de la sala detrás del audio.',
   K.cleanupVoiceTitle: 'Enfoque en la voz',
-  K.cleanupVoiceDesc: 'Conserva el rango del habla y descarta lo que queda fuera.',
+  K.cleanupVoiceDesc:
+      'Conserva el rango del habla y descarta lo que queda fuera.',
   K.cleanupVocalsTitle: 'Quitar voces',
   K.cleanupVocalsDesc:
       'Cancela el centro de una mezcla estéreo, donde suele estar la voz '
@@ -298,7 +315,8 @@ const Map<String, String> stringsEs = <String, String>{
   K.errorConversion: 'No se pudo convertir este archivo. Prueba con otro.',
   K.errorCancelled: 'Conversión cancelada.',
   K.errorUnknown: 'Algo salió mal. Inténtalo de nuevo.',
-  K.errorNoFilesReadable: 'No se pudo leer ninguno de esos archivos. Prueba otros.',
+  K.errorNoFilesReadable:
+      'No se pudo leer ninguno de esos archivos. Prueba otros.',
   K.errorFileGone: 'Este archivo ya no está en tu dispositivo.',
   K.errorFileUnreadable: 'No se pudo leer este archivo.',
   K.errorNoAudioInFile: 'Este archivo no tiene audio que convertir.',
@@ -334,10 +352,13 @@ const Map<String, String> stringsEs = <String, String>{
   K.errorFilesNotDeleted: 'No se pudieron eliminar esos archivos.',
   K.errorSettingsNotLoaded:
       'No se pudieron cargar tus ajustes. Se usan los valores por defecto.',
-  K.errorSettingsNotSaved: 'No se pudieron guardar tus ajustes. Inténtalo de nuevo.',
-  K.errorStorageNotRead: 'No se pudo leer lo que hay guardado en el dispositivo.',
+  K.errorSettingsNotSaved:
+      'No se pudieron guardar tus ajustes. Inténtalo de nuevo.',
+  K.errorStorageNotRead:
+      'No se pudo leer lo que hay guardado en el dispositivo.',
   K.errorWorkingNotRemoved: 'No se pudieron quitar los archivos de trabajo.',
   K.errorMusicNotRead: 'No se pudo leer la música de este dispositivo.',
-  K.errorProgressNotSaved: 'No se pudo guardar tu progreso. Inténtalo de nuevo.',
+  K.errorProgressNotSaved:
+      'No se pudo guardar tu progreso. Inténtalo de nuevo.',
   K.errorPlaybackFailed: 'No se pudo reproducir este archivo.',
 };

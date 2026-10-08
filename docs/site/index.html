@@ -1,0 +1,172 @@
+<!doctype html>
+<!-- The developer site: who makes the apps, what they are, and how to reach
+     us. Served from the root of srmanry.github.io, which is also where
+     app-ads.txt lives, so AdMob can tie the apps to this site. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SumanryTkG — Android apps and games</title>
+<meta name="description" content="Android apps and games by Suman Roy: AudioForge, an offline audio converter and editor, and Fish Hunter Game TDB.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎧</text></svg>">
+<style>
+  :root {
+    --bg: #0d0a1f;
+    --bg-soft: #171133;
+    --card: #1b1540;
+    --line: #2f2561;
+    --ink: #f4f0ff;
+    --ink-dim: #b9b0d4;
+    --audio: #ce74ff;
+    --game: #3ddc97;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(900px 500px at 15% -10%, #3a1d6e 0%, transparent 60%),
+      radial-gradient(800px 500px at 110% 10%, #10306b 0%, transparent 55%),
+      var(--bg);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  .wrap { width: 100%; max-width: 44rem; margin: 0 auto; }
+
+  /* A long address or package name has nowhere to break, and one of those is
+     enough to push the whole page sideways on a phone. */
+  body { overflow-wrap: anywhere; }
+
+  /* Header */
+  header { padding: 72px 0 40px; }
+  .mark {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--audio), #6f9bff);
+    display: grid; place-items: center;
+    font-size: 26px; font-weight: 700; color: #fff;
+    box-shadow: 0 8px 28px rgba(206, 116, 255, .3);
+  }
+  h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); margin: 20px 0 6px; letter-spacing: -.02em; }
+  .tagline { color: var(--ink-dim); margin: 0; font-size: 1.05rem; }
+
+  /* Sections */
+  h2 {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--ink-dim); margin: 48px 0 16px; font-weight: 600;
+  }
+
+  /* App cards */
+  .app {
+    display: flex; gap: 18px; align-items: flex-start;
+    background: linear-gradient(180deg, var(--card), var(--bg-soft));
+    border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px; margin-bottom: 14px;
+  }
+  /* Without this the text column refuses to shrink below its widest line,
+     and the card runs off the side of a phone screen. */
+  .app > div { min-width: 0; }
+  .icon {
+    flex: none; width: 52px; height: 52px; border-radius: 14px;
+    display: grid; place-items: center;
+  }
+  .icon.audio { background: rgba(206, 116, 255, .16); color: var(--audio); }
+  .icon.game { background: rgba(61, 220, 151, .14); color: var(--game); }
+  .app h3 { margin: 0 0 4px; font-size: 1.12rem; }
+  .app p { margin: 0 0 14px; color: var(--ink-dim); }
+  .store {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 999px;
+    background: rgba(255, 255, 255, .06); border: 1px solid var(--line);
+    color: var(--ink); text-decoration: none; font-size: .92rem; font-weight: 500;
+  }
+  .store:hover { background: rgba(255, 255, 255, .11); }
+
+  /* Lists and footer */
+  ul.links { list-style: none; padding: 0; margin: 0; }
+  ul.links li { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  ul.links li:last-child { border-bottom: 0; }
+  a { color: var(--audio); }
+  a:hover { color: #e6b3ff; }
+  footer {
+    margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--ink-dim); font-size: .9rem;
+  }
+  footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">S</div>
+    <h1>SumanryTkG</h1>
+    <p class="tagline">Android apps and games, made in Bangladesh.</p>
+  </header>
+
+  <h2>Apps</h2>
+
+  <div class="app">
+    <div class="icon audio" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="3" y="10" width="2.4" height="4" rx="1.2"/>
+        <rect x="7.3" y="7" width="2.4" height="10" rx="1.2"/>
+        <rect x="11.6" y="4" width="2.4" height="16" rx="1.2"/>
+        <rect x="15.9" y="8" width="2.4" height="8" rx="1.2"/>
+        <rect x="20.2" y="11" width="2.4" height="2" rx="1"/>
+      </svg>
+    </div>
+    <div>
+      <h3>AudioForge: Audio Converter</h3>
+      <p>Pull audio out of a video, convert between formats, cut, merge, mix
+         and clean up tracks — all on the phone, with no account and nothing
+         uploaded.</p>
+      <a class="store"
+         href="https://play.google.com/store/apps/details?id=com.sumanry.audioforge">
+        Get it on Google Play
+      </a>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="icon game" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M2 12c3.2-4.2 7-6.3 11.4-6.3 3 0 5.6 1 7.6 3.1-.8 1.1-1.2 2.2-1.2 3.2s.4 2.1 1.2 3.2c-2 2.1-4.6 3.1-7.6 3.1C9 18.3 5.2 16.2 2 12z"/>
+        <circle cx="8" cy="10.6" r="1.1" fill="#0d0a1f"/>
+      </svg>
+    </div>
+    <div>
+      <h3>Fish Hunter Game TDB: Offline</h3>
+      <p>A Bangladesh-themed casual fishing game. Plays offline, no sign-up.</p>
+      <!-- Paste the game's Play Store link in the href below to switch this on:
+      <a class="store" href="https://play.google.com/store/apps/details?id=YOUR.PACKAGE">
+        Get it on Google Play
+      </a>
+      -->
+    </div>
+  </div>
+
+  <h2>Privacy policies</h2>
+  <ul class="links">
+    <li><a href="/audioforge-privacy.html">AudioForge: Audio Converter</a></li>
+    <li><a href="/privacy.html">Fish Hunter Game TDB: Offline</a></li>
+  </ul>
+
+  <h2>Contact</h2>
+  <ul class="links">
+    <li>Support and business enquiries:
+        <a href="mailto:sumanry402@gmail.com">sumanry402@gmail.com</a></li>
+  </ul>
+
+  <footer>
+    <p>Suman Roy · Bangladesh</p>
+    <p>Every app here runs on your own device. No account, no tracking of our own.</p>
+  </footer>
+
+</div>
+</body>
+</html>

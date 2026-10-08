@@ -1,5 +1,6 @@
 import 'package:convertly/core/enums/cleanup_mode.dart';
 import 'package:convertly/core/enums/mix_length_mode.dart';
+import 'package:convertly/core/enums/noise_removal_engine.dart';
 import 'package:convertly/core/enums/tool_mode.dart';
 import 'package:convertly/core/services/output_directory_service.dart';
 import 'package:convertly/core/types/result.dart';
@@ -292,6 +293,17 @@ void main() {
 
       expect(controller.isCleanupUnsupported, isFalse);
       expect(controller.canConvert, isTrue);
+    });
+
+    test('AI cleanup stays blocked until a model is installed', () async {
+      final ConverterController controller = controllerFor(ToolMode.cleanup);
+      media.nextPick = <MediaInfo>[track('voice', channels: 1)];
+      await controller.pickSource();
+
+      controller.setNoiseRemovalEngine(NoiseRemovalEngine.ai);
+
+      expect(controller.canConvert, isFalse);
+      expect(controller.isCleanupUnsupported, isFalse);
     });
   });
 

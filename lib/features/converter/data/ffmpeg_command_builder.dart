@@ -2,6 +2,7 @@ import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/cleanup_mode.dart';
 import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/noise_strength.dart';
+import '../../../../core/enums/noise_removal_engine.dart';
 import '../domain/entities/cleanup_settings.dart';
 import '../domain/entities/conversion_request.dart';
 import '../domain/entities/mix_settings.dart';
@@ -278,6 +279,13 @@ abstract final class FfmpegCommandBuilder {
   /// noise profile or cancel what both channels share. A model-based split
   /// into vocals and instruments is not something FFmpeg can do offline.
   static List<String> _cleanupFilters(CleanupSettings cleanup) {
+    if (cleanup.engine == NoiseRemovalEngine.ai) {
+      throw UnsupportedError(
+        'AI noise removal needs a model-backed processor; no model is '
+        'installed yet.',
+      );
+    }
+
     return switch (cleanup.mode) {
       // Below 80 Hz is rumble and handling noise rather than signal, so it is
       // cut before the denoiser measures anything.

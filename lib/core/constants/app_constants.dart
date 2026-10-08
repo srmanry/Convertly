@@ -5,8 +5,6 @@ abstract final class AppConstants {
 
   /// Folder created inside the app-specific media directory for all output.
   static const String outputFolderName = 'AudioForge';
-
-  static const Duration splashDuration = Duration(milliseconds: 1800);
 }
 
 /// Keys used for local key-value persistence.
