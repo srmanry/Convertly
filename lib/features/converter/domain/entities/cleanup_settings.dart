@@ -2,14 +2,13 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/enums/cleanup_mode.dart';
 import '../../../../core/enums/noise_strength.dart';
-import '../../../../core/enums/noise_removal_engine.dart';
 
 /// What the noise remover should strip out of a track.
 class CleanupSettings extends Equatable {
   const CleanupSettings({
     required this.mode,
     this.strength = NoiseStrength.medium,
-    this.engine = NoiseRemovalEngine.normal,
+    this.aiModelPath,
   });
 
   final CleanupMode mode;
@@ -17,10 +16,13 @@ class CleanupSettings extends Equatable {
   /// Ignored by modes where [CleanupMode.usesStrength] is false.
   final NoiseStrength strength;
 
-  /// Chooses the processing implementation. AI requests remain unavailable
-  /// until a model-backed service is connected to the conversion repository.
-  final NoiseRemovalEngine engine;
+  /// Where the trained model sits on disk.
+  ///
+  /// Null when it could not be put there. There is one clean-up rather than a
+  /// choice between two, so nothing was promised that a null breaks: the
+  /// command builder falls back to the measured-profile filters.
+  final String? aiModelPath;
 
   @override
-  List<Object?> get props => <Object?>[mode, strength, engine];
+  List<Object?> get props => <Object?>[mode, strength, aiModelPath];
 }

@@ -6,17 +6,12 @@ import 'package:get/get.dart';
 
 import 'core/bindings/initial_binding.dart';
 import 'core/constants/app_constants.dart';
-import 'core/startup.dart';
 import 'core/i18n/app_translations.dart';
 import 'core/routes/app_pages.dart';
+import 'core/routes/app_routes.dart';
 import 'core/services/ads_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-import 'core/types/result.dart';
-import 'core/usecases/usecase.dart';
-import 'features/onboarding/data/datasources/onboarding_local_datasource.dart';
-import 'features/onboarding/data/repositories/onboarding_repository_impl.dart';
-import 'features/onboarding/domain/usecases/get_onboarding_status.dart';
 import 'features/settings/presentation/controllers/settings_controller.dart';
 
 Future<void> main() async {
@@ -32,28 +27,11 @@ Future<void> main() async {
   // wait on that to draw its first screen. Ads appear once it is ready.
   unawaited(Get.find<AdsService>().initialise());
 
-  // Read here rather than on a splash screen of its own. It is one value out
-  // of storage that is already open, so the first screen the user sees can be
-  // the real one. A failed read falls back to onboarding, which is harmless.
-  final Result<bool> onboarding =
-      await GetOnboardingStatus(
-        OnboardingRepositoryImpl(OnboardingLocalDataSourceImpl(storage)),
-      )(const NoParams());
-
-  runApp(
-    AudioForgeApp(
-      initialRoute: startRoute(
-        onboardingCompleted: onboarding.valueOrNull ?? false,
-      ),
-    ),
-  );
+  runApp(const AudioForgeApp());
 }
 
 class AudioForgeApp extends StatelessWidget {
-  const AudioForgeApp({required this.initialRoute, super.key});
-
-  /// The first screen, worked out in [main] before this is built.
-  final String initialRoute;
+  const AudioForgeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +58,7 @@ class AudioForgeApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      initialRoute: initialRoute,
+      initialRoute: AppRoutes.shell,
       getPages: AppPages.pages,
       // A slide, not a fade or a zoom: those draw the arriving screen
       // half-transparent while it settles, and two of these backdrops seen

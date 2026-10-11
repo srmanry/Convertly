@@ -12,10 +12,7 @@ enum CleanupMode {
     labelKey: K.cleanupNoiseTitle,
     descriptionKey: K.cleanupNoiseDesc,
   ),
-  voiceFocus(
-    labelKey: K.cleanupVoiceTitle,
-    descriptionKey: K.cleanupVoiceDesc,
-  ),
+  voiceFocus(labelKey: K.cleanupVoiceTitle, descriptionKey: K.cleanupVoiceDesc),
   removeVocals(
     labelKey: K.cleanupVocalsTitle,
     descriptionKey: K.cleanupVocalsDesc,

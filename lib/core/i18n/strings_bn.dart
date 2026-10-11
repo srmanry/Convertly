@@ -190,6 +190,10 @@ const Map<String, String> stringsBn = <String, String>{
   K.cleanupEngineSection: 'প্রসেসিং',
   K.removeSection: 'সরান',
   K.strengthSection: 'মাত্রা',
+  K.strengthHint:
+      'বেশি মাত্রায় নয়েজ বেশি কাটে, সাথে আসল শব্দও কিছুটা চলে যায়। ফাঁপা শোনালে হালকা দিয়ে শুরু করুন।',
+  K.cleanupMonoWarning:
+      'এই ট্র্যাকটি মনো, তাই আলাদা করে সরানোর মতো মাঝের চ্যানেল নেই। অন্য একটি অপশন বাছুন।',
   K.outputFormatSection: 'আউটপুট ফরম্যাট',
   K.qualitySection: 'মান',
   K.targetQualitySection: 'কাঙ্ক্ষিত মান',
@@ -261,29 +265,10 @@ const Map<String, String> stringsBn = <String, String>{
   K.adNoAdsNextFile: 'আপনার পরের ফাইলে কোনো বিজ্ঞাপন নেই।',
   K.adNoAdsNextFiles: 'আপনার পরের @count টি ফাইলে কোনো বিজ্ঞাপন নেই।',
 
-  K.onboardingConvertTitle: 'সহজে ভিডিও কনভার্ট করুন',
-  K.onboardingConvertBody: 'কয়েকটি চাপেই ভিডিও থেকে ভালো মানের অডিও বের করুন।',
-  K.onboardingOfflineTitle: 'দ্রুত ও অফলাইন',
-  K.onboardingOfflineBody:
-      'আপনার ফাইল আপনার ডিভাইসেই থাকে। কোথাও আপলোড করতে হয় না।',
-  K.onboardingManageTitle: 'ফাইল সামলান',
-  K.onboardingManageBody:
-      'কনভার্ট করা ফাইল চালান, নাম বদলান, শেয়ার করুন ও গুছিয়ে রাখুন।',
-  K.getStarted: 'শুরু করুন',
-
   K.noiseLight: 'হালকা',
   K.noiseMedium: 'মাঝারি',
   K.noiseStrong: 'জোরালো',
-  K.cleanupEngineNormal: 'সাধারণ',
-  K.cleanupEngineNormalDesc:
-      'বর্তমান দ্রুত ও অফলাইন FFmpeg নয়েজ ফিল্টার ব্যবহার করে।',
-  K.cleanupEngineAi: 'AI',
-  K.cleanupEngineAiDesc:
-      'আরও বুদ্ধিমান নয়েজ রিমুভালের জন্য AI মডেলভিত্তিক ভয়েস উন্নতি।',
-  K.cleanupComingSoon: 'শীঘ্রই আসছে',
-  K.cleanupAiPending:
-      'AI যুক্ত করার জায়গা প্রস্তুত আছে। পরীক্ষিত AI মডেল বসানোর পর '
-      'প্রসেসিং চালু হবে।',
+
   K.mixLengthMain: 'মূল ট্র্যাক',
   K.mixLengthLongest: 'সবচেয়ে লম্বা ট্র্যাক',
   K.cleanupNoiseTitle: 'ব্যাকগ্রাউন্ড নয়েজ',

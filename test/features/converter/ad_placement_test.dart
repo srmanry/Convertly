@@ -30,17 +30,6 @@ void main() {
       );
     });
 
-    test('onboarding shows no ad', () {
-      // The first thing anyone sees, before they have got anything from the
-      // app at all.
-      expect(
-        carriesAnAd(
-          'lib/features/onboarding/presentation/pages/onboarding_page.dart',
-        ),
-        isFalse,
-      );
-    });
-
     test('the result screen shows no banner or in-list ad', () {
       // It offers a rewarded ad when one is due, and nothing otherwise: a
       // finish should read as a finish.

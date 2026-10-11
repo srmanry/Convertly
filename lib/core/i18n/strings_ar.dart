@@ -187,6 +187,10 @@ const Map<String, String> stringsAr = <String, String>{
   K.cleanupEngineSection: 'المعالجة',
   K.removeSection: 'إزالة',
   K.strengthSection: 'الشدة',
+  K.strengthHint:
+      'الإعدادات الأقوى تزيل ضجيجًا أكثر وتأخذ معها جزءًا من الصوت الأصلي. ابدأ بالخفيف إذا بدت النتيجة جوفاء.',
+  K.cleanupMonoWarning:
+      'هذا المقطع أحادي القناة، فلا توجد قناة وسطى منفصلة لإزالتها. اختر خيارًا آخر.',
   K.outputFormatSection: 'صيغة الإخراج',
   K.qualitySection: 'الجودة',
   K.targetQualitySection: 'الجودة المطلوبة',
@@ -256,26 +260,10 @@ const Map<String, String> stringsAr = <String, String>{
   K.adNoAdsNextFile: 'لا إعلانات في ملفك التالي.',
   K.adNoAdsNextFiles: 'لا إعلانات في ملفاتك الـ @count التالية.',
 
-  K.onboardingConvertTitle: 'حوّل الفيديو بسهولة',
-  K.onboardingConvertBody: 'استخرج صوتًا عالي الجودة من مقاطعك بضغطات قليلة.',
-  K.onboardingOfflineTitle: 'سريع وبلا إنترنت',
-  K.onboardingOfflineBody:
-      'تبقى ملفاتك على جهازك. لا حاجة لأي رفع إلى السحابة.',
-  K.onboardingManageTitle: 'نظّم ملفاتك',
-  K.onboardingManageBody: 'شغّل ملفاتك المحوّلة وأعد تسميتها وشاركها ورتّبها.',
-  K.getStarted: 'ابدأ',
-
   K.noiseLight: 'خفيف',
   K.noiseMedium: 'متوسط',
   K.noiseStrong: 'قوي',
-  K.cleanupEngineNormal: 'عادي',
-  K.cleanupEngineNormalDesc:
-      'يستخدم مرشحات FFmpeg الحالية السريعة والتي تعمل دون اتصال.',
-  K.cleanupEngineAi: 'ذكاء اصطناعي',
-  K.cleanupEngineAiDesc: 'مُعد لتحسين الصوت باستخدام نموذج ذكاء اصطناعي.',
-  K.cleanupComingSoon: 'قريبًا',
-  K.cleanupAiPending:
-      'نقطة التكامل جاهزة. ستتوفر المعالجة بعد تثبيت نموذج تم اختباره.',
+
   K.mixLengthMain: 'المسار الرئيسي',
   K.mixLengthLongest: 'أطول مسار',
   K.cleanupNoiseTitle: 'ضجيج الخلفية',

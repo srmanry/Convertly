@@ -196,6 +196,10 @@ const Map<String, String> stringsPt = <String, String>{
   K.cleanupEngineSection: 'Processamento',
   K.removeSection: 'Remover',
   K.strengthSection: 'Intensidade',
+  K.strengthHint:
+      'Ajustes mais fortes removem mais ruído e levam junto parte do áudio original. Comece no leve se o resultado soar oco.',
+  K.cleanupMonoWarning:
+      'Esta faixa é mono, então não há um canal central separado para remover. Escolha outra opção.',
   K.outputFormatSection: 'Formato de saída',
   K.qualitySection: 'Qualidade',
   K.targetQualitySection: 'Qualidade desejada',
@@ -269,29 +273,10 @@ const Map<String, String> stringsPt = <String, String>{
   K.adNoAdsNextFile: 'Sem anúncios no seu próximo arquivo.',
   K.adNoAdsNextFiles: 'Sem anúncios nos seus próximos @count arquivos.',
 
-  K.onboardingConvertTitle: 'Converta Vídeos Facilmente',
-  K.onboardingConvertBody:
-      'Extraia áudio de alta qualidade dos seus vídeos em poucos toques.',
-  K.onboardingOfflineTitle: 'Rápido e Offline',
-  K.onboardingOfflineBody:
-      'Seus arquivos ficam no aparelho. Nada é enviado para a nuvem.',
-  K.onboardingManageTitle: 'Organize Sua Mídia',
-  K.onboardingManageBody:
-      'Toque, renomeie, compartilhe e organize seus arquivos convertidos.',
-  K.getStarted: 'Começar',
-
   K.noiseLight: 'Leve',
   K.noiseMedium: 'Médio',
   K.noiseStrong: 'Forte',
-  K.cleanupEngineNormal: 'Normal',
-  K.cleanupEngineNormalDesc:
-      'Usa os filtros de ruído FFmpeg atuais, rápidos e offline.',
-  K.cleanupEngineAi: 'IA',
-  K.cleanupEngineAiDesc:
-      'Reservado para aprimoramento de voz com modelo de IA.',
-  K.cleanupComingSoon: 'EM BREVE',
-  K.cleanupAiPending:
-      'A integração está pronta. O processamento será liberado após instalar um modelo testado.',
+
   K.mixLengthMain: 'Faixa principal',
   K.mixLengthLongest: 'Faixa mais longa',
   K.cleanupNoiseTitle: 'Ruído de fundo',

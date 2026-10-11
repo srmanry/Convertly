@@ -168,10 +168,9 @@ class AdsService {
   /// minutes of the user's time, not ten minutes of screen time. One that
   /// ran out in the meantime is simply gone.
   void _restoreAdFreeBreak() {
-    adsWatchedTowardBreak.value = _readCount(StorageKeys.adBreakProgress).clamp(
-      0,
-      adsPerBreak - 1,
-    );
+    adsWatchedTowardBreak.value = _readCount(
+      StorageKeys.adBreakProgress,
+    ).clamp(0, adsPerBreak - 1);
 
     final int? endsAtMillis = _storage.readInt(StorageKeys.adBreakEndsAt);
     if (endsAtMillis == null) {

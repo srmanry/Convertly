@@ -232,9 +232,7 @@ class FilesPage extends GetView<FilesController> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          saved
-              ? K.savedToPhoneMessage.tr
-              : K.couldNotSaveToPhone.tr,
+          saved ? K.savedToPhoneMessage.tr : K.couldNotSaveToPhone.tr,
         ),
       ),
     );
@@ -650,9 +648,7 @@ class _SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: <Widget>[
         Obx(
           () => IconButton(
-            tooltip: controller.isAllSelected
-                ? K.clearAll.tr
-                : K.selectAll.tr,
+            tooltip: controller.isAllSelected ? K.clearAll.tr : K.selectAll.tr,
             onPressed: controller.isAllSelected
                 ? controller.clearSelection
                 : controller.selectAll,

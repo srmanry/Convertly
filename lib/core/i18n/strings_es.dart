@@ -198,6 +198,10 @@ const Map<String, String> stringsEs = <String, String>{
   K.cleanupEngineSection: 'Procesamiento',
   K.removeSection: 'Quitar',
   K.strengthSection: 'Intensidad',
+  K.strengthHint:
+      'Los ajustes más fuertes quitan más ruido y se llevan parte del audio original. Empieza con el suave si suena hueco.',
+  K.cleanupMonoWarning:
+      'Esta pista es mono, así que no tiene un canal central separado que quitar. Elige otra opción.',
   K.outputFormatSection: 'Formato de salida',
   K.qualitySection: 'Calidad',
   K.targetQualitySection: 'Calidad deseada',
@@ -270,28 +274,10 @@ const Map<String, String> stringsEs = <String, String>{
   K.adNoAdsNextFile: 'Sin anuncios en tu próximo archivo.',
   K.adNoAdsNextFiles: 'Sin anuncios en tus próximos @count archivos.',
 
-  K.onboardingConvertTitle: 'Convierte Vídeos Fácilmente',
-  K.onboardingConvertBody:
-      'Extrae audio de alta calidad de tus vídeos con unos pocos toques.',
-  K.onboardingOfflineTitle: 'Rápido y Sin Conexión',
-  K.onboardingOfflineBody:
-      'Tus archivos se quedan en tu dispositivo. No se sube nada a la nube.',
-  K.onboardingManageTitle: 'Organiza Tu Música',
-  K.onboardingManageBody:
-      'Reproduce, renombra, comparte y ordena tus archivos convertidos.',
-  K.getStarted: 'Empezar',
-
   K.noiseLight: 'Suave',
   K.noiseMedium: 'Medio',
   K.noiseStrong: 'Fuerte',
-  K.cleanupEngineNormal: 'Normal',
-  K.cleanupEngineNormalDesc:
-      'Usa los filtros de ruido FFmpeg actuales, rápidos y sin conexión.',
-  K.cleanupEngineAi: 'IA',
-  K.cleanupEngineAiDesc: 'Reservado para mejora de voz con un modelo de IA.',
-  K.cleanupComingSoon: 'PRÓXIMAMENTE',
-  K.cleanupAiPending:
-      'La integración está preparada. Se activará al instalar un modelo probado.',
+
   K.mixLengthMain: 'Pista principal',
   K.mixLengthLongest: 'Pista más larga',
   K.cleanupNoiseTitle: 'Ruido de fondo',

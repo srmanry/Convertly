@@ -1,6 +1,5 @@
 import 'package:convertly/core/enums/cleanup_mode.dart';
 import 'package:convertly/core/enums/mix_length_mode.dart';
-import 'package:convertly/core/enums/noise_removal_engine.dart';
 import 'package:convertly/core/enums/tool_mode.dart';
 import 'package:convertly/core/services/output_directory_service.dart';
 import 'package:convertly/core/types/result.dart';
@@ -19,6 +18,7 @@ import 'package:convertly/features/files/domain/entities/media_file.dart';
 import 'package:convertly/features/files/domain/repositories/media_library_repository.dart';
 import 'package:convertly/features/files/domain/usecases/media_library_usecases.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 
 /// Hands back whatever the test queued, so the controller's own bookkeeping is
 /// what is under test rather than the picker or FFmpeg.
@@ -93,6 +93,24 @@ MediaInfo track(String name, {Duration? duration, int? channels}) {
     duration: duration,
     channels: channels,
   );
+}
+
+/// Records what was asked of the preview without opening any player.
+class RecordingMixPreview extends MixPreviewController {
+  final List<int?> asked = <int?>[];
+
+  @override
+  Future<void> toggle({
+    required List<MediaInfo> tracks,
+    required List<double> volumes,
+    required List<Duration> starts,
+    required bool loopLayers,
+    required bool endsWithMainTrack,
+    List<VolumeEnvelope?> envelopes = const <VolumeEnvelope?>[],
+    int? only,
+  }) async {
+    asked.add(only);
+  }
 }
 
 void main() {
@@ -293,17 +311,6 @@ void main() {
 
       expect(controller.isCleanupUnsupported, isFalse);
       expect(controller.canConvert, isTrue);
-    });
-
-    test('AI cleanup stays blocked until a model is installed', () async {
-      final ConverterController controller = controllerFor(ToolMode.cleanup);
-      media.nextPick = <MediaInfo>[track('voice', channels: 1)];
-      await controller.pickSource();
-
-      controller.setNoiseRemovalEngine(NoiseRemovalEngine.ai);
-
-      expect(controller.canConvert, isFalse);
-      expect(controller.isCleanupUnsupported, isFalse);
     });
   });
 
@@ -667,6 +674,43 @@ void main() {
       final MixTrack clip = controller.clipAt(0);
       expect(clip.trimStart, const Duration(seconds: 10));
       expect(clip.trimEnd, const Duration(seconds: 25));
+    });
+  });
+
+  group('previewing one track at a time', () {
+    late RecordingMixPreview preview;
+
+    setUp(() {
+      preview = RecordingMixPreview();
+      Get.put<MixPreviewController>(preview);
+    });
+
+    tearDown(Get.reset);
+
+    test("a track's own button asks about that track alone", () async {
+      final ConverterController controller = await mixerWith(<String>[
+        'one',
+        'two',
+        'three',
+      ]);
+
+      await controller.toggleTrackPreview(2);
+
+      // Pressing the button on one card used to start every track together,
+      // which left the whole mixer showing Stop and made the per-track
+      // buttons indistinguishable from Preview all.
+      expect(preview.asked, <int?>[2]);
+    });
+
+    test('the Preview all button still asks for the whole mix', () async {
+      final ConverterController controller = await mixerWith(<String>[
+        'one',
+        'two',
+      ]);
+
+      await controller.toggleMixPreview();
+
+      expect(preview.asked, <int?>[null]);
     });
   });
 }

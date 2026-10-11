@@ -2,7 +2,6 @@ import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/cleanup_mode.dart';
 import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/noise_strength.dart';
-import '../../../../core/enums/noise_removal_engine.dart';
 import '../domain/entities/cleanup_settings.dart';
 import '../domain/entities/conversion_request.dart';
 import '../domain/entities/mix_settings.dart';
@@ -275,38 +274,75 @@ abstract final class FfmpegCommandBuilder {
 
   /// Filter chain for the noise remover.
   ///
-  /// These are signal filters, not source separation: they subtract a measured
-  /// noise profile or cancel what both channels share. A model-based split
+  /// There is one clean-up, not two. The trained model does the denoising
+  /// whenever it is on disk, with the band limits the chosen mode asks for in
+  /// front of it; the measured-profile filters stand in when it is not. Both
+  /// denoisers never run together: each leaves its own artefacts behind, and
+  /// stacking them thins the voice out without removing more noise.
+  ///
+  /// These are signal filters, not source separation: a model-based split
   /// into vocals and instruments is not something FFmpeg can do offline.
   static List<String> _cleanupFilters(CleanupSettings cleanup) {
-    if (cleanup.engine == NoiseRemovalEngine.ai) {
-      throw UnsupportedError(
-        'AI noise removal needs a model-backed processor; no model is '
-        'installed yet.',
-      );
+    // Cancelling vocals is not denoising: it subtracts one channel from the
+    // other, with no model and no noise estimate involved. Neither denoiser
+    // has anything to act on here.
+    if (cleanup.mode == CleanupMode.removeVocals) {
+      return const <String>['pan=stereo|c0=c0-c1|c1=c1-c0'];
     }
 
-    return switch (cleanup.mode) {
-      // Below 80 Hz is rumble and handling noise rather than signal, so it is
-      // cut before the denoiser measures anything.
-      CleanupMode.backgroundNoise => <String>[
-        'highpass=f=80',
-        _denoiseFilter(cleanup.strength),
-      ],
-      // Speech lives roughly between these two, so everything outside the band
-      // goes before what is left is denoised.
-      CleanupMode.voiceFocus => <String>[
-        'highpass=f=200',
-        'lowpass=f=3400',
-        _denoiseFilter(cleanup.strength),
-      ],
-      // Lead vocals are mixed to the centre, so subtracting each channel from
-      // the other cancels them. Anything panned to a side survives.
-      CleanupMode.removeVocals => const <String>[
-        'pan=stereo|c0=c0-c1|c1=c1-c0',
-      ],
-    };
+    final String? model = cleanup.aiModelPath;
+
+    return <String>[
+      ..._bandLimits(cleanup.mode),
+      if (model != null) ..._modelFilters(cleanup.strength, model),
+      if (model == null) _denoiseFilter(cleanup.strength),
+    ];
   }
+
+  /// What the chosen mode cuts before anything is denoised.
+  static List<String> _bandLimits(CleanupMode mode) => switch (mode) {
+    // Below 80 Hz is rumble and handling noise rather than signal, so it is
+    // cut before the denoiser measures anything.
+    CleanupMode.backgroundNoise => const <String>['highpass=f=80'],
+    // Speech lives roughly between these two, so everything outside the band
+    // goes before what is left is denoised.
+    CleanupMode.voiceFocus => const <String>[
+      'highpass=f=200',
+      'lowpass=f=3400',
+    ],
+    // Handled by the caller: it needs no denoiser, so it never reaches here.
+    CleanupMode.removeVocals => const <String>[],
+  };
+
+  /// The trained network, at the strength the user asked for.
+  ///
+  /// `arnndn` runs at 48 kHz and nothing else, so the audio is resampled into
+  /// it. The encoder resamples back on the way out, which FFmpeg inserts by
+  /// itself from the output format.
+  static List<String> _modelFilters(NoiseStrength strength, String model) =>
+      <String>[
+        'aresample=48000',
+        'arnndn=m=${_escapeFilterPath(model)}:mix=${_modelMix(strength)}',
+      ];
+
+  /// How much of the model's judgement to keep.
+  ///
+  /// At 1 only what the model heard as speech survives, which is the cleanest
+  /// and the most likely to sound hollow. Lower values fold the original back
+  /// in, so the strength control means the same thing here as it does for the
+  /// measured-profile filter.
+  static String _modelMix(NoiseStrength strength) => switch (strength) {
+    NoiseStrength.light => '0.6',
+    NoiseStrength.medium => '0.85',
+    NoiseStrength.strong => '1',
+  };
+
+  /// Makes a path safe to sit inside a filter argument.
+  ///
+  /// A colon separates filter options and a backslash escapes, so a path
+  /// carrying either would otherwise be read as more options.
+  static String _escapeFilterPath(String path) =>
+      path.replaceAll(r'\', r'\\').replaceAll(':', r'\:');
 
   /// Adaptive denoiser. It profiles the noise from the audio itself, which is
   /// what `tn=1` turns on, rather than assuming a fixed noise shape.

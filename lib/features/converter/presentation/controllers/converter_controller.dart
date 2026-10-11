@@ -9,7 +9,6 @@ import '../../../../core/enums/compression_level.dart';
 import '../../../../core/enums/export_speed.dart';
 import '../../../../core/enums/mix_length_mode.dart';
 import '../../../../core/enums/noise_strength.dart';
-import '../../../../core/enums/noise_removal_engine.dart';
 import '../../../../core/enums/tool_mode.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
@@ -35,6 +34,7 @@ import 'mix_preview_controller.dart';
 import 'timeline_preview_controller.dart';
 import 'trim_preview_controller.dart';
 import '../../../../core/i18n/translation_keys.dart';
+import '../../../../core/services/noise_model_service.dart';
 
 /// Where the user is in the conversion flow.
 enum ConverterStage { configuring, converting, completed, failed }
@@ -91,8 +91,6 @@ class ConverterController extends GetxController {
 
   final Rx<CleanupMode> cleanupMode = CleanupMode.backgroundNoise.obs;
   final Rx<NoiseStrength> noiseStrength = NoiseStrength.medium.obs;
-  final Rx<NoiseRemovalEngine> noiseRemovalEngine =
-      NoiseRemovalEngine.normal.obs;
 
   /// Files already converted in this app, offered as an input source.
   final RxList<MediaFile> libraryFiles = <MediaFile>[].obs;
@@ -109,7 +107,6 @@ class ConverterController extends GetxController {
   bool get canConvert =>
       sources.isNotEmpty &&
       (!_mode.needsTwoSources || sources.length >= 2) &&
-      (!_mode.isCleanup || noiseRemovalEngine.value.isReady) &&
       !isCleanupUnsupported &&
       fileName.value.trim().isNotEmpty &&
       stage.value != ConverterStage.converting;
@@ -183,9 +180,7 @@ class ConverterController extends GetxController {
   /// Cancelling the centre of a mono track subtracts it from itself, which
   /// leaves silence, so the export is blocked instead of producing that.
   bool get isCleanupUnsupported {
-    if (!_mode.isCleanup ||
-        noiseRemovalEngine.value != NoiseRemovalEngine.normal ||
-        !cleanupMode.value.requiresStereo) {
+    if (!_mode.isCleanup || !cleanupMode.value.requiresStereo) {
       return false;
     }
     final int? channels = primarySource?.channels;
@@ -400,11 +395,12 @@ class ConverterController extends GetxController {
 
   /// Plays every track together, following each one's volume line, or stops
   /// the preview if it is already playing.
-  Future<void> toggleMixPreview() async {
+  Future<void> toggleMixPreview({int? only}) async {
     if (!Get.isRegistered<MixPreviewController>()) {
       return;
     }
     await Get.find<MixPreviewController>().toggle(
+      only: only,
       tracks: sources.toList(),
       volumes: <double>[for (final MixTrack clip in clips) clip.volume],
       starts: <Duration>[for (final MixTrack clip in clips) clip.start],
@@ -415,6 +411,21 @@ class ConverterController extends GetxController {
       endsWithMainTrack: mixLength.value == MixLengthMode.mainTrack,
     );
   }
+
+  /// Where the trained noise model sits, or null when it could not be put
+  /// on disk.
+  ///
+  /// Null is not an error anyone needs to see: there is one clean-up, and the
+  /// command builder falls back to the measured-profile filters without it.
+  Future<String?> _resolveNoiseModel() async {
+    if (!Get.isRegistered<NoiseModelService>()) {
+      return null;
+    }
+    return Get.find<NoiseModelService>().resolvePath();
+  }
+
+  /// Plays the track at [index] on its own, or stops it if it is playing.
+  Future<void> toggleTrackPreview(int index) => toggleMixPreview(only: index);
 
   /// Keeps only [start] to [end] of the clip at [index].
   ///
@@ -504,11 +515,6 @@ class ConverterController extends GetxController {
 
   void setCleanupMode(CleanupMode value) {
     cleanupMode.value = value;
-    errorMessage.value = '';
-  }
-
-  void setNoiseRemovalEngine(NoiseRemovalEngine value) {
-    noiseRemovalEngine.value = value;
     errorMessage.value = '';
   }
 
@@ -696,7 +702,7 @@ class ConverterController extends GetxController {
           ? CleanupSettings(
               mode: cleanupMode.value,
               strength: noiseStrength.value,
-              engine: noiseRemovalEngine.value,
+              aiModelPath: await _resolveNoiseModel(),
             )
           : null,
     );

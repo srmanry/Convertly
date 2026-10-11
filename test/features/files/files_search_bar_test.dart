@@ -126,10 +126,7 @@ void main() {
 
     final Finder firstFile = find.widgetWithText(ListTile, 'Summer Song.mp3');
     await tester.tap(
-      find.descendant(
-        of: firstFile,
-        matching: find.byIcon(Icons.more_vert),
-      ),
+      find.descendant(of: firstFile, matching: find.byIcon(Icons.more_vert)),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rename'));

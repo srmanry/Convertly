@@ -192,6 +192,10 @@ const Map<String, String> stringsHi = <String, String>{
   K.cleanupEngineSection: 'प्रोसेसिंग',
   K.removeSection: 'हटाएँ',
   K.strengthSection: 'तीव्रता',
+  K.strengthHint:
+      'ज़्यादा मात्रा ज़्यादा नॉइज़ हटाती है, साथ में असली आवाज़ भी कुछ चली जाती है। खोखला लगे तो हल्के से शुरू करें।',
+  K.cleanupMonoWarning:
+      'यह ट्रैक मोनो है, इसलिए हटाने के लिए अलग सेंटर चैनल नहीं है। कोई दूसरा विकल्प चुनें।',
   K.outputFormatSection: 'आउटपुट फ़ॉर्मैट',
   K.qualitySection: 'क्वालिटी',
   K.targetQualitySection: 'लक्ष्य क्वालिटी',
@@ -263,29 +267,10 @@ const Map<String, String> stringsHi = <String, String>{
   K.adNoAdsNextFile: 'आपकी अगली फ़ाइल पर कोई विज्ञापन नहीं।',
   K.adNoAdsNextFiles: 'आपकी अगली @count फ़ाइलों पर कोई विज्ञापन नहीं।',
 
-  K.onboardingConvertTitle: 'वीडियो आसानी से कन्वर्ट करें',
-  K.onboardingConvertBody:
-      'कुछ ही टैप में अपने वीडियो से बढ़िया क्वालिटी का ऑडियो निकालें।',
-  K.onboardingOfflineTitle: 'तेज़ और ऑफ़लाइन',
-  K.onboardingOfflineBody:
-      'आपकी फ़ाइलें आपके डिवाइस पर ही रहती हैं। क्लाउड अपलोड की ज़रूरत नहीं।',
-  K.onboardingManageTitle: 'अपनी फ़ाइलें संभालें',
-  K.onboardingManageBody:
-      'कन्वर्ट की हुई फ़ाइलें चलाएँ, नाम बदलें, शेयर करें और सहेजें।',
-  K.getStarted: 'शुरू करें',
-
   K.noiseLight: 'हल्का',
   K.noiseMedium: 'मध्यम',
   K.noiseStrong: 'तेज़',
-  K.cleanupEngineNormal: 'सामान्य',
-  K.cleanupEngineNormalDesc:
-      'मौजूदा तेज़ और ऑफ़लाइन FFmpeg नॉइज़ फ़िल्टर का उपयोग करता है।',
-  K.cleanupEngineAi: 'AI',
-  K.cleanupEngineAiDesc:
-      'बेहतर नॉइज़ हटाने के लिए मॉडल-आधारित वॉइस एन्हांसमेंट।',
-  K.cleanupComingSoon: 'जल्द आ रहा है',
-  K.cleanupAiPending:
-      'AI जोड़ने की जगह तैयार है। टेस्ट किया हुआ AI मॉडल इंस्टॉल होने के बाद प्रोसेसिंग उपलब्ध होगी।',
+
   K.mixLengthMain: 'मुख्य ट्रैक',
   K.mixLengthLongest: 'सबसे लंबा ट्रैक',
   K.cleanupNoiseTitle: 'बैकग्राउंड नॉइज़',

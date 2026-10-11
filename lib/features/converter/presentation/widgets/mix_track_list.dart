@@ -30,15 +30,15 @@ class MixTrackList extends StatelessWidget {
     this.onTrimChanged,
     this.onPreviewClip,
     this.previewingClip,
+    this.previewingTrack,
     this.previewError,
     this.previewErrorClip,
     this.envelopes,
     this.onEnvelopeChanged,
     this.onEnvelopeCleared,
     this.playheadOf,
-    this.isPreviewPlaying = false,
     this.isPreviewPreparing = false,
-    this.onPreviewToggle,
+    this.onTrackPreview,
   });
 
   /// Loudest a layer can be pushed. Above this the limiter is doing more work
@@ -87,8 +87,11 @@ class MixTrackList extends StatelessWidget {
 
   /// Plays or stops the preview from beside any lane, so testing a change
   /// never means scrolling down to the preview card.
-  final VoidCallback? onPreviewToggle;
-  final bool isPreviewPlaying;
+  /// Starts or stops the preview of one track on its own.
+  final void Function(int index)? onTrackPreview;
+
+  /// Which track is being heard on its own, if any.
+  final int? previewingTrack;
   final bool isPreviewPreparing;
 
   final void Function(int index) onRemove;
@@ -172,9 +175,12 @@ class MixTrackList extends StatelessWidget {
                   ? null
                   : (double value) => onVolumeChanged!(index, value),
               playhead: playheadOf?.call(index),
-              isPreviewPlaying: isPreviewPlaying,
-              isPreviewPreparing: isPreviewPreparing,
-              onPreviewToggle: onPreviewToggle,
+              isPreviewPlaying: previewingTrack == index,
+              isPreviewPreparing:
+                  isPreviewPreparing && previewingTrack == index,
+              onPreviewToggle: onTrackPreview == null
+                  ? null
+                  : () => onTrackPreview!(index),
               onRemove: () => onRemove(index),
             ),
           );

@@ -27,8 +27,7 @@ class _CountingFfmpeg implements FfmpegService {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// Hands out a real temporary directory.
@@ -41,8 +40,7 @@ class _TempDirectories implements OutputDirectoryService {
   Future<Directory> resolveTemp() async => _temp;
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {

@@ -197,6 +197,10 @@ const Map<String, String> stringsEn = <String, String>{
   K.cleanupEngineSection: 'Processing',
   K.removeSection: 'Remove',
   K.strengthSection: 'Strength',
+  K.strengthHint:
+      'Stronger settings remove more noise and take more of the audio with it. Start light if the result sounds hollow.',
+  K.cleanupMonoWarning:
+      'This track is mono, so it has no separate centre channel to remove. Pick another option.',
   K.outputFormatSection: 'Output format',
   K.qualitySection: 'Quality',
   K.targetQualitySection: 'Target quality',
@@ -267,30 +271,10 @@ const Map<String, String> stringsEn = <String, String>{
   K.adNoAdsNextFile: 'No ads for your next file.',
   K.adNoAdsNextFiles: 'No ads for your next @count files.',
 
-  K.onboardingConvertTitle: 'Convert Videos Easily',
-  K.onboardingConvertBody:
-      'Extract high-quality audio from your videos in just a few taps.',
-  K.onboardingOfflineTitle: 'Fast & Offline',
-  K.onboardingOfflineBody:
-      'Your media stays on your device. No cloud upload required.',
-  K.onboardingManageTitle: 'Manage Your Media',
-  K.onboardingManageBody:
-      'Play, rename, share and organize your converted files.',
-  K.getStarted: 'Get Started',
-
   K.noiseLight: 'Light',
   K.noiseMedium: 'Medium',
   K.noiseStrong: 'Strong',
-  K.cleanupEngineNormal: 'Normal',
-  K.cleanupEngineNormalDesc:
-      'Uses the current fast, offline FFmpeg noise filters.',
-  K.cleanupEngineAi: 'AI',
-  K.cleanupEngineAiDesc:
-      'Reserved for model-based voice enhancement with smarter noise removal.',
-  K.cleanupComingSoon: 'COMING SOON',
-  K.cleanupAiPending:
-      'The AI integration point is ready. Processing will unlock after a '
-      'tested AI model is installed.',
+
   K.mixLengthMain: 'Main track',
   K.mixLengthLongest: 'Longest track',
   K.cleanupNoiseTitle: 'Background noise',

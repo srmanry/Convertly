@@ -30,10 +30,7 @@ sealed class Failure extends Equatable {
 
 /// Reading from or writing to local persistence failed.
 class CacheFailure extends Failure {
-  const CacheFailure({
-    super.messageKey = K.errorCache,
-    super.debugMessage,
-  });
+  const CacheFailure({super.messageKey = K.errorCache, super.debugMessage});
 }
 
 /// A required runtime permission was denied by the user or the system.
@@ -54,10 +51,7 @@ class FileFailure extends Failure {
 
 /// The device does not have enough free space for the requested operation.
 class StorageFailure extends Failure {
-  const StorageFailure({
-    super.messageKey = K.errorStorage,
-    super.debugMessage,
-  });
+  const StorageFailure({super.messageKey = K.errorStorage, super.debugMessage});
 }
 
 /// FFmpeg could not complete the conversion.
@@ -78,8 +72,5 @@ class ConversionCancelled extends Failure {
 
 /// Anything that was not anticipated. Always log [debugMessage].
 class UnknownFailure extends Failure {
-  const UnknownFailure({
-    super.messageKey = K.errorUnknown,
-    super.debugMessage,
-  });
+  const UnknownFailure({super.messageKey = K.errorUnknown, super.debugMessage});
 }

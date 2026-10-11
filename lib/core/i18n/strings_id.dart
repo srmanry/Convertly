@@ -198,6 +198,10 @@ const Map<String, String> stringsId = <String, String>{
   K.cleanupEngineSection: 'Pemrosesan',
   K.removeSection: 'Hilangkan',
   K.strengthSection: 'Kekuatan',
+  K.strengthHint:
+      'Setelan lebih kuat menghilangkan lebih banyak derau dan ikut mengambil sebagian audio aslinya. Mulai dari ringan jika hasilnya terdengar kosong.',
+  K.cleanupMonoWarning:
+      'Trek ini mono, jadi tidak ada kanal tengah terpisah untuk dihilangkan. Pilih opsi lain.',
   K.outputFormatSection: 'Format keluaran',
   K.qualitySection: 'Kualitas',
   K.targetQualitySection: 'Kualitas target',
@@ -269,29 +273,10 @@ const Map<String, String> stringsId = <String, String>{
   K.adNoAdsNextFile: 'Tidak ada iklan untuk file Anda berikutnya.',
   K.adNoAdsNextFiles: 'Tidak ada iklan untuk @count file Anda berikutnya.',
 
-  K.onboardingConvertTitle: 'Konversi Video dengan Mudah',
-  K.onboardingConvertBody:
-      'Ambil audio berkualitas tinggi dari video Anda hanya dengan beberapa '
-      'ketukan.',
-  K.onboardingOfflineTitle: 'Cepat & Offline',
-  K.onboardingOfflineBody:
-      'Media Anda tetap di perangkat. Tidak perlu unggah ke cloud.',
-  K.onboardingManageTitle: 'Kelola Media Anda',
-  K.onboardingManageBody:
-      'Putar, ganti nama, bagikan dan rapikan file hasil konversi Anda.',
-  K.getStarted: 'Mulai',
-
   K.noiseLight: 'Ringan',
   K.noiseMedium: 'Sedang',
   K.noiseStrong: 'Kuat',
-  K.cleanupEngineNormal: 'Normal',
-  K.cleanupEngineNormalDesc:
-      'Menggunakan filter noise FFmpeg saat ini yang cepat dan offline.',
-  K.cleanupEngineAi: 'AI',
-  K.cleanupEngineAiDesc: 'Disiapkan untuk peningkatan suara berbasis model AI.',
-  K.cleanupComingSoon: 'SEGERA HADIR',
-  K.cleanupAiPending:
-      'Titik integrasi AI sudah siap. Pemrosesan aktif setelah model teruji dipasang.',
+
   K.mixLengthMain: 'Trek utama',
   K.mixLengthLongest: 'Trek terpanjang',
   K.cleanupNoiseTitle: 'Suara latar',

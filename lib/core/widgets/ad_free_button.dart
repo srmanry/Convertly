@@ -81,7 +81,9 @@ class _RemainingNotice extends StatelessWidget {
           child: Text(switch (filesLeft) {
             0 => K.adNoAdsThisFile.tr,
             1 => K.adNoAdsNextFile.tr,
-            _ => K.adNoAdsNextFiles.trParams(<String, String>{'count': '\$filesLeft'}),
+            _ => K.adNoAdsNextFiles.trParams(<String, String>{
+              'count': '\$filesLeft',
+            }),
           }, style: theme.textTheme.bodyMedium),
         ),
       ],

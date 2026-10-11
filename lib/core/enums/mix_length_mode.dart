@@ -10,10 +10,7 @@ enum MixLengthMode {
   mainTrack(labelKey: K.mixLengthMain, ffmpegDuration: 'first'),
   longestTrack(labelKey: K.mixLengthLongest, ffmpegDuration: 'longest');
 
-  const MixLengthMode({
-    required this.labelKey,
-    required this.ffmpegDuration,
-  });
+  const MixLengthMode({required this.labelKey, required this.ffmpegDuration});
 
   final String labelKey;
 

@@ -4,7 +4,6 @@ import 'package:convertly/core/enums/cleanup_mode.dart';
 import 'package:convertly/core/enums/export_speed.dart';
 import 'package:convertly/core/enums/mix_length_mode.dart';
 import 'package:convertly/core/enums/noise_strength.dart';
-import 'package:convertly/core/enums/noise_removal_engine.dart';
 import 'package:convertly/features/converter/data/ffmpeg_command_builder.dart';
 import 'package:convertly/features/converter/domain/entities/cleanup_settings.dart';
 import 'package:convertly/features/converter/domain/entities/conversion_request.dart';
@@ -569,8 +568,8 @@ void mixTests() {
 ConversionRequest cleanupRequest(
   CleanupMode mode, {
   NoiseStrength strength = NoiseStrength.medium,
-  NoiseRemovalEngine engine = NoiseRemovalEngine.normal,
   ExportSpeed speed = ExportSpeed.normal,
+  String? aiModelPath,
 }) {
   return ConversionRequest(
     inputPaths: const <String>['/in/song.mp3'],
@@ -578,7 +577,11 @@ ConversionRequest cleanupRequest(
     format: AudioFormat.mp3,
     quality: AudioQuality.kbps192,
     speed: speed,
-    cleanup: CleanupSettings(mode: mode, strength: strength, engine: engine),
+    cleanup: CleanupSettings(
+      mode: mode,
+      strength: strength,
+      aiModelPath: aiModelPath,
+    ),
   );
 }
 
@@ -673,16 +676,92 @@ void cleanupTests() {
       expect(FfmpegCommandBuilder.build(request), isNot(contains('-filter:a')));
     });
 
-    test('AI never falls back to the normal filter without a model', () {
-      expect(
-        () => FfmpegCommandBuilder.build(
+    test('without the model it falls back to the measured-profile filter', () {
+      // One clean-up is offered rather than a choice of two, so nothing was
+      // promised that this quietly breaks.
+      final String filter = audioFilter(
+        FfmpegCommandBuilder.build(cleanupRequest(CleanupMode.backgroundNoise)),
+      );
+
+      expect(filter, contains('afftdn'));
+      expect(filter, isNot(contains('arnndn')));
+    });
+
+    test('the model replaces the measured-profile filter, never joins it', () {
+      final String filter = audioFilter(
+        FfmpegCommandBuilder.build(
           cleanupRequest(
             CleanupMode.backgroundNoise,
-            engine: NoiseRemovalEngine.ai,
+            aiModelPath: '/data/app/sh.rnnn',
           ),
         ),
-        throwsUnsupportedError,
       );
+
+      // arnndn runs at 48 kHz and nothing else, so the audio is brought to
+      // that rate first or the filter graph fails to build.
+      expect(filter, contains('aresample=48000'));
+      expect(filter, contains('arnndn=m=/data/app/sh.rnnn'));
+      expect(filter.indexOf('aresample'), lessThan(filter.indexOf('arnndn')));
+      // Stacking both denoisers thins the voice without removing more noise.
+      expect(filter, isNot(contains('afftdn')));
+    });
+
+    test('strength decides how much of the model to keep', () {
+      String mixOf(NoiseStrength strength) => audioFilter(
+        FfmpegCommandBuilder.build(
+          cleanupRequest(
+            CleanupMode.backgroundNoise,
+            strength: strength,
+            aiModelPath: '/m.rnnn',
+          ),
+        ),
+      );
+
+      // Light folds the original back in; strong keeps only what the model
+      // heard as speech, which is the most likely to sound hollow.
+      expect(mixOf(NoiseStrength.light), contains('mix=0.6'));
+      expect(mixOf(NoiseStrength.medium), contains('mix=0.85'));
+      expect(mixOf(NoiseStrength.strong), contains('mix=1'));
+    });
+
+    test('the model keeps the band limits each mode asks for', () {
+      final String voice = audioFilter(
+        FfmpegCommandBuilder.build(
+          cleanupRequest(CleanupMode.voiceFocus, aiModelPath: '/m.rnnn'),
+        ),
+      );
+
+      expect(voice, contains('highpass=f=200'));
+      expect(voice, contains('lowpass=f=3400'));
+      expect(voice.indexOf('highpass'), lessThan(voice.indexOf('arnndn')));
+    });
+
+    test('a model path carrying a colon stays one argument', () {
+      final String filter = audioFilter(
+        FfmpegCommandBuilder.build(
+          cleanupRequest(
+            CleanupMode.backgroundNoise,
+            aiModelPath: '/odd:place/sh.rnnn',
+          ),
+        ),
+      );
+
+      // A bare colon would end the model option and be read as another one.
+      expect(filter, contains(r'arnndn=m=/odd\:place/sh.rnnn:mix='));
+    });
+
+    test('cancelling vocals runs neither denoiser', () {
+      // It subtracts one channel from the other; there is no noise estimate
+      // and nothing for a model to do.
+      final String filter = audioFilter(
+        FfmpegCommandBuilder.build(
+          cleanupRequest(CleanupMode.removeVocals, aiModelPath: '/m.rnnn'),
+        ),
+      );
+
+      expect(filter, contains('pan=stereo'));
+      expect(filter, isNot(contains('arnndn')));
+      expect(filter, isNot(contains('afftdn')));
     });
   });
 }

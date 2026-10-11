@@ -99,9 +99,7 @@ class ConversionRepositoryImpl implements ConversionRepository {
     if (size <= 0) {
       await _deletePartialOutput(request.outputPath);
       return const Result<ConversionResult>.failure(
-        ConversionFailure(
-          messageKey: K.errorOutputEmpty,
-        ),
+        ConversionFailure(messageKey: K.errorOutputEmpty),
       );
     }
 

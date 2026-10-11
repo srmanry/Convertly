@@ -77,6 +77,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    # The trained noise model. FFmpeg opens it as a file, so it is copied out
+    # of here on first use rather than read from the bundle.
+    - assets/models/
+
 flutter_launcher_icons:
   android: true
   ios: true

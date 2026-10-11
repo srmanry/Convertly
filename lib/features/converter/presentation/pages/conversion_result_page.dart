@@ -191,9 +191,7 @@ class ConversionResultPage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          saved == null
-              ? K.couldNotSaveToPhone.tr
-              : K.savedToPhoneMessage.tr,
+          saved == null ? K.couldNotSaveToPhone.tr : K.savedToPhoneMessage.tr,
         ),
       ),
     );
@@ -205,9 +203,9 @@ class ConversionResultPage extends StatelessWidget {
       subject: result.name,
     );
     if (!shared && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(K.fileNoLongerAvailable.tr)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(K.fileNoLongerAvailable.tr)));
     }
   }
 

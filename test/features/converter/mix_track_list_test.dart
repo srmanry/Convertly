@@ -21,19 +21,20 @@ MediaInfo _track(String name, int seconds) => MediaInfo(
 );
 
 void main() {
-  late int toggles;
+  late List<int> previewed;
   late int? removed;
 
   tearDown(Get.reset);
 
-  Future<void> pumpMixer(WidgetTester tester, {bool playing = false}) async {
-    toggles = 0;
+  /// [playingTrack] is the track being heard on its own, if any.
+  Future<void> pumpMixer(WidgetTester tester, {int? playingTrack}) async {
+    previewed = <int>[];
     removed = null;
     tester.view.physicalSize = const Size(360 * 3, 780 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     final ValueNotifier<double?> playhead = ValueNotifier<double?>(
-      playing ? 0.4 : null,
+      playingTrack != null ? 0.4 : null,
     );
     addTearDown(playhead.dispose);
 
@@ -61,8 +62,8 @@ void main() {
                       onEnvelopeChanged: (_, _) {},
                       onEnvelopeCleared: (_) {},
                       playheadOf: (_) => playhead,
-                      isPreviewPlaying: playing,
-                      onPreviewToggle: () => toggles++,
+                      previewingTrack: playingTrack,
+                      onTrackPreview: previewed.add,
                       onRemove: (int i) => removed = i,
                       onReorder: (_, _) {},
                     ),
@@ -106,24 +107,28 @@ void main() {
     expect(removed, 0);
   });
 
-  testWidgets('the Preview button beside a lane starts the preview', (
+  testWidgets('each track asks for itself, not for the whole mix', (
     WidgetTester tester,
   ) async {
     await pumpMixer(tester);
 
-    await tester.tap(find.text('Preview').first);
+    await tester.tap(find.text('Preview').at(1));
     await tester.pump();
 
-    expect(toggles, 1);
+    // The second card asked about the second track. Pressing one track's
+    // button used to start every track at once, which made the per-track
+    // buttons and the Preview all button do the same thing.
+    expect(previewed, <int>[1]);
   });
 
-  testWidgets('a playing preview offers Stop and draws without error', (
+  testWidgets('only the track being heard shows Stop', (
     WidgetTester tester,
   ) async {
-    await pumpMixer(tester, playing: true);
+    await pumpMixer(tester, playingTrack: 1);
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Stop'), findsNWidgets(2));
+    expect(find.text('Stop'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
   });
 
   testWidgets('a shaped track offers a reset, a flat one does not', (

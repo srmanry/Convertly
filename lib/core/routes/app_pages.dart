@@ -5,8 +5,6 @@ import '../../features/audio_player/presentation/pages/audio_player_page.dart';
 import '../../features/converter/presentation/bindings/converter_binding.dart';
 import '../../features/converter/presentation/pages/conversion_result_page.dart';
 import '../../features/converter/presentation/pages/converter_page.dart';
-import '../../features/onboarding/presentation/bindings/onboarding_binding.dart';
-import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/settings/presentation/bindings/storage_binding.dart';
 import '../../features/settings/presentation/pages/privacy_policy_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
@@ -28,12 +26,6 @@ abstract final class AppPages {
       () => NeonBackdrop(child: builder());
 
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
-    GetPage<void>(
-      name: AppRoutes.onboarding,
-      page: _opaque(OnboardingPage.new),
-      binding: OnboardingBinding(),
-      transition: Transition.fadeIn,
-    ),
     GetPage<void>(
       name: AppRoutes.shell,
       page: _opaque(ShellPage.new),

@@ -134,8 +134,7 @@ class HomePage extends GetView<HomeController> {
                                   child: EmptyStateView(
                                     icon: Icons.folder_open_rounded,
                                     title: K.noFilesYet.tr,
-                                    message:
-                                        K.noFilesYetMessage.tr,
+                                    message: K.noFilesYetMessage.tr,
                                   ),
                                 ),
                               ),
@@ -288,9 +287,7 @@ class _SeeAllFilesButton extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            K.moreInLibrary.trParams(<String, String>{
-              'count': '$remaining',
-            }),
+            K.moreInLibrary.trParams(<String, String>{'count': '$remaining'}),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),

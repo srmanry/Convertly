@@ -11,7 +11,6 @@ abstract final class AppConstants {
 ///
 /// Centralised so a rename cannot silently orphan stored data.
 abstract final class StorageKeys {
-  static const String onboardingCompleted = 'onboarding_completed';
   static const String themeMode = 'settings_theme_mode';
   static const String defaultOutputFormat = 'settings_default_output_format';
   static const String defaultAudioQuality = 'settings_default_audio_quality';

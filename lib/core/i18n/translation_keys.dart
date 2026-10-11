@@ -180,6 +180,8 @@ abstract final class K {
   static const String cleanupEngineSection = 'converter_cleanup_engine';
   static const String removeSection = 'converter_remove_section';
   static const String strengthSection = 'converter_strength_section';
+  static const String strengthHint = 'converter_strength_hint';
+  static const String cleanupMonoWarning = 'converter_cleanup_mono_warning';
   static const String outputFormatSection = 'converter_output_format';
   static const String qualitySection = 'converter_quality';
   static const String targetQualitySection = 'converter_target_quality';
@@ -260,15 +262,6 @@ abstract final class K {
   static const String adNoAdsNextFile = 'ads_none_next_file';
   static const String adNoAdsNextFiles = 'ads_none_next_files';
 
-  // Onboarding.
-  static const String onboardingConvertTitle = 'onboarding_convert_title';
-  static const String onboardingConvertBody = 'onboarding_convert_body';
-  static const String onboardingOfflineTitle = 'onboarding_offline_title';
-  static const String onboardingOfflineBody = 'onboarding_offline_body';
-  static const String onboardingManageTitle = 'onboarding_manage_title';
-  static const String onboardingManageBody = 'onboarding_manage_body';
-  static const String getStarted = 'onboarding_get_started';
-
   // Option labels inside the tools.
   static const String noiseLight = 'noise_light';
   static const String noiseMedium = 'noise_medium';
@@ -281,12 +274,6 @@ abstract final class K {
   static const String cleanupVoiceDesc = 'cleanup_voice_desc';
   static const String cleanupVocalsTitle = 'cleanup_vocals_title';
   static const String cleanupVocalsDesc = 'cleanup_vocals_desc';
-  static const String cleanupEngineNormal = 'cleanup_engine_normal';
-  static const String cleanupEngineNormalDesc = 'cleanup_engine_normal_desc';
-  static const String cleanupEngineAi = 'cleanup_engine_ai';
-  static const String cleanupEngineAiDesc = 'cleanup_engine_ai_desc';
-  static const String cleanupComingSoon = 'cleanup_coming_soon';
-  static const String cleanupAiPending = 'cleanup_ai_pending';
   static const String compressionHigh = 'compression_high';
   static const String compressionMedium = 'compression_medium';
   static const String compressionLow = 'compression_low';

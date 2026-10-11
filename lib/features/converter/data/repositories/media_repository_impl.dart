@@ -46,9 +46,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
       if (picked.isNotEmpty && valid.isEmpty) {
         return const Result<List<MediaInfo>>.failure(
-          FileFailure(
-            messageKey: K.errorNoFilesReadable,
-          ),
+          FileFailure(messageKey: K.errorNoFilesReadable),
         );
       }
 
@@ -66,9 +64,7 @@ class MediaRepositoryImpl implements MediaRepository {
       final File file = File(path);
       if (!file.existsSync()) {
         return const Result<MediaInfo>.failure(
-          FileFailure(
-            messageKey: K.errorFileGone,
-          ),
+          FileFailure(messageKey: K.errorFileGone),
         );
       }
 
@@ -142,9 +138,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
     if (picked.sizeInBytes > maxInputSizeInBytes) {
       return const Result<MediaInfo?>.failure(
-        FileFailure(
-          messageKey: K.errorFileTooLarge,
-        ),
+        FileFailure(messageKey: K.errorFileTooLarge),
       );
     }
 
@@ -165,9 +159,7 @@ class MediaRepositoryImpl implements MediaRepository {
     if (!probe.hasAudio) {
       return Result<MediaInfo?>.failure(
         FileFailure(
-          messageKey: requireVideo
-              ? K.errorNoAudioTrack
-              : K.errorNoAudioInFile,
+          messageKey: requireVideo ? K.errorNoAudioTrack : K.errorNoAudioInFile,
         ),
       );
     }

@@ -31,6 +31,14 @@ class MixPreviewController extends GetxController {
   static const Duration tick = Duration(milliseconds: 50);
 
   final List<AudioPlayer> _players = <AudioPlayer>[];
+
+  /// Which track each player is playing.
+  ///
+  /// Not always the same as its position in this list: a single track played
+  /// on its own loads one player for, say, track 2, and everything that reads
+  /// a volume, a length or a playhead has to ask about track 2 rather than
+  /// about the first player.
+  final List<int> _slotTrack = <int>[];
   final List<StreamSubscription<Object?>> _subscriptions =
       <StreamSubscription<Object?>>[];
   final List<Timer> _scheduledStarts = <Timer>[];
@@ -66,6 +74,18 @@ class MixPreviewController extends GetxController {
     return _playheads[index];
   }
 
+  /// The one track being heard on its own, or null when the whole mix is
+  /// playing. Meaningless while [isPlaying] is false.
+  final RxnInt soloTrack = RxnInt();
+
+  /// Whether track [index] is the one currently being heard on its own.
+  bool isSoloing(int index) =>
+      (isPlaying.value || isPreparing.value) && soloTrack.value == index;
+
+  /// Whether the whole mix is playing, rather than one track on its own.
+  bool get isPlayingAll =>
+      (isPlaying.value || isPreparing.value) && soloTrack.value == null;
+
   final RxBool isPlaying = false.obs;
   final RxBool isPreparing = false.obs;
   final Rx<Duration> position = Duration.zero.obs;
@@ -75,6 +95,10 @@ class MixPreviewController extends GetxController {
   bool _endsWithMainTrack = true;
 
   /// Starts the mix, or stops it if it is already playing.
+  ///
+  /// With [only] set, that one track is heard by itself: pressing a track's
+  /// own button is a question about that track, not about the mix. Pressing
+  /// it again stops it; pressing a different one switches straight over.
   Future<void> toggle({
     required List<MediaInfo> tracks,
     required List<double> volumes,
@@ -82,22 +106,37 @@ class MixPreviewController extends GetxController {
     required bool loopLayers,
     required bool endsWithMainTrack,
     List<VolumeEnvelope?> envelopes = const <VolumeEnvelope?>[],
+    int? only,
   }) async {
     if (isPlaying.value || isPreparing.value) {
+      final bool sameButton = soloTrack.value == only;
       await stop();
-      return;
+      if (sameButton) {
+        return;
+      }
     }
 
     if (tracks.isEmpty) {
       errorMessage.value = 'Add a track to hear it.';
       return;
     }
+    if (only != null && (only < 0 || only >= tracks.length)) {
+      return;
+    }
+
+    // Which tracks this press is about: all of them, or the one asked for.
+    final List<int> chosen = only == null
+        ? <int>[for (int index = 0; index < tracks.length; index++) index]
+        : <int>[only];
+    soloTrack.value = only;
 
     isPreparing.value = true;
     errorMessage.value = '';
-    // Looping never ends on its own, so the main track has to end the preview.
-    _endsWithMainTrack = endsWithMainTrack || loopLayers;
-    _loopLayers = loopLayers;
+    // A single track ends the preview when it ends, and never repeats: both
+    // of those belong to how tracks sit together, which is not the question
+    // being asked here.
+    _endsWithMainTrack = only != null || endsWithMainTrack || loopLayers;
+    _loopLayers = only == null && loopLayers;
     _starts = List<Duration>.of(starts);
     _lengths = <Duration?>[
       for (final MediaInfo track in tracks) track.duration,
@@ -105,16 +144,19 @@ class MixPreviewController extends GetxController {
     updateMix(volumes: volumes, envelopes: envelopes);
 
     try {
-      await _load(tracks: tracks, loopLayers: loopLayers);
+      await _load(tracks: tracks, chosen: chosen, loopLayers: _loopLayers);
 
       isPlaying.value = true;
       _startTicker();
 
-      for (int index = 0; index < _players.length; index++) {
-        final AudioPlayer player = _players[index];
-        final Duration start = index < starts.length
-            ? starts[index]
-            : Duration.zero;
+      for (int slot = 0; slot < _players.length; slot++) {
+        final AudioPlayer player = _players[slot];
+        final int index = _slotTrack[slot];
+        // A track heard on its own starts now; where it would sit in the
+        // arrangement is not what is being asked.
+        final Duration start = only != null
+            ? Duration.zero
+            : (index < starts.length ? starts[index] : Duration.zero);
 
         // play() completes only when that track finishes, so awaiting it here
         // would start each track after the previous one had ended.
@@ -140,13 +182,15 @@ class MixPreviewController extends GetxController {
 
   Future<void> _load({
     required List<MediaInfo> tracks,
+    required List<int> chosen,
     required bool loopLayers,
   }) async {
     await _release();
 
-    for (int index = 0; index < tracks.length; index++) {
+    for (final int index in chosen) {
       final AudioPlayer player = AudioPlayer();
       _players.add(player);
+      _slotTrack.add(index);
 
       // Only a layer repeats; the main track runs once and ends the preview.
       if (loopLayers && index > 0) {
@@ -159,11 +203,11 @@ class MixPreviewController extends GetxController {
         playableAudioSource(tracks[index].playableSource),
       );
 
-      final int position = index;
+      final int finished = index;
       _subscriptions.add(
         player.playerStateStream.listen((PlayerState state) {
           if (state.processingState == ProcessingState.completed) {
-            _onTrackFinished(position);
+            _onTrackFinished(finished);
           }
         }),
       );
@@ -175,7 +219,8 @@ class MixPreviewController extends GetxController {
       return;
     }
     if (_endsWithMainTrack) {
-      if (index == 0) {
+      // Soloing: the one track playing is the one that ends it.
+      if (index == 0 || soloTrack.value == index) {
         unawaited(stop());
       }
       return;
@@ -211,16 +256,17 @@ class MixPreviewController extends GetxController {
       position.value = elapsed;
     }
 
-    for (int index = 0; index < _players.length; index++) {
-      final AudioPlayer player = _players[index];
-      final Duration start = index < _starts.length
-          ? _starts[index]
-          : Duration.zero;
+    for (int slot = 0; slot < _players.length; slot++) {
+      final AudioPlayer player = _players[slot];
+      final int index = _slotTrack[slot];
+      final Duration start = soloTrack.value != null
+          ? Duration.zero
+          : (index < _starts.length ? _starts[index] : Duration.zero);
       final Duration time = _trackTime(index, player, elapsed - start);
 
       final double level = _levelFor(index, time);
-      if (index < _applied.length && (level - _applied[index]).abs() > 0.003) {
-        _applied[index] = level;
+      if (slot < _applied.length && (level - _applied[slot]).abs() > 0.003) {
+        _applied[slot] = level;
         unawaited(player.setVolume(level));
       }
 
@@ -270,8 +316,10 @@ class MixPreviewController extends GetxController {
     _headroom = headroomFor(_volumes, _envelopes);
     if (_players.isNotEmpty && !_elapsed.isRunning) {
       // Loaded but not yet ticking: set the starting levels directly.
-      for (int index = 0; index < _players.length; index++) {
-        unawaited(_players[index].setVolume(_levelFor(index, Duration.zero)));
+      for (int slot = 0; slot < _players.length; slot++) {
+        unawaited(
+          _players[slot].setVolume(_levelFor(_slotTrack[slot], Duration.zero)),
+        );
       }
     }
   }
@@ -330,6 +378,7 @@ class MixPreviewController extends GetxController {
 
   Future<void> stop() async {
     isPlaying.value = false;
+    soloTrack.value = null;
     position.value = Duration.zero;
     await _release();
   }
@@ -360,6 +409,7 @@ class MixPreviewController extends GetxController {
       await player.dispose();
     }
     _players.clear();
+    _slotTrack.clear();
   }
 
   @override
