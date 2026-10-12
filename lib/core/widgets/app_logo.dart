@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_dimens.dart';
-import '../theme/app_colors.dart';
 
-/// The AudioForge mark: a rounded gradient tile with a waveform glyph.
-///
-/// Drawn rather than loaded from an asset so it stays crisp at any size and
-/// adds no binary weight before the real icon set lands in the release phase.
+/// The same AudioForge mark used by the launcher and native splash.
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 96});
 
@@ -14,28 +10,14 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: AppColors.brandGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(size * 0.28),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.seed.withValues(alpha: 0.32),
-            blurRadius: size * 0.25,
-            offset: Offset(0, size * 0.08),
-          ),
-        ],
-      ),
-      child: Icon(
-        Icons.graphic_eq_rounded,
-        size: size * 0.5,
-        color: Colors.white,
+    return ClipOval(
+      child: Image.asset(
+        'assets/logo/audio.png',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).ceil(),
+        excludeFromSemantics: true,
       ),
     );
   }

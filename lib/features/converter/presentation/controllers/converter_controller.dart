@@ -30,6 +30,7 @@ import '../../domain/entities/mix_track.dart';
 import '../../domain/entities/volume_envelope.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
+import 'cleanup_preview_controller.dart';
 import 'mix_preview_controller.dart';
 import 'timeline_preview_controller.dart';
 import 'trim_preview_controller.dart';
@@ -412,6 +413,34 @@ class ConverterController extends GetxController {
     );
   }
 
+  /// Plays the untouched start of the chosen track, or stops it.
+  Future<void> togglePreviewOriginal() async {
+    final MediaInfo? source = primarySource;
+    if (source == null || !Get.isRegistered<CleanupPreviewController>()) {
+      return;
+    }
+    await Get.find<CleanupPreviewController>().toggleOriginal(source.path);
+  }
+
+  /// Plays that same start run through the current clean-up, or stops it.
+  ///
+  /// Built from the very settings the export would use, model included, so
+  /// what is heard here is what the whole file will sound like.
+  Future<void> togglePreviewCleaned() async {
+    final MediaInfo? source = primarySource;
+    if (source == null || !Get.isRegistered<CleanupPreviewController>()) {
+      return;
+    }
+    await Get.find<CleanupPreviewController>().toggleCleaned(
+      source: source.path,
+      cleanup: CleanupSettings(
+        mode: cleanupMode.value,
+        strength: noiseStrength.value,
+        aiModelPath: await _resolveNoiseModel(),
+      ),
+    );
+  }
+
   /// Where the trained noise model sits, or null when it could not be put
   /// on disk.
   ///
@@ -514,11 +543,17 @@ class ConverterController extends GetxController {
   }
 
   void setCleanupMode(CleanupMode value) {
+    // A sample rendered with the old settings is no longer what the export
+    // would produce, so it stops rather than playing on as if it were.
+    _stopPreviewIfPresent();
     cleanupMode.value = value;
     errorMessage.value = '';
   }
 
-  void setNoiseStrength(NoiseStrength value) => noiseStrength.value = value;
+  void setNoiseStrength(NoiseStrength value) {
+    _stopPreviewIfPresent();
+    noiseStrength.value = value;
+  }
 
   void setSpeed(ExportSpeed value) {
     speed.value = value;
@@ -604,6 +639,12 @@ class ConverterController extends GetxController {
     }
     if (Get.isRegistered<MixPreviewController>()) {
       final MixPreviewController preview = Get.find<MixPreviewController>();
+      preview.errorMessage.value = '';
+      unawaited(preview.stop());
+    }
+    if (Get.isRegistered<CleanupPreviewController>()) {
+      final CleanupPreviewController preview =
+          Get.find<CleanupPreviewController>();
       preview.errorMessage.value = '';
       unawaited(preview.stop());
     }

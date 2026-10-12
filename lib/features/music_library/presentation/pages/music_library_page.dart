@@ -8,6 +8,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../domain/entities/song.dart';
 import '../controllers/music_library_controller.dart';
+import '../widgets/song_actions.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
 /// Plays what is already on the phone, and what the app has made.
@@ -17,7 +18,22 @@ class MusicLibraryPage extends GetView<MusicLibraryController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(K.navPlayer.tr)),
+      appBar: AppBar(
+        title: Text(K.navPlayer.tr),
+        actions: <Widget>[
+          Obx(() {
+            final List<Song> songs = controller.visibleSongs;
+            return controller.tab.value == SongTab.favourites &&
+                    songs.isNotEmpty
+                ? IconButton(
+                    tooltip: K.playAll.tr,
+                    onPressed: () => controller.play(songs.first),
+                    icon: const Icon(Icons.play_circle_outline_rounded),
+                  )
+                : const SizedBox.shrink();
+          }),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -95,6 +111,15 @@ class _SourceTabs extends StatelessWidget {
                       icon: Icons.library_music_rounded,
                       selected: controller.tab.value == SongTab.app,
                       onTap: () => controller.setTab(SongTab.app),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.spaceXs),
+                  Expanded(
+                    child: _SourceTabButton(
+                      label: K.favourites.tr,
+                      icon: Icons.favorite_rounded,
+                      selected: controller.tab.value == SongTab.favourites,
+                      onTap: () => controller.setTab(SongTab.favourites),
                     ),
                   ),
                 ],
@@ -266,9 +291,13 @@ class _SongList extends StatelessWidget {
           icon: Icons.music_off_rounded,
           title: controller.query.value.isNotEmpty
               ? K.nothingMatchesThat.tr
+              : controller.tab.value == SongTab.favourites
+              ? K.noFavourites.tr
               : K.noMusicYet.tr,
           message: controller.query.value.isNotEmpty
               ? K.tryDifferentWord.tr
+              : controller.tab.value == SongTab.favourites
+              ? K.favouritesHint.tr
               : controller.tab.value == SongTab.phone
               ? K.noSongsFound.tr
               : K.convertedWillShowUp.tr,
@@ -323,8 +352,24 @@ class _SongRow extends StatelessWidget {
         ),
         title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: details.isEmpty ? null : Text(details),
-        trailing: const Icon(Icons.play_arrow_rounded),
+        trailing: Obx(
+          () => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (controller.isFavourite(song)) ...<Widget>[
+                Icon(
+                  Icons.favorite_rounded,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: AppDimens.spaceSm),
+              ],
+              const Icon(Icons.play_arrow_rounded),
+            ],
+          ),
+        ),
         onTap: () => controller.play(song),
+        onLongPress: () => showSongActions(context, song, controller),
       ),
     );
   }

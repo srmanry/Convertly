@@ -17,6 +17,32 @@ class FakeMusicRepository implements MusicLibraryRepository {
   List<Song> device = <Song>[];
   List<Song> app = <Song>[];
   Failure? deviceFailure;
+  bool allowEdit = true;
+  int deletes = 0;
+
+  @override
+  Future<Result<Song?>> renameSong(Song song, String newName) async =>
+      Result<Song?>.success(
+        allowEdit
+            ? Song(
+                id: song.id,
+                title: '$newName.mp3',
+                path: '/music/$newName.mp3',
+                source: song.source,
+                fileName: '$newName.mp3',
+                duration: song.duration,
+                sizeInBytes: song.sizeInBytes,
+                createdAt: song.createdAt,
+                format: song.format,
+              )
+            : null,
+      );
+
+  @override
+  Future<Result<bool>> deleteSong(Song song) async {
+    deletes++;
+    return Result<bool>.success(allowEdit);
+  }
 
   @override
   Future<bool> hasDevicePermission() async => granted;

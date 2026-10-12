@@ -13,6 +13,7 @@ import '../../domain/repositories/conversion_repository.dart';
 import '../../domain/repositories/media_repository.dart';
 import '../../domain/usecases/convert_media.dart';
 import '../../domain/usecases/pick_media.dart';
+import '../controllers/cleanup_preview_controller.dart';
 import '../controllers/converter_controller.dart';
 import '../controllers/mix_preview_controller.dart';
 import '../controllers/timeline_preview_controller.dart';
@@ -40,6 +41,19 @@ class ConverterBinding extends Bindings {
     if ((mode.supportsTrim || mode.isTimeline) &&
         !Get.isRegistered<TrimPreviewController>()) {
       Get.lazyPut<TrimPreviewController>(TrimPreviewController.new);
+    }
+
+    // Denoising cannot be heard until it has been run, so the cleanup screen
+    // renders a short sample and plays that against the untouched original.
+    if (mode.isCleanup && !Get.isRegistered<CleanupPreviewController>()) {
+      Get.lazyPut<CleanupPreviewController>(
+        () => CleanupPreviewController(
+          // A separate engine instance: this runs while the user is still
+          // choosing, and must not share a cancellation slot with the export.
+          FfmpegService(),
+          Get.find<OutputDirectoryService>(),
+        ),
+      );
     }
 
     // The two previews work differently: the mixer sounds its clips together,

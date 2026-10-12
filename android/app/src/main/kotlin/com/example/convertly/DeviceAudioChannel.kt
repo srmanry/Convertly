@@ -2,8 +2,10 @@ package com.example.convertly
 
 import android.Manifest
 import android.app.Activity
+import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.ContentValues
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
@@ -30,6 +32,8 @@ class DeviceAudioChannel(private val activity: Activity) :
         const val CHANNEL = "convertly/device_audio"
         private const val READ_PERMISSION_REQUEST_CODE = 4471
         private const val WRITE_PERMISSION_REQUEST_CODE = 4472
+        private const val EDIT_MEDIA_REQUEST_CODE = 4473
+        private const val EDIT_PERMISSION_REQUEST_CODE = 4474
 
         /** Audio-only from Android 13; before that there was no such split. */
         private val PERMISSION =
@@ -52,6 +56,15 @@ class DeviceAudioChannel(private val activity: Activity) :
     private var pendingReadPermission: MethodChannel.Result? = null
     private var pendingSave: PendingSave? = null
 
+    private data class PendingEdit(
+        val uri: Uri,
+        val name: String?,
+        val result: MethodChannel.Result,
+        val completedBySystem: Boolean = false
+    )
+
+    private var pendingEdit: PendingEdit? = null
+
     fun attach(messenger: BinaryMessenger) {
         MethodChannel(messenger, CHANNEL).setMethodCallHandler(this)
     }
@@ -61,6 +74,7 @@ class DeviceAudioChannel(private val activity: Activity) :
             "hasPermission" -> result.success(hasPermission())
             "requestPermission" -> requestPermission(result)
             "saveToMusic" -> saveToMusic(call, result)
+            "renameSong", "deleteSong" -> editSong(call, result)
             "querySongs" ->
                 if (hasPermission()) {
                     result.success(querySongs())
@@ -124,6 +138,134 @@ class DeviceAudioChannel(private val activity: Activity) :
                     )
                 }
             }
+            EDIT_PERMISSION_REQUEST_CODE -> {
+                val edit = pendingEdit
+                pendingEdit = null
+                if (edit != null) {
+                    if (granted) performEdit(edit, allowPrompt = true)
+                    else edit.result.success(false)
+                }
+            }
+        }
+    }
+
+    fun onActivityResult(requestCode: Int, resultCode: Int): Boolean {
+        if (requestCode != EDIT_MEDIA_REQUEST_CODE) return false
+        val edit = pendingEdit
+        pendingEdit = null
+        if (edit != null) {
+            if (resultCode != Activity.RESULT_OK) edit.result.success(false)
+            else if (edit.completedBySystem) edit.result.success(true)
+            else performEdit(edit, allowPrompt = false)
+        }
+        return true
+    }
+
+    private fun editSong(call: MethodCall, result: MethodChannel.Result) {
+        if (pendingEdit != null) {
+            result.error("busy", "Another file action is in progress", null)
+            return
+        }
+        val uri = call.argument<String>("uri")?.let(Uri::parse)
+        val name = if (call.method == "renameSong") call.argument<String>("name")?.trim() else null
+        if (uri == null || uri.scheme != "content" || uri.authority != "media" ||
+            !uri.pathSegments.contains("audio") || uri.lastPathSegment?.toLongOrNull() == null ||
+            (call.method == "renameSong" && (name.isNullOrBlank() ||
+                name == "." || name == ".." || name.any { it == '/' || it == '\\' || it.code < 32 }))) {
+            result.error("bad_args", "A valid audio URI and file name are required", null)
+            return
+        }
+        val edit = PendingEdit(uri, name, result)
+        if (needsLegacyWritePermission()) {
+            pendingEdit = edit
+            ActivityCompat.requestPermissions(activity,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), EDIT_PERMISSION_REQUEST_CODE)
+        } else {
+            performEdit(edit, allowPrompt = true)
+        }
+    }
+
+    private fun performEdit(edit: PendingEdit, allowPrompt: Boolean) {
+        try {
+            val resolver = activity.contentResolver
+            if (edit.name == null) {
+                edit.result.success(resolver.delete(edit.uri, null, null) > 0)
+                return
+            }
+
+            val columns = mutableListOf(MediaStore.Audio.Media.DISPLAY_NAME)
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) columns.add(MediaStore.Audio.Media.DATA)
+            val current = resolver.query(edit.uri, columns.toTypedArray(), null, null, null)?.use {
+                if (!it.moveToFirst()) null
+                else Pair(it.getString(0), if (columns.size > 1) it.getString(1) else null)
+            }
+            if (current == null) {
+                edit.result.error("missing", "That song no longer exists", null)
+                return
+            }
+            val extension = current.first.substringAfterLast('.', "")
+            var displayName = edit.name + if (extension.isEmpty()) "" else ".$extension"
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+                put(MediaStore.Audio.Media.TITLE, edit.name)
+            }
+            // Before scoped storage the index alone did not rename the file.
+            var movedFrom: File? = null
+            var movedTo: File? = null
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P && current.second != null) {
+                val source = File(current.second!!)
+                var target = File(source.parentFile, displayName)
+                if (source.absolutePath != target.absolutePath) {
+                    var suffix = 1
+                    while (target.exists()) {
+                        displayName = "${edit.name}_${suffix++}" + if (extension.isEmpty()) "" else ".$extension"
+                        target = File(source.parentFile, displayName)
+                    }
+                    if (!source.renameTo(target)) throw IllegalStateException("Could not rename the file")
+                    movedFrom = source
+                    movedTo = target
+                    values.put(MediaStore.Audio.Media.DATA, target.absolutePath)
+                    values.put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+                }
+            }
+            try {
+                if (resolver.update(edit.uri, values, null, null) <= 0) {
+                    throw IllegalStateException("Could not update the music index")
+                }
+            } catch (error: Exception) {
+                if (movedFrom != null) movedTo?.renameTo(movedFrom)
+                throw error
+            }
+            edit.result.success(true)
+        } catch (error: SecurityException) {
+            if (!allowPrompt) {
+                edit.result.error("denied", "Permission to change this song was not granted", null)
+                return
+            }
+            try {
+                val sender = when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                        if (edit.name == null) {
+                            pendingEdit = edit.copy(completedBySystem = true)
+                            MediaStore.createDeleteRequest(activity.contentResolver, listOf(edit.uri)).intentSender
+                        } else {
+                            pendingEdit = edit
+                            MediaStore.createWriteRequest(activity.contentResolver, listOf(edit.uri)).intentSender
+                        }
+                    }
+                    Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && error is RecoverableSecurityException -> {
+                        pendingEdit = edit
+                        error.userAction.actionIntent.intentSender
+                    }
+                    else -> throw error
+                }
+                activity.startIntentSenderForResult(sender, EDIT_MEDIA_REQUEST_CODE, null, 0, 0, 0)
+            } catch (failure: Exception) {
+                pendingEdit = null
+                edit.result.error("denied", failure.message, null)
+            }
+        } catch (error: Exception) {
+            edit.result.error("failed", error.message, null)
         }
     }
 
@@ -244,7 +386,9 @@ class DeviceAudioChannel(private val activity: Activity) :
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.SIZE
+            MediaStore.Audio.Media.SIZE,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.DATE_ADDED
         )
 
         val songs = mutableListOf<Map<String, Any?>>()
@@ -261,6 +405,8 @@ class DeviceAudioChannel(private val activity: Activity) :
             val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+            val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
             while (cursor.moveToNext()) {
                 val duration = if (cursor.isNull(durationColumn)) {
@@ -278,6 +424,8 @@ class DeviceAudioChannel(private val activity: Activity) :
                         "id" to id.toString(),
                         "title" to cursor.getString(titleColumn),
                         "artist" to cursor.getString(artistColumn),
+                        "displayName" to cursor.getString(nameColumn),
+                        "dateAddedMs" to if (cursor.isNull(addedColumn)) null else cursor.getLong(addedColumn) * 1000L,
                         "durationMs" to duration,
                         "sizeBytes" to
                             if (cursor.isNull(sizeColumn)) null

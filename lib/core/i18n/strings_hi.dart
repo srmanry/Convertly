@@ -22,6 +22,7 @@ const Map<String, String> stringsHi = <String, String>{
   K.back: 'वापस',
   K.goBack: 'वापस जाएँ',
   K.tryAgain: 'फिर कोशिश करें',
+  K.startupFailed: 'ऐप शुरू नहीं हो सका। फिर कोशिश करें।',
   K.refresh: 'रीफ़्रेश',
   K.next: 'आगे',
   K.skip: 'छोड़ें',
@@ -113,6 +114,17 @@ const Map<String, String> stringsHi = <String, String>{
   K.unknownTrack: 'अनजान ट्रैक',
   K.sourcePhone: 'फ़ोन',
   K.sourceInApp: 'ऐप में',
+  K.favourites: 'पसंदीदा',
+  K.addFavourite: 'पसंदीदा में जोड़ें',
+  K.removeFavourite: 'पसंदीदा से हटाएँ',
+  K.noFavourites: 'अभी कोई पसंदीदा गाना नहीं',
+  K.favouritesHint: 'पसंदीदा में जोड़ने के लिए गाने को दबाकर रखें।',
+  K.fileDetails: 'फ़ाइल की जानकारी',
+  K.createdInApp: 'इस ऐप में बनाया गया',
+  K.dateAdded: 'फ़ोन लाइब्रेरी में जोड़ा गया',
+  K.fileSource: 'स्रोत',
+  K.notAvailable: 'उपलब्ध नहीं',
+  K.playAll: 'सभी चलाएँ',
   K.musicPermissionTitle: 'ऐप को अपना संगीत देखने दें',
   K.musicPermissionMessage:
       'इस फ़ोन में पहले से मौजूद गाने दिखाने के लिए ऐप को आपका संगीत पढ़ने '
@@ -192,6 +204,11 @@ const Map<String, String> stringsHi = <String, String>{
   K.cleanupEngineSection: 'प्रोसेसिंग',
   K.removeSection: 'हटाएँ',
   K.strengthSection: 'तीव्रता',
+  K.previewSection: 'प्रीव्यू',
+  K.previewOriginal: 'असली',
+  K.previewCleaned: 'साफ़',
+
+  K.previewFailed: 'यह नमूना चलाया नहीं जा सका।',
   K.strengthHint:
       'ज़्यादा मात्रा ज़्यादा नॉइज़ हटाती है, साथ में असली आवाज़ भी कुछ चली जाती है। खोखला लगे तो हल्के से शुरू करें।',
   K.cleanupMonoWarning:

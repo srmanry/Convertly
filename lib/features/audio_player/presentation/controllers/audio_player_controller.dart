@@ -20,8 +20,12 @@ const List<double> kPlaybackSpeeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
 /// The player and every stream subscription are released in [onClose], so
 /// leaving the screen frees the native decoder (spec §25).
 class AudioPlayerController extends GetxController {
-  AudioPlayerController({required List<PlayerTrack> queue, int startIndex = 0})
-    : queue = List<PlayerTrack>.unmodifiable(queue) {
+  AudioPlayerController({
+    required List<PlayerTrack> queue,
+    int startIndex = 0,
+    AudioPlayer? player,
+  }) : queue = List<PlayerTrack>.unmodifiable(queue),
+       _player = player ?? AudioPlayer() {
     index.value = queue.isEmpty ? 0 : startIndex.clamp(0, queue.length - 1);
   }
 
@@ -41,7 +45,9 @@ class AudioPlayerController extends GetxController {
 
   bool get hasNext => queue.length > 1 && index.value < queue.length - 1;
 
-  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _player;
+  bool _switchingTracks = false;
+  bool _handlingCompletion = false;
 
   final Rx<Duration> position = Duration.zero.obs;
   final Rx<Duration> duration = Duration.zero.obs;
@@ -71,14 +77,32 @@ class AudioPlayerController extends GetxController {
       }),
       _player.playerStateStream.listen((PlayerState state) {
         isPlaying.value = state.playing;
-        // Reset to the start so the play button works again after finishing.
-        if (state.processingState == ProcessingState.completed) {
-          isPlaying.value = false;
-          _player.seek(Duration.zero);
-          _player.pause();
+        if (state.processingState == ProcessingState.completed &&
+            state.playing &&
+            !isLoading.value &&
+            !_switchingTracks &&
+            !_handlingCompletion) {
+          unawaited(_finishTrack());
         }
       }),
     ]);
+  }
+
+  Future<void> _finishTrack() async {
+    // Pausing or loading can emit the completed state again. Handle each
+    // ending once so those events cannot skip over another song.
+    _handlingCompletion = true;
+    try {
+      if (hasNext) {
+        await _openAt(index.value + 1, autoPlay: true);
+      } else {
+        isPlaying.value = false;
+        await _player.pause();
+        await _player.seek(Duration.zero);
+      }
+    } finally {
+      _handlingCompletion = false;
+    }
   }
 
   Future<void> _load() async {
@@ -129,24 +153,35 @@ class AudioPlayerController extends GetxController {
     await _openAt(index.value - 1);
   }
 
-  Future<void> _openAt(int target) async {
-    if (target < 0 || target >= queue.length || target == index.value) {
+  Future<void> _openAt(int target, {bool? autoPlay}) async {
+    if (_switchingTracks ||
+        isClosed ||
+        target < 0 ||
+        target >= queue.length ||
+        target == index.value) {
       return;
     }
 
     // Carry the playing state across: someone who taps next while listening
     // wants the next track playing, not cued up and silent.
-    final bool wasPlaying = isPlaying.value;
+    final bool wasPlaying = autoPlay ?? isPlaying.value;
+    _switchingTracks = true;
+    try {
+      await _player.pause();
+      if (isClosed) {
+        return;
+      }
+      index.value = target;
+      position.value = Duration.zero;
+      duration.value = Duration.zero;
+      await _load();
 
-    await _player.pause();
-    index.value = target;
-    position.value = Duration.zero;
-    duration.value = Duration.zero;
-    await _load();
-
-    if (wasPlaying && errorMessage.value.isEmpty) {
-      // play()'s future completes when playback ends, not when it starts.
-      unawaited(_player.play());
+      if (!isClosed && wasPlaying && errorMessage.value.isEmpty) {
+        // play()'s future completes when playback ends, not when it starts.
+        unawaited(_player.play());
+      }
+    } finally {
+      _switchingTracks = false;
     }
   }
 

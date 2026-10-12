@@ -6,6 +6,7 @@ import '../../../../core/widgets/banner_ad_view.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../controllers/audio_player_controller.dart';
+import '../widgets/audio_playback_wave.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
 class AudioPlayerPage extends GetView<AudioPlayerController> {
@@ -54,19 +55,11 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Container(
-                            width: 160,
-                            height: 160,
-                            decoration: BoxDecoration(
-                              color: colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(
-                                AppDimens.radiusXl,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.graphic_eq_rounded,
-                              size: 72,
-                              color: colors.onPrimaryContainer,
+                          Obx(
+                            () => AudioPlaybackWave(
+                              isPlaying:
+                                  controller.isPlaying.value &&
+                                  !controller.isLoading.value,
                             ),
                           ),
                           const SizedBox(height: AppDimens.spaceXl),
@@ -94,8 +87,6 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
                           _TransportControls(controller: controller),
                           const SizedBox(height: AppDimens.spaceXl),
                           _SpeedSelector(controller: controller),
-                          const SizedBox(height: AppDimens.spaceLg),
-                          _VolumeSlider(controller: controller),
                         ],
                       ),
                     ),
@@ -247,30 +238,6 @@ class _SpeedSelector extends StatelessWidget {
                 }
               },
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VolumeSlider extends StatelessWidget {
-  const _VolumeSlider({required this.controller});
-
-  final AudioPlayerController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(
-      () => Row(
-        children: <Widget>[
-          const Icon(Icons.volume_down_rounded),
-          Expanded(
-            child: Slider(
-              value: controller.volume.value,
-              onChanged: controller.setVolume,
-            ),
-          ),
-          const Icon(Icons.volume_up_rounded),
         ],
       ),
     );

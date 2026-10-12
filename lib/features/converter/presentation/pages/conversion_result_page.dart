@@ -18,10 +18,14 @@ class ConversionResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ConversionResult? result = Get.arguments as ConversionResult?;
+    // Get.arguments belongs to the top route, which may be the audio player
+    // while this page rebuilds underneath it. Read this page's own result.
+    final Object? arguments = ModalRoute.of(context)?.settings.arguments;
+    final ConversionResult? result = arguments is ConversionResult
+        ? arguments
+        : null;
     if (result == null) {
-      // Reached only if the route is opened without arguments, e.g. by a
-      // deep link; going back is the sane recovery.
+      // Recover safely if a deep link or caller supplies no valid result.
       return Scaffold(
         appBar: AppBar(),
         body: Center(

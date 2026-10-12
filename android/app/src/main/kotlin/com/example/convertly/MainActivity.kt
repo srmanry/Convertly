@@ -1,10 +1,16 @@
 package com.example.convertly
 
+import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin
 
 class MainActivity : FlutterActivity() {
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        deviceAudio?.onActivityResult(requestCode, resultCode)
+    }
 
     /** Must match the factoryId the Dart side asks for. */
     private val listTileFactoryId = "listTile"

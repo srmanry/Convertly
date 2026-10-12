@@ -22,6 +22,7 @@ const Map<String, String> stringsId = <String, String>{
   K.back: 'Kembali',
   K.goBack: 'Kembali',
   K.tryAgain: 'Coba lagi',
+  K.startupFailed: 'Aplikasi tidak dapat dimulai. Coba lagi.',
   K.refresh: 'Muat ulang',
   K.next: 'Lanjut',
   K.skip: 'Lewati',
@@ -113,6 +114,17 @@ const Map<String, String> stringsId = <String, String>{
   K.unknownTrack: 'Trek tanpa nama',
   K.sourcePhone: 'Ponsel',
   K.sourceInApp: 'Di aplikasi',
+  K.favourites: 'Favorit',
+  K.addFavourite: 'Tambahkan ke favorit',
+  K.removeFavourite: 'Hapus dari favorit',
+  K.noFavourites: 'Belum ada lagu favorit',
+  K.favouritesHint: 'Tekan lama lagu untuk menambahkannya ke favorit.',
+  K.fileDetails: 'Detail file',
+  K.createdInApp: 'Dibuat di aplikasi ini',
+  K.dateAdded: 'Ditambahkan ke pustaka ponsel',
+  K.fileSource: 'Sumber',
+  K.notAvailable: 'Tidak tersedia',
+  K.playAll: 'Putar semua',
   K.musicPermissionTitle: 'Izinkan aplikasi melihat musik Anda',
   K.musicPermissionMessage:
       'Untuk menampilkan lagu yang sudah ada di ponsel ini, aplikasi perlu '
@@ -198,6 +210,11 @@ const Map<String, String> stringsId = <String, String>{
   K.cleanupEngineSection: 'Pemrosesan',
   K.removeSection: 'Hilangkan',
   K.strengthSection: 'Kekuatan',
+  K.previewSection: 'Pratinjau',
+  K.previewOriginal: 'Asli',
+  K.previewCleaned: 'Bersih',
+
+  K.previewFailed: 'Sampel ini tidak dapat diputar.',
   K.strengthHint:
       'Setelan lebih kuat menghilangkan lebih banyak derau dan ikut mengambil sebagian audio aslinya. Mulai dari ringan jika hasilnya terdengar kosong.',
   K.cleanupMonoWarning:

@@ -77,7 +77,7 @@ class MixerTrackCard extends StatelessWidget {
       children: <Widget>[
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(AppDimens.spaceLg),
+            padding: const EdgeInsets.all(AppDimens.spaceMd),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -137,17 +137,18 @@ class MixerTrackCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppDimens.spaceMd),
+                const SizedBox(height: AppDimens.spaceSm),
                 VolumeLane(
                   envelope: envelope,
                   length: media.duration,
                   playhead: playhead,
                   accent: accent,
                   onChanged: onEnvelopeChanged,
+                  showHint: false,
                 ),
                 if (onVolumeChanged
                     case final ValueChanged<double> change) ...<Widget>[
-                  const SizedBox(height: AppDimens.spaceSm),
+                  const SizedBox(height: AppDimens.spaceXs),
                   _BaseLevelRow(
                     volume: volume ?? 1,
                     accent: accent,

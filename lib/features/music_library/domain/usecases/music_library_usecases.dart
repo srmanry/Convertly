@@ -3,6 +3,27 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/song.dart';
 import '../repositories/music_library_repository.dart';
 
+class RenameSongParams {
+  const RenameSongParams(this.song, this.name);
+  final Song song;
+  final String name;
+}
+
+class RenameSong implements UseCase<Song?, RenameSongParams> {
+  const RenameSong(this._repository);
+  final MusicLibraryRepository _repository;
+  @override
+  Future<Result<Song?>> call(RenameSongParams params) =>
+      _repository.renameSong(params.song, params.name);
+}
+
+class DeleteSong implements UseCase<bool, Song> {
+  const DeleteSong(this._repository);
+  final MusicLibraryRepository _repository;
+  @override
+  Future<Result<bool>> call(Song song) => _repository.deleteSong(song);
+}
+
 class GetDeviceSongs implements UseCase<List<Song>, NoParams> {
   const GetDeviceSongs(this._repository);
 

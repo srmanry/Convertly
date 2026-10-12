@@ -28,6 +28,7 @@ abstract final class K {
   static const String back = 'common_back';
   static const String goBack = 'common_go_back';
   static const String tryAgain = 'common_try_again';
+  static const String startupFailed = 'startup_failed';
   static const String refresh = 'common_refresh';
   static const String next = 'common_next';
   static const String skip = 'common_skip';
@@ -124,6 +125,17 @@ abstract final class K {
   static const String unknownTrack = 'player_unknown_track';
   static const String sourcePhone = 'library_source_phone';
   static const String sourceInApp = 'library_source_in_app';
+  static const String favourites = 'library_favourites';
+  static const String addFavourite = 'library_favourite_add';
+  static const String removeFavourite = 'library_favourite_remove';
+  static const String noFavourites = 'library_favourites_empty';
+  static const String favouritesHint = 'library_favourites_hint';
+  static const String fileDetails = 'library_file_details';
+  static const String createdInApp = 'library_created_in_app';
+  static const String dateAdded = 'library_date_added';
+  static const String fileSource = 'library_file_source';
+  static const String notAvailable = 'library_not_available';
+  static const String playAll = 'library_play_all';
   static const String musicPermissionTitle = 'library_permission_title';
   static const String musicPermissionMessage = 'library_permission_message';
   static const String nothingMatchesThat = 'library_nothing_matches';
@@ -180,6 +192,10 @@ abstract final class K {
   static const String cleanupEngineSection = 'converter_cleanup_engine';
   static const String removeSection = 'converter_remove_section';
   static const String strengthSection = 'converter_strength_section';
+  static const String previewSection = 'converter_preview_section';
+  static const String previewOriginal = 'converter_preview_original';
+  static const String previewCleaned = 'converter_preview_cleaned';
+  static const String previewFailed = 'converter_preview_failed';
   static const String strengthHint = 'converter_strength_hint';
   static const String cleanupMonoWarning = 'converter_cleanup_mono_warning';
   static const String outputFormatSection = 'converter_output_format';

@@ -750,6 +750,27 @@ void cleanupTests() {
       expect(filter, contains(r'arnndn=m=/odd\:place/sh.rnnn:mix='));
     });
 
+    test('a preview renders only its sample, through the same filters', () {
+      // What the preview plays has to be the same processing the export will
+      // run, or it is reassurance about something that never happens.
+      final List<String> args = FfmpegCommandBuilder.build(
+        ConversionRequest(
+          inputPaths: const <String>['/in/voice.m4a'],
+          outputPath: '/tmp/cleanup_preview.wav',
+          format: AudioFormat.wav,
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 15),
+          cleanup: const CleanupSettings(
+            mode: CleanupMode.backgroundNoise,
+            aiModelPath: '/m.rnnn',
+          ),
+        ),
+      );
+
+      expect(args, containsAllInOrder(<String>['-to', '15.000']));
+      expect(audioFilter(args), contains('arnndn=m=/m.rnnn'));
+    });
+
     test('cancelling vocals runs neither denoiser', () {
       // It subtracts one channel from the other; there is no noise estimate
       // and nothing for a model to do.

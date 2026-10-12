@@ -22,6 +22,7 @@ const Map<String, String> stringsEs = <String, String>{
   K.back: 'Atrás',
   K.goBack: 'Volver',
   K.tryAgain: 'Reintentar',
+  K.startupFailed: 'No se pudo iniciar la aplicación. Inténtalo de nuevo.',
   K.refresh: 'Actualizar',
   K.next: 'Siguiente',
   K.skip: 'Omitir',
@@ -114,6 +115,17 @@ const Map<String, String> stringsEs = <String, String>{
   K.unknownTrack: 'Pista sin nombre',
   K.sourcePhone: 'Teléfono',
   K.sourceInApp: 'En la app',
+  K.favourites: 'Favoritos',
+  K.addFavourite: 'Añadir a favoritos',
+  K.removeFavourite: 'Quitar de favoritos',
+  K.noFavourites: 'Aún no hay favoritos',
+  K.favouritesHint: 'Mantén pulsada una canción para añadirla a favoritos.',
+  K.fileDetails: 'Detalles del archivo',
+  K.createdInApp: 'Creado en esta aplicación',
+  K.dateAdded: 'Añadido a la biblioteca del teléfono',
+  K.fileSource: 'Origen',
+  K.notAvailable: 'No disponible',
+  K.playAll: 'Reproducir todo',
   K.musicPermissionTitle: 'Deja que la app vea tu música',
   K.musicPermissionMessage:
       'Para mostrar las canciones que ya están en este teléfono, la app '
@@ -198,6 +210,11 @@ const Map<String, String> stringsEs = <String, String>{
   K.cleanupEngineSection: 'Procesamiento',
   K.removeSection: 'Quitar',
   K.strengthSection: 'Intensidad',
+  K.previewSection: 'Vista previa',
+  K.previewOriginal: 'Original',
+  K.previewCleaned: 'Limpio',
+
+  K.previewFailed: 'No se pudo reproducir esta muestra.',
   K.strengthHint:
       'Los ajustes más fuertes quitan más ruido y se llevan parte del audio original. Empieza con el suave si suena hueco.',
   K.cleanupMonoWarning:

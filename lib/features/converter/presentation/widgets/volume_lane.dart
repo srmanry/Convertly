@@ -27,6 +27,7 @@ class VolumeLane extends StatefulWidget {
     this.length,
     this.playhead,
     this.accent,
+    this.showHint = true,
   });
 
   /// Tall enough to place a point precisely with a thumb.
@@ -61,6 +62,9 @@ class VolumeLane extends StatefulWidget {
   /// still reads correctly; the mixer passes each track its own colour so a
   /// stack of lanes reads as separate voices at a glance.
   final Color? accent;
+
+  /// Shared instructions only need to appear on the first mixer track.
+  final bool showHint;
 
   @override
   State<VolumeLane> createState() => _VolumeLaneState();
@@ -328,7 +332,8 @@ class _VolumeLaneState extends State<VolumeLane> {
         ),
         const SizedBox(height: AppDimens.spaceXs),
         _TimeLabels(length: widget.length),
-        const SizedBox(height: AppDimens.spaceSm),
+        if (selected != null || widget.showHint)
+          const SizedBox(height: AppDimens.spaceSm),
         if (selected != null)
           _PointControls(
             point: _envelope.points[selected],
@@ -338,7 +343,7 @@ class _VolumeLaneState extends State<VolumeLane> {
             onNudge: _nudge,
             onDelete: _deleteSelected,
           )
-        else
+        else if (widget.showHint)
           Text(
             _envelope.points.length <= 2
                 ? K.volumeLaneHint.tr
@@ -380,10 +385,7 @@ class _PointControls extends StatelessWidget {
     final int percent = (point.level * 100).round();
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.spaceSm,
-        vertical: AppDimens.spaceXs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceSm),
       decoration: BoxDecoration(
         color: Color.alphaBlend(
           accent.withValues(alpha: 0.1),
@@ -403,12 +405,14 @@ class _PointControls extends StatelessWidget {
             icon: const Icon(Icons.remove_rounded),
           ),
           Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppDimens.spaceSm,
               children: <Widget>[
                 Text(
                   '$percent%',
-                  style: theme.textTheme.titleLarge?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontFeatures: const <FontFeature>[
                       FontFeature.tabularFigures(),

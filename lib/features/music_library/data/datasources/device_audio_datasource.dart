@@ -17,6 +17,8 @@ abstract interface class DeviceAudioDataSource {
   Future<bool> requestPermission();
 
   Future<List<Song>> readSongs();
+  Future<bool> renameSong(String uri, String newName);
+  Future<bool> deleteSong(String uri);
 }
 
 class DeviceAudioDataSourceImpl implements DeviceAudioDataSource {
@@ -27,6 +29,25 @@ class DeviceAudioDataSourceImpl implements DeviceAudioDataSource {
   static const String channelName = 'convertly/device_audio';
 
   final MethodChannel _channel;
+
+  @override
+  Future<bool> renameSong(String uri, String newName) async {
+    if (!_isSupported) return false;
+    return await _channel.invokeMethod<bool>('renameSong', <String, String>{
+          'uri': uri,
+          'name': newName,
+        }) ??
+        false;
+  }
+
+  @override
+  Future<bool> deleteSong(String uri) async {
+    if (!_isSupported) return false;
+    return await _channel.invokeMethod<bool>('deleteSong', <String, String>{
+          'uri': uri,
+        }) ??
+        false;
+  }
 
   /// Only Android has the index this reads; elsewhere the player falls back to
   /// the app's own files rather than calling a channel that is not there.
@@ -74,6 +95,8 @@ class DeviceAudioDataSourceImpl implements DeviceAudioDataSource {
   static Song fromRow(Map<Object?, Object?> row) {
     final Object? durationMs = row['durationMs'];
     final Object? size = row['sizeBytes'];
+    final Object? added = row['dateAddedMs'];
+    final String? fileName = row['displayName'] as String?;
     final String uri = row['uri'] as String? ?? '';
     final String? title = row['title'] as String?;
 
@@ -87,6 +110,13 @@ class DeviceAudioDataSourceImpl implements DeviceAudioDataSource {
       artist: row['artist'] as String?,
       duration: durationMs is int ? Duration(milliseconds: durationMs) : null,
       sizeInBytes: size is int ? size : null,
+      fileName: fileName,
+      format: fileName != null && fileName.contains('.')
+          ? fileName.split('.').last.toUpperCase()
+          : null,
+      createdAt: added is int && added > 0
+          ? DateTime.fromMillisecondsSinceEpoch(added)
+          : null,
     );
   }
 

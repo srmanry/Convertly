@@ -23,6 +23,9 @@ class Song extends Equatable {
     this.artist,
     this.duration,
     this.sizeInBytes,
+    this.fileName,
+    this.format,
+    this.createdAt,
   });
 
   /// Unique within its source.
@@ -30,7 +33,7 @@ class Song extends Equatable {
 
   final String title;
 
-  /// What the player opens. A device track is a real file path.
+  /// What the player opens: a local path or a device content URI.
   final String path;
 
   final SongSource source;
@@ -41,6 +44,11 @@ class Song extends Equatable {
 
   final Duration? duration;
   final int? sizeInBytes;
+  final String? fileName;
+  final String? format;
+
+  /// Conversion time for app files; date added to the index for phone music.
+  final DateTime? createdAt;
 
   /// What to show under the title, or null when there is nothing worth saying.
   String? get subtitle {

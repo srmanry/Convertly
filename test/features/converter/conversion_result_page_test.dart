@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:convertly/core/routes/app_routes.dart';
 import 'package:convertly/core/theme/app_theme.dart';
 import 'package:convertly/features/converter/domain/entities/conversion_result.dart';
 import 'package:convertly/features/converter/presentation/pages/conversion_result_page.dart';
@@ -8,10 +9,24 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+const ConversionResult _result = ConversionResult(
+  outputPath: '/out/a.mp3',
+  name:
+      'vidssave.com Tumi Amar Emoni _ তুমি আমার এমনই _ HD _ Salman '
+      'Shah, Shabnur & Karchi _ Kanak Chapa _ Anondo Osru 48KBPS_cu.mp3',
+  sizeInBytes: 1200000,
+  format: 'MP3',
+  duration: Duration(seconds: 51),
+);
+
 void main() {
   tearDown(Get.reset);
 
-  Future<void> pumpAt(WidgetTester tester, Size size) async {
+  Future<void> pumpAt(
+    WidgetTester tester,
+    Size size, {
+    Object? arguments = _result,
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -25,24 +40,58 @@ void main() {
             name: '/result',
             page: () => const ConversionResultPage(),
           ),
+          GetPage<dynamic>(
+            name: AppRoutes.audioPlayer,
+            page: () => const Scaffold(body: Text('Player')),
+          ),
         ],
       ),
     );
-    unawaited(
-      Get.toNamed<void>(
-        '/result',
-        arguments: const ConversionResult(
-          outputPath: '/out/a.mp3',
-          name:
-              'vidssave.com Tumi Amar Emoni _ তুমি আমার এমনই _ HD _ Salman '
-              'Shah, Shabnur & Karchi _ Kanak Chapa _ Anondo Osru 48KBPS_cu.mp3',
-          sizeInBytes: 1200000,
-          format: 'MP3',
-          duration: Duration(seconds: 51),
-        ),
-      ),
-    );
+    unawaited(Get.toNamed<void>('/result', arguments: arguments));
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('result keeps its own data when the player opens with a map', (
+    WidgetTester tester,
+  ) async {
+    await pumpAt(tester, const Size(430, 1000));
+    await tester.tap(find.text('Play Audio'));
+    await tester.pumpAndSettle();
+
+    expect(Get.arguments, <String, String>{
+      'path': _result.outputPath,
+      'title': _result.name,
+    });
+    // An underlying route can rebuild after a theme or viewport change even
+    // while Get.arguments belongs to the player on top of it.
+    tester
+        .element(find.byType(ConversionResultPage, skipOffstage: false))
+        .markNeedsBuild();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(_result.name, skipOffstage: false), findsOneWidget);
+
+    Get.back<void>();
+    await tester.pumpAndSettle();
+    expect(find.text(_result.name), findsOneWidget);
+    expect(find.text('Play Audio'), findsOneWidget);
+  });
+
+  for (final Object? arguments in <Object?>[
+    null,
+    <String, String>{'path': '/out/a.mp3', 'title': 'A'},
+  ]) {
+    testWidgets(
+      'invalid result arguments $arguments recover without crashing',
+      (WidgetTester tester) async {
+        await pumpAt(tester, const Size(390, 700), arguments: arguments);
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Go Back'), findsOneWidget);
+        expect(find.text('Play Audio'), findsNothing);
+      },
+    );
   }
 
   testWidgets('a short screen scrolls instead of overflowing', (

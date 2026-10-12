@@ -22,6 +22,7 @@ const Map<String, String> stringsAr = <String, String>{
   K.back: 'رجوع',
   K.goBack: 'العودة',
   K.tryAgain: 'حاول مرة أخرى',
+  K.startupFailed: 'تعذر بدء التطبيق. حاول مرة أخرى.',
   K.refresh: 'تحديث',
   K.next: 'التالي',
   K.skip: 'تخطٍ',
@@ -112,6 +113,17 @@ const Map<String, String> stringsAr = <String, String>{
   K.unknownTrack: 'مسار غير معروف',
   K.sourcePhone: 'الهاتف',
   K.sourceInApp: 'في التطبيق',
+  K.favourites: 'المفضلة',
+  K.addFavourite: 'إضافة إلى المفضلة',
+  K.removeFavourite: 'إزالة من المفضلة',
+  K.noFavourites: 'لا توجد أغانٍ مفضلة بعد',
+  K.favouritesHint: 'اضغط مطولاً على أغنية لإضافتها إلى المفضلة.',
+  K.fileDetails: 'تفاصيل الملف',
+  K.createdInApp: 'تاريخ الإنشاء في هذا التطبيق',
+  K.dateAdded: 'تاريخ الإضافة إلى مكتبة الهاتف',
+  K.fileSource: 'المصدر',
+  K.notAvailable: 'غير متاح',
+  K.playAll: 'تشغيل الكل',
   K.musicPermissionTitle: 'اسمح للتطبيق برؤية موسيقاك',
   K.musicPermissionMessage:
       'لعرض الأغاني الموجودة على هذا الهاتف، يحتاج التطبيق إلى إذن قراءة '
@@ -187,6 +199,11 @@ const Map<String, String> stringsAr = <String, String>{
   K.cleanupEngineSection: 'المعالجة',
   K.removeSection: 'إزالة',
   K.strengthSection: 'الشدة',
+  K.previewSection: 'معاينة',
+  K.previewOriginal: 'الأصلي',
+  K.previewCleaned: 'بعد التنظيف',
+
+  K.previewFailed: 'تعذّر تشغيل هذه العيّنة.',
   K.strengthHint:
       'الإعدادات الأقوى تزيل ضجيجًا أكثر وتأخذ معها جزءًا من الصوت الأصلي. ابدأ بالخفيف إذا بدت النتيجة جوفاء.',
   K.cleanupMonoWarning:

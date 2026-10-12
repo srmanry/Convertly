@@ -1,5 +1,9 @@
 import 'package:get/get.dart';
 
+import '../../../../core/services/storage_service.dart';
+import '../../../files/presentation/controllers/files_controller.dart';
+import '../../../home/presentation/controllers/home_controller.dart';
+
 import '../../../files/domain/repositories/media_library_repository.dart';
 import '../../data/datasources/device_audio_datasource.dart';
 import '../../data/repositories/music_library_repository_impl.dart';
@@ -25,6 +29,17 @@ abstract final class MusicLibraryBinding {
         GetDeviceSongs(repository),
         GetAppSongs(repository),
         EnsureDevicePermission(repository),
+        renameSong: RenameSong(repository),
+        deleteSong: DeleteSong(repository),
+        storage: Get.find<StorageService>(),
+        onLibraryChanged: () async {
+          if (Get.isRegistered<FilesController>()) {
+            await Get.find<FilesController>().load(pruneMissing: false);
+          }
+          if (Get.isRegistered<HomeController>()) {
+            await Get.find<HomeController>().loadRecentFiles();
+          }
+        },
       ),
     );
   }

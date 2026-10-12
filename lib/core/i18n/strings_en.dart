@@ -25,6 +25,7 @@ const Map<String, String> stringsEn = <String, String>{
   K.back: 'Back',
   K.goBack: 'Go Back',
   K.tryAgain: 'Try Again',
+  K.startupFailed: 'The app could not start. Please try again.',
   K.refresh: 'Refresh',
   K.next: 'Next',
   K.skip: 'Skip',
@@ -117,6 +118,17 @@ const Map<String, String> stringsEn = <String, String>{
   K.unknownTrack: 'Unknown track',
   K.sourcePhone: 'Phone',
   K.sourceInApp: 'In app',
+  K.favourites: 'Favourites',
+  K.addFavourite: 'Add to favourites',
+  K.removeFavourite: 'Remove from favourites',
+  K.noFavourites: 'No favourites yet',
+  K.favouritesHint: 'Long press a song to add it to favourites.',
+  K.fileDetails: 'File details',
+  K.createdInApp: 'Created in this app',
+  K.dateAdded: 'Added to phone library',
+  K.fileSource: 'Source',
+  K.notAvailable: 'Not available',
+  K.playAll: 'Play all',
   K.musicPermissionTitle: 'Let the app see your music',
   K.musicPermissionMessage:
       'To list the songs already on this phone, the app needs permission to '
@@ -197,6 +209,11 @@ const Map<String, String> stringsEn = <String, String>{
   K.cleanupEngineSection: 'Processing',
   K.removeSection: 'Remove',
   K.strengthSection: 'Strength',
+  K.previewSection: 'Preview',
+  K.previewOriginal: 'Original',
+  K.previewCleaned: 'Cleaned',
+
+  K.previewFailed: 'This sample could not be played.',
   K.strengthHint:
       'Stronger settings remove more noise and take more of the audio with it. Start light if the result sounds hollow.',
   K.cleanupMonoWarning:

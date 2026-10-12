@@ -22,6 +22,7 @@ const Map<String, String> stringsPt = <String, String>{
   K.back: 'Voltar',
   K.goBack: 'Voltar',
   K.tryAgain: 'Tentar de novo',
+  K.startupFailed: 'Não foi possível iniciar o aplicativo. Tente novamente.',
   K.refresh: 'Atualizar',
   K.next: 'Avançar',
   K.skip: 'Pular',
@@ -114,6 +115,17 @@ const Map<String, String> stringsPt = <String, String>{
   K.unknownTrack: 'Faixa sem nome',
   K.sourcePhone: 'Celular',
   K.sourceInApp: 'No app',
+  K.favourites: 'Favoritos',
+  K.addFavourite: 'Adicionar aos favoritos',
+  K.removeFavourite: 'Remover dos favoritos',
+  K.noFavourites: 'Ainda não há favoritos',
+  K.favouritesHint: 'Pressione uma música para adicioná-la aos favoritos.',
+  K.fileDetails: 'Detalhes do arquivo',
+  K.createdInApp: 'Criado neste aplicativo',
+  K.dateAdded: 'Adicionado à biblioteca do telefone',
+  K.fileSource: 'Origem',
+  K.notAvailable: 'Não disponível',
+  K.playAll: 'Reproduzir tudo',
   K.musicPermissionTitle: 'Deixe o app ver suas músicas',
   K.musicPermissionMessage:
       'Para listar as músicas que já estão neste celular, o app precisa de '
@@ -196,6 +208,11 @@ const Map<String, String> stringsPt = <String, String>{
   K.cleanupEngineSection: 'Processamento',
   K.removeSection: 'Remover',
   K.strengthSection: 'Intensidade',
+  K.previewSection: 'Prévia',
+  K.previewOriginal: 'Original',
+  K.previewCleaned: 'Limpo',
+
+  K.previewFailed: 'Não foi possível reproduzir esta amostra.',
   K.strengthHint:
       'Ajustes mais fortes removem mais ruído e levam junto parte do áudio original. Comece no leve se o resultado soar oco.',
   K.cleanupMonoWarning:

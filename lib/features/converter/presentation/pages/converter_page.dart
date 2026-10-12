@@ -21,6 +21,7 @@ import '../../domain/entities/media_info.dart';
 import '../../domain/entities/mix_track.dart';
 import '../../domain/entities/volume_envelope.dart';
 import '../../../files/domain/entities/media_file.dart';
+import '../controllers/cleanup_preview_controller.dart';
 import '../controllers/converter_controller.dart';
 import '../controllers/mix_preview_controller.dart';
 import '../controllers/timeline_preview_controller.dart';
@@ -127,6 +128,15 @@ class _ConfigurationView extends StatelessWidget {
                   Text(
                     K.adjustVolumeOverTime.tr,
                     style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.spaceXs),
+                  Text(
+                    controller.envelopeOf(0).points.length <= 2
+                        ? K.volumeLaneHint.tr
+                        : K.volumeLaneAdjust.tr,
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1806,49 +1816,471 @@ class _CleanupSection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          OptionChips<CleanupMode>(
+          _CleanupGroup(
             title: K.removeSection.tr,
-            options: CleanupMode.values,
-            selected: mode,
-            labelBuilder: (CleanupMode value) => value.label,
-            onSelected: controller.setCleanupMode,
-          ),
-          const SizedBox(height: AppDimens.spaceMd),
-          Text(
-            mode.description,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            child: Column(
+              children: <Widget>[
+                for (final CleanupMode option
+                    in CleanupMode.values) ...<Widget>[
+                  _CleanupModeTile(
+                    mode: option,
+                    selected: option == mode,
+                    onTap: () => controller.setCleanupMode(option),
+                  ),
+                  if (option != CleanupMode.values.last)
+                    const SizedBox(height: AppDimens.spaceSm),
+                ],
+              ],
             ),
           ),
           if (controller.isCleanupUnsupported) ...<Widget>[
             const SizedBox(height: AppDimens.spaceMd),
-            Text(
-              K.cleanupMonoWarning.tr,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
+            _CleanupNotice(message: K.cleanupMonoWarning.tr),
           ],
+          const SizedBox(height: AppDimens.spaceXl),
+          _CleanupPreviewCard(controller: controller),
           if (mode.usesStrength) ...<Widget>[
             const SizedBox(height: AppDimens.spaceXl),
-            OptionChips<NoiseStrength>(
+            _CleanupGroup(
               title: K.strengthSection.tr,
-              options: NoiseStrength.values,
-              selected: controller.noiseStrength.value,
-              labelBuilder: (NoiseStrength value) => value.label,
-              onSelected: controller.setNoiseStrength,
-            ),
-            const SizedBox(height: AppDimens.spaceMd),
-            Text(
-              K.strengthHint.tr,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _StrengthSegments(
+                    selected: controller.noiseStrength.value,
+                    onSelected: controller.setNoiseStrength,
+                  ),
+                  const SizedBox(height: AppDimens.spaceMd),
+                  Text(
+                    K.strengthHint.tr,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ],
       );
     });
+  }
+}
+
+/// A plain labelled group of cleanup choices.
+///
+/// No border of its own: the tiles inside already carry one, and wrapping
+/// them in a second box was what made the screen look boxed-in. A bare label
+/// also matches the sections below it, which have always been plain text.
+class _CleanupGroup extends StatelessWidget {
+  const _CleanupGroup({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: AppDimens.spaceMd),
+        child,
+      ],
+    );
+  }
+}
+
+/// One cleanup mode, with the line explaining it kept beside its own name.
+///
+/// The three descriptions used to share a single line under the chips, which
+/// left the reader matching text to a selection they had already made.
+class _CleanupModeTile extends StatelessWidget {
+  const _CleanupModeTile({
+    required this.mode,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CleanupMode mode;
+  final bool selected;
+  final VoidCallback onTap;
+
+  /// Picture for each mode, so the list can be scanned without reading.
+  IconData get _icon => switch (mode) {
+    CleanupMode.backgroundNoise => Icons.waves_rounded,
+    CleanupMode.voiceFocus => Icons.record_voice_over_rounded,
+    CleanupMode.removeVocals => Icons.music_off_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(AppDimens.spaceMd),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.success.withValues(alpha: 0.12)
+                : theme.colorScheme.surface.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            border: Border.all(
+              color: selected
+                  ? AppColors.success.withValues(alpha: 0.6)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                _icon,
+                size: 20,
+                color: selected
+                    ? AppColors.success
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppDimens.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      mode.label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: selected ? AppColors.success : null,
+                      ),
+                    ),
+                    // Only the chosen mode explains itself. Three paragraphs
+                    // at once filled the screen, and two of them described
+                    // something that was not going to happen.
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      alignment: Alignment.topLeft,
+                      child: selected
+                          ? Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                mode.description,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  height: 1.35,
+                                ),
+                              ),
+                            )
+                          : const SizedBox(width: double.infinity),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppDimens.spaceSm),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: selected
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        key: ValueKey<String>('on'),
+                        size: 20,
+                        color: AppColors.success,
+                      )
+                    : Icon(
+                        Icons.circle_outlined,
+                        key: const ValueKey<String>('off'),
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The three strengths as one track rather than three loose chips.
+///
+/// Light to strong is a scale, and separate chips gave no sign of that.
+class _StrengthSegments extends StatelessWidget {
+  const _StrengthSegments({required this.selected, required this.onSelected});
+
+  final NoiseStrength selected;
+  final ValueChanged<NoiseStrength> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Row(
+        children: <Widget>[
+          for (final NoiseStrength option in NoiseStrength.values)
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => onSelected(option),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppDimens.spaceMd,
+                    ),
+                    decoration: BoxDecoration(
+                      color: option == selected
+                          ? AppColors.success.withValues(alpha: 0.18)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                      border: Border.all(
+                        color: option == selected
+                            ? AppColors.success.withValues(alpha: 0.55)
+                            : Colors.transparent,
+                      ),
+                    ),
+                    child: Text(
+                      option.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: option == selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: option == selected
+                            ? AppColors.success
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Why the export is blocked, said where the choice that blocked it was made.
+class _CleanupNotice extends StatelessWidget {
+  const _CleanupNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimens.spaceMd),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(width: AppDimens.spaceSm),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lets the clean-up be heard before the whole file is committed to it.
+///
+/// Two sides rather than one button: a denoised sample on its own tells you
+/// little, because what matters is what it took out of the original.
+class _CleanupPreviewCard extends StatelessWidget {
+  const _CleanupPreviewCard({required this.controller});
+
+  final ConverterController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final CleanupPreviewController preview =
+        Get.find<CleanupPreviewController>();
+
+    return Obx(() {
+      final MediaInfo? source = controller.primarySource;
+      if (source == null) {
+        return const SizedBox.shrink();
+      }
+
+      final String playing = preview.playingTag.value;
+      final bool rendering = preview.isRendering.value;
+      final String error = preview.errorMessage.value;
+
+      return _CleanupGroup(
+        title: K.previewSection.tr,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _PreviewButton(
+                    label: K.previewOriginal.tr,
+                    playing:
+                        playing == CleanupPreviewTag.original &&
+                        preview.isPlaying.value,
+                    busy: false,
+                    accent: theme.colorScheme.onSurfaceVariant,
+                    onTap: rendering ? null : controller.togglePreviewOriginal,
+                  ),
+                ),
+                const SizedBox(width: AppDimens.spaceSm),
+                Expanded(
+                  child: _PreviewButton(
+                    label: K.previewCleaned.tr,
+                    playing:
+                        playing == CleanupPreviewTag.cleaned &&
+                        preview.isPlaying.value,
+                    busy: rendering,
+                    accent: AppColors.success,
+                    onTap: rendering ? null : controller.togglePreviewCleaned,
+                  ),
+                ),
+              ],
+            ),
+            // Nothing is said here unless something went wrong: the two
+            // buttons explain themselves.
+            if (error.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppDimens.spaceMd),
+              Text(
+                error,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// One side of the preview, which doubles as its own pause button.
+class _PreviewButton extends StatelessWidget {
+  const _PreviewButton({
+    required this.label,
+    required this.playing,
+    required this.busy,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String label;
+
+  /// True only while sound is coming out, so a paused side offers to resume
+  /// rather than claiming to be playing.
+  final bool playing;
+  final bool busy;
+  final Color accent;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool lit = playing || busy;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppDimens.spaceMd,
+            horizontal: AppDimens.spaceSm,
+          ),
+          decoration: BoxDecoration(
+            color: lit
+                ? accent.withValues(alpha: 0.16)
+                : theme.colorScheme.surface.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            border: Border.all(
+              color: lit
+                  ? accent.withValues(alpha: 0.6)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              width: lit ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: busy
+                    ? CircularProgressIndicator(strokeWidth: 2, color: accent)
+                    : Icon(
+                        playing
+                            ? Icons.pause_circle_rounded
+                            : Icons.play_circle_outline_rounded,
+                        size: 20,
+                        color: lit
+                            ? accent
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+              ),
+              const SizedBox(width: AppDimens.spaceSm),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: lit ? accent : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

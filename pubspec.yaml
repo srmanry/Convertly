@@ -2,7 +2,7 @@ name: convertly
 description: "AudioForge is a simple, privacy-focused offline media converter and audio toolkit."
 publish_to: 'none'
 
-version: 1.1.1+5
+version: 1.2.0+6
 
 environment:
   sdk: ^3.12.1
@@ -78,6 +78,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/logo/audio.png
     # The trained noise model. FFmpeg opens it as a file, so it is copied out
     # of here on first use rather than read from the bundle.
     - assets/models/

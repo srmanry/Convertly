@@ -12,26 +12,62 @@ import 'core/routes/app_routes.dart';
 import 'core/services/ads_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_startup.dart';
 import 'features/settings/presentation/controllers/settings_controller.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Storage is resolved before the first frame so the saved theme applies
-  // immediately, with no flash of the wrong brightness.
-  final StorageService storage = await StorageService.init();
-  InitialBinding(storage).dependencies();
-  await Get.find<SettingsController>().load();
+  // Started here rather than inside the initializer, so the wait for storage
+  // overlaps building the first frame instead of beginning after it. This is
+  // the longest single step in startup: it is the first call across to the
+  // platform, which is what pays for loading every plugin's native code.
+  //
+  // The error is caught so a failure here is not an unhandled one before the
+  // app is even built; the initializer below sees it and asks again.
+  final Future<StorageService?> storage = StorageService.init().then(
+    (StorageService value) => value,
+    onError: (Object _) => null,
+  );
 
-  // Not awaited: the SDK reaches out to the network, and the app must not
-  // wait on that to draw its first screen. Ads appear once it is ready.
-  unawaited(Get.find<AdsService>().initialise());
-
-  runApp(const AudioForgeApp());
+  AppTranslations.install(
+    locale: AppTranslations.resolveLocale(null, Get.deviceLocale),
+  );
+  // Draw immediately; disk access must not hold the native splash open.
+  runApp(
+    AppStartup(
+      initialize: () => _initializeApp(storage),
+      ready: const AudioForgeApp(),
+    ),
+  );
 }
 
-class AudioForgeApp extends StatelessWidget {
+Future<void> _initializeApp(Future<StorageService?> pending) async {
+  // A second attempt starts its own: the head start above is used once, and
+  // retrying must not hand back the same failure for ever.
+  final StorageService storage = await pending ?? await StorageService.init();
+  InitialBinding(storage).dependencies();
+  await Get.find<SettingsController>().load();
+}
+
+class AudioForgeApp extends StatefulWidget {
   const AudioForgeApp({super.key});
+
+  @override
+  State<AudioForgeApp> createState() => _AudioForgeAppState();
+}
+
+class _AudioForgeAppState extends State<AudioForgeApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Consent and advertising start only after the home screen has drawn.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(Get.find<AdsService>().initialise());
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

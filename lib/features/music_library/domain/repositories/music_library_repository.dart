@@ -17,4 +17,8 @@ abstract interface class MusicLibraryRepository {
 
   /// Files this app produced.
   Future<Result<List<Song>>> appSongs();
+
+  /// Null/false means the device's edit confirmation was declined.
+  Future<Result<Song?>> renameSong(Song song, String newName);
+  Future<Result<bool>> deleteSong(Song song);
 }

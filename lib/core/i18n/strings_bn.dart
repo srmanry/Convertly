@@ -22,6 +22,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.back: 'পেছনে',
   K.goBack: 'ফিরে যান',
   K.tryAgain: 'আবার চেষ্টা করুন',
+  K.startupFailed: 'অ্যাপ চালু করা যায়নি। আবার চেষ্টা করুন।',
   K.refresh: 'রিফ্রেশ',
   K.next: 'পরবর্তী',
   K.skip: 'এড়িয়ে যান',
@@ -113,6 +114,17 @@ const Map<String, String> stringsBn = <String, String>{
   K.unknownTrack: 'অজানা ট্র্যাক',
   K.sourcePhone: 'ফোন',
   K.sourceInApp: 'অ্যাপে',
+  K.favourites: 'পছন্দের',
+  K.addFavourite: 'পছন্দের তালিকায় রাখুন',
+  K.removeFavourite: 'পছন্দের তালিকা থেকে সরান',
+  K.noFavourites: 'এখনও পছন্দের গান নেই',
+  K.favouritesHint: 'পছন্দের তালিকায় রাখতে গানে চেপে ধরে রাখুন।',
+  K.fileDetails: 'ফাইলের তথ্য',
+  K.createdInApp: 'এই অ্যাপে তৈরি হয়েছে',
+  K.dateAdded: 'ফোনের লাইব্রেরিতে যোগ হয়েছে',
+  K.fileSource: 'উৎস',
+  K.notAvailable: 'তথ্য নেই',
+  K.playAll: 'সব চালান',
   K.musicPermissionTitle: 'অ্যাপকে আপনার গান দেখতে দিন',
   K.musicPermissionMessage:
       'এই ফোনে থাকা গানগুলো দেখাতে হলে অ্যাপের আপনার গান পড়ার অনুমতি দরকার।',
@@ -190,6 +202,11 @@ const Map<String, String> stringsBn = <String, String>{
   K.cleanupEngineSection: 'প্রসেসিং',
   K.removeSection: 'সরান',
   K.strengthSection: 'মাত্রা',
+  K.previewSection: 'প্রিভিউ',
+  K.previewOriginal: 'আসল',
+  K.previewCleaned: 'পরিষ্কার',
+
+  K.previewFailed: 'এই নমুনাটি বাজানো গেল না।',
   K.strengthHint:
       'বেশি মাত্রায় নয়েজ বেশি কাটে, সাথে আসল শব্দও কিছুটা চলে যায়। ফাঁপা শোনালে হালকা দিয়ে শুরু করুন।',
   K.cleanupMonoWarning:
@@ -258,7 +275,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.adWatchShortVideo: 'একটি ছোট ভিডিও দেখুন',
   K.adRewardPromptMessage:
       'একটি ছোট ভিডিও দেখলে এই ফাইল আর পরের কয়েকটি ফাইলে বিজ্ঞাপন থাকবে না।',
-  K.adNoThanks: 'থাক',
+  K.adNoThanks: 'এখন নয়',
   K.adWatchVideo: 'ভিডিও দেখুন',
   K.adWatchForFiles: 'বিজ্ঞাপন দেখে @count টি ফাইল বিজ্ঞাপনহীন করুন',
   K.adNoAdsThisFile: 'এই ফাইলে কোনো বিজ্ঞাপন নেই।',
