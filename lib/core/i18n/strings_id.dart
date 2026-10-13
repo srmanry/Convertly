@@ -198,6 +198,17 @@ const Map<String, String> stringsId = <String, String>{
       'Semua trek berbunyi bersamaan sesuai level yang Anda atur.',
   K.previewBalanceNote:
       'Pratinjau untuk menyeimbangkan. Hasil akhir dibuat saat ekspor.',
+  K.timelineClips: 'Klip Anda · @count',
+  K.timelineEditHint:
+      'Seret bagian atas kartu untuk mengurutkan. Geser penggeser untuk memangkas.',
+  K.reorderClip: 'Seret untuk mengurutkan klip',
+  K.exportSettings: 'Pengaturan ekspor',
+  K.timelineScrollLabel: 'Gulir linimasa',
+  K.timelineScrollLeft: 'Gulir ke kiri',
+  K.timelineScrollRight: 'Gulir ke kanan',
+  K.timelineScrollHint:
+      'Gunakan bilah gulir untuk bergerak ke kiri atau kanan.',
+  K.timelineReorderHint: 'Seret klip ke kiri atau kanan untuk mengubah urutan.',
   K.timelineSection: 'Linimasa',
   K.timelineTotalUnknown: 'Panjang total diketahui setelah semua klip dibaca.',
   K.timelineTotal: 'Panjang total @duration',
@@ -332,12 +343,18 @@ const Map<String, String> stringsId = <String, String>{
   K.errorConversionNotStarted: 'Konversi itu tidak dapat dimulai.',
   K.errorNoFreeSpace:
       'Ruang kosong tidak cukup untuk menyimpan file hasil konversi.',
+  K.previewSelectionEmpty: 'Pilih bagian yang lebih panjang dari nol detik.',
+  K.previewSectionFailed: 'Bagian ini tidak dapat diputar.',
+  K.previewAddTrack: 'Tambahkan trek untuk mendengarkannya.',
+  K.previewTracksFailed: 'Trek-trek ini tidak dapat diputar bersamaan.',
+  K.previewAddClip: 'Tambahkan klip untuk mendengarkan treknya.',
+  K.previewClipsFailed: 'Klip-klip ini tidak dapat diputar.',
+  K.errorInvalidFileName: 'Masukkan nama berkas yang sah.',
+  K.errorNeedTwoTracks: 'Tambahkan setidaknya dua trek untuk dicampur.',
   K.errorOutputMissing: 'File hasil konversi tidak dapat dibuat.',
   K.errorOutputEmpty: 'File hasil konversi kosong. Silakan coba lagi.',
   K.errorUnableToRead: 'Tidak dapat membaca @name.',
-  K.errorInvalidFileName: 'Masukkan nama file yang benar.',
   K.errorSectionTooShort: 'Pilih bagian yang lebih panjang dari nol detik.',
-  K.errorNeedTwoTracks: 'Tambahkan minimal dua trek untuk dicampur.',
   K.errorMonoNoCentre:
       'Trek ini mono, jadi tidak ada kanal tengah terpisah untuk dihapus.',
   K.errorNoSaveLocation:

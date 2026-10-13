@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../features/audio_player/presentation/bindings/audio_player_binding.dart';
@@ -22,8 +23,10 @@ abstract final class AppPages {
   /// that paints nothing, though, is see-through during a route animation:
   /// the screen being left shows straight through the one arriving, which
   /// makes every push and pop look smeared. Its own backdrop makes it solid.
+  /// Also its own layer, so a push slides a finished picture of the page
+  /// rather than redrawing it from scratch sixty times a second.
   static GetPageBuilder _opaque(GetPageBuilder builder) =>
-      () => NeonBackdrop(child: builder());
+      () => RepaintBoundary(child: NeonBackdrop(child: builder()));
 
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
     GetPage<void>(

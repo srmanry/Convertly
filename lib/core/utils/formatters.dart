@@ -63,4 +63,14 @@ abstract final class Formatters {
     ];
     return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}';
   }
+
+  /// Date and clock time, e.g. `13 Oct 2026, 09:37`.
+  ///
+  /// The time is what tells two files apart when a tool has been run twice on
+  /// the same source: the names match, and so does the day.
+  static String dateTime(DateTime value) {
+    final String hour = value.hour.toString().padLeft(2, '0');
+    final String minute = value.minute.toString().padLeft(2, '0');
+    return '${date(value)}, $hour:$minute';
+  }
 }

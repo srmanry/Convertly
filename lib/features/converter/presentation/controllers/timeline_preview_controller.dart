@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+
+import '../../../../core/i18n/translation_keys.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../domain/entities/media_info.dart';
@@ -14,7 +16,13 @@ import '../../../../core/utils/playable_audio_source.dart';
 /// seamless. Starting each clip on a timer would leave an audible hole or an
 /// overlap at every boundary.
 class TimelinePreviewController extends GetxController {
-  final AudioPlayer _player = AudioPlayer();
+  /// Every clip is prepared up front rather than when its turn arrives.
+  ///
+  /// Lazy preparation is the default, and it meant each clip was only opened
+  /// once the one before it had finished — an audible hole between them. The
+  /// track this previews plays straight through with no gap, so hearing one
+  /// was hearing something the export would never produce.
+  final AudioPlayer _player = AudioPlayer(useLazyPreparation: false);
   final List<StreamSubscription<Object?>> _subscriptions =
       <StreamSubscription<Object?>>[];
 
@@ -108,7 +116,7 @@ class TimelinePreviewController extends GetxController {
     }
 
     if (clips.isEmpty) {
-      errorMessage.value = 'Add a clip to hear the track.';
+      errorMessage.value = K.previewAddClip.tr;
       return;
     }
 
@@ -139,7 +147,7 @@ class TimelinePreviewController extends GetxController {
       unawaited(_player.play());
     } catch (error) {
       _loadedKeys = <String>[];
-      errorMessage.value = 'These clips could not be played.';
+      errorMessage.value = K.previewClipsFailed.tr;
       isPlaying.value = false;
     } finally {
       isPreparing.value = false;

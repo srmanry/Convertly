@@ -34,9 +34,9 @@ class GlassSurface extends StatelessWidget {
       // BackdropFilter samples without bound unless it is clipped, which on
       // some backends smears the blur across the whole screen.
       borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: DecoratedBox(
+      child: _maybeBlur(
+        blur,
+        DecoratedBox(
           decoration: BoxDecoration(
             // Translucent, not tinted: glass reads as glass because the page
             // shows through it, and an opaque fill here would waste the blur.
@@ -67,4 +67,15 @@ class GlassSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Applies the backdrop blur, or skips it when [blur] is zero.
+Widget _maybeBlur(double blur, Widget child) {
+  if (blur <= 0) {
+    return child;
+  }
+  return BackdropFilter(
+    filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+    child: child,
+  );
 }

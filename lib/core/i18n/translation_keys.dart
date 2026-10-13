@@ -213,6 +213,15 @@ abstract final class K {
   static const String previewAll = 'converter_preview_all';
   static const String previewAllHint = 'converter_preview_all_hint';
   static const String previewBalanceNote = 'converter_preview_balance_note';
+  static const String timelineClips = 'converter_timeline_clips';
+  static const String timelineEditHint = 'converter_timeline_edit_hint';
+  static const String reorderClip = 'converter_reorder_clip';
+  static const String exportSettings = 'converter_export_settings';
+  static const String timelineScrollLabel = 'converter_timelineScrollLabel';
+  static const String timelineScrollLeft = 'converter_timelineScrollLeft';
+  static const String timelineScrollRight = 'converter_timelineScrollRight';
+  static const String timelineScrollHint = 'converter_timelineScrollHint';
+  static const String timelineReorderHint = 'converter_timeline_reorder_hint';
   static const String timelineSection = 'converter_timeline_section';
   static const String timelineTotalUnknown = 'converter_timeline_total_unknown';
   static const String timelineTotal = 'converter_timeline_total';
@@ -315,12 +324,18 @@ abstract final class K {
   static const String errorConversionNotStarted =
       'error_conversion_not_started';
   static const String errorNoFreeSpace = 'error_no_free_space';
+  static const String previewSelectionEmpty = 'preview_selection_empty';
+  static const String previewSectionFailed = 'preview_section_failed';
+  static const String previewAddTrack = 'preview_add_track';
+  static const String previewTracksFailed = 'preview_tracks_failed';
+  static const String previewAddClip = 'preview_add_clip';
+  static const String previewClipsFailed = 'preview_clips_failed';
+  static const String errorInvalidFileName = 'error_invalid_file_name';
+  static const String errorNeedTwoTracks = 'error_need_two_tracks';
   static const String errorOutputMissing = 'error_output_missing';
   static const String errorOutputEmpty = 'error_output_empty';
   static const String errorUnableToRead = 'error_unable_to_read';
-  static const String errorInvalidFileName = 'error_invalid_file_name';
   static const String errorSectionTooShort = 'error_section_too_short';
-  static const String errorNeedTwoTracks = 'error_need_two_tracks';
   static const String errorMonoNoCentre = 'error_mono_no_centre';
   static const String errorNoSaveLocation = 'error_no_save_location';
   static const String errorAddClipFirst = 'error_add_clip_first';

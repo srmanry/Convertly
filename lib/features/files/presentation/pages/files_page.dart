@@ -147,14 +147,15 @@ class FilesPage extends GetView<FilesController> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              // Which tool made it and when. Converting the same track twice
+              // leaves two rows with the same name, and these are the only
+              // things that tell them apart; format, size and length are the
+              // same for both, so they are left to the details sheet.
               subtitle: Text(
-                [
-                  file.format.toUpperCase(),
-                  Formatters.fileSize(file.sizeInBytes),
-                  if (file.duration != null)
-                    Formatters.duration(file.duration!),
-                  Formatters.date(file.createdAt),
-                ].join(' • '),
+                '${file.sourceType.label} • '
+                '${Formatters.dateTime(file.createdAt)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               // While selecting, a tap toggles instead of opening
               // the player, which is the standard Android gesture.
@@ -175,6 +176,8 @@ class FilesPage extends GetView<FilesController> {
                             await controller.share(file);
                           case _FileAction.rename:
                             await _showRenameDialog(context, file);
+                          case _FileAction.details:
+                            await _showFileDetails(context, file);
                           case _FileAction.delete:
                             await _confirmDeleteSingle(context, file);
                         }
@@ -196,6 +199,10 @@ class FilesPage extends GetView<FilesController> {
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.rename,
                               child: Text(K.rename.tr),
+                            ),
+                            PopupMenuItem<_FileAction>(
+                              value: _FileAction.details,
+                              child: Text(K.fileDetails.tr),
                             ),
                             PopupMenuItem<_FileAction>(
                               value: _FileAction.delete,
@@ -571,7 +578,7 @@ class _RenameFileDialogState extends State<_RenameFileDialog> {
   }
 }
 
-enum _FileAction { play, saveToPhone, share, rename, delete }
+enum _FileAction { play, saveToPhone, share, rename, details, delete }
 
 /// The normal app bar, with sorting.
 class _DefaultAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -753,4 +760,72 @@ class _SearchFieldState extends State<_SearchField> {
       ),
     );
   }
+}
+
+/// Everything known about a file, including what the row no longer shows.
+///
+/// The list says only which tool made it and when, because that is what tells
+/// two conversions of the same track apart; size, length and format live here
+/// rather than crowding every row with figures that are usually identical.
+Future<void> _showFileDetails(BuildContext context, MediaFile file) {
+  final MaterialLocalizations dates = MaterialLocalizations.of(context);
+  final List<(String, String)> rows = <(String, String)>[
+    (K.labelFile.tr, file.name),
+    (K.labelSize.tr, Formatters.fileSize(file.sizeInBytes)),
+    (
+      K.labelDuration.tr,
+      file.duration == null
+          ? K.notAvailable.tr
+          : Formatters.duration(file.duration!),
+    ),
+    (K.labelFormat.tr, file.format.toUpperCase()),
+    (K.fileSource.tr, file.sourceType.label),
+    (
+      K.createdInApp.tr,
+      '${dates.formatFullDate(file.createdAt)} · '
+          '${dates.formatTimeOfDay(TimeOfDay.fromDateTime(file.createdAt), alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context))}',
+    ),
+  ];
+
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) => AlertDialog(
+      scrollable: true,
+      title: Text(K.fileDetails.tr),
+      content: SizedBox(
+        width: AppDimens.maxContentWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (final (String label, String value) in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.spaceXs),
+                    // Selectable so a long converted name can be copied out
+                    // rather than read off the screen and typed again.
+                    SelectableText(value),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: Text(K.done.tr),
+        ),
+      ],
+    ),
+  );
 }

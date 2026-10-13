@@ -4,7 +4,7 @@ import 'package:convertly/core/i18n/app_translations.dart';
 import 'package:convertly/features/converter/domain/entities/media_info.dart';
 import 'package:convertly/features/converter/domain/entities/volume_envelope.dart';
 import 'package:convertly/features/converter/presentation/widgets/mix_track_list.dart';
-import 'package:convertly/features/converter/presentation/widgets/source_summary_card.dart';
+import 'package:convertly/features/converter/presentation/widgets/timeline_clip_card.dart';
 import 'package:convertly/features/converter/presentation/widgets/volume_lane.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -209,15 +209,16 @@ void main() {
     );
     await tester.pump();
 
-    final SourceSummaryCard summary = tester.widget<SourceSummaryCard>(
-      find.byType(SourceSummaryCard),
-    );
-    final Text number = tester.widget<Text>(find.text('1'));
-
-    expect(summary.titleMaxLines, 1);
-    expect(find.byIcon(Icons.drag_handle_rounded), findsNothing);
-    expect(number.style?.color, Colors.white);
-    expect(find.widgetWithText(FilledButton, 'Play'), findsOneWidget);
+    final Text title = tester.widget<Text>(find.text('$longName.mp3'));
+    expect(title.maxLines, 1);
+    expect(find.byType(TimelineClipCard), findsOneWidget);
+    expect(find.byType(ReorderableDragStartListener), findsOneWidget);
+    expect(find.byType(ReorderableDelayedDragStartListener), findsOneWidget);
+    expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
+    expect(find.text('01'), findsOneWidget);
+    expect(find.byTooltip('Play'), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('Play'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

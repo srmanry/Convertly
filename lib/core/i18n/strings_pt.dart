@@ -197,6 +197,17 @@ const Map<String, String> stringsPt = <String, String>{
       'Todas as faixas tocam juntas, nos níveis que você definiu.',
   K.previewBalanceNote:
       'Uma prévia para equilibrar. A mixagem final é feita na exportação.',
+  K.timelineClips: 'Seus clipes · @count',
+  K.timelineEditHint:
+      'Arraste a parte superior do cartão para reordenar. Mova os controles para cortar.',
+  K.reorderClip: 'Arraste para reordenar o clipe',
+  K.exportSettings: 'Configurações de exportação',
+  K.timelineScrollLabel: 'Rolar a linha do tempo',
+  K.timelineScrollLeft: 'Rolar para a esquerda',
+  K.timelineScrollRight: 'Rolar para a direita',
+  K.timelineScrollHint: 'Use a barra para rolar para a esquerda ou direita.',
+  K.timelineReorderHint:
+      'Arraste um clipe para a esquerda ou direita para mudar a ordem.',
   K.timelineSection: 'Linha do tempo',
   K.timelineTotalUnknown:
       'A duração total aparece depois que todos os clipes forem lidos.',
@@ -330,12 +341,18 @@ const Map<String, String> stringsPt = <String, String>{
   K.errorConversionNotStarted: 'Não foi possível iniciar essa conversão.',
   K.errorNoFreeSpace:
       'Não há espaço livre suficiente para salvar o arquivo convertido.',
+  K.previewSelectionEmpty: 'Escolha um trecho maior que zero segundos.',
+  K.previewSectionFailed: 'Não foi possível reproduzir este trecho.',
+  K.previewAddTrack: 'Adicione uma faixa para ouvi-la.',
+  K.previewTracksFailed: 'Não foi possível reproduzir estas faixas juntas.',
+  K.previewAddClip: 'Adicione um clipe para ouvir a faixa.',
+  K.previewClipsFailed: 'Não foi possível reproduzir estes clipes.',
+  K.errorInvalidFileName: 'Digite um nome de arquivo válido.',
+  K.errorNeedTwoTracks: 'Adicione pelo menos duas faixas para misturá-las.',
   K.errorOutputMissing: 'Não foi possível criar o arquivo convertido.',
   K.errorOutputEmpty: 'O arquivo convertido estava vazio. Tente de novo.',
   K.errorUnableToRead: 'Não foi possível ler @name.',
-  K.errorInvalidFileName: 'Digite um nome de arquivo válido.',
   K.errorSectionTooShort: 'Escolha um trecho maior que zero segundo.',
-  K.errorNeedTwoTracks: 'Adicione pelo menos duas faixas para mixar.',
   K.errorMonoNoCentre:
       'Esta faixa é mono, então não há canal central separado para remover.',
   K.errorNoSaveLocation:

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_dimens.dart';
-
 /// A labelled row of single-choice chips.
 class OptionChips<T> extends StatelessWidget {
   const OptionChips({
@@ -24,11 +22,16 @@ class OptionChips<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(title, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: AppDimens.spaceMd),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: AppDimens.spaceSm,
-          runSpacing: AppDimens.spaceSm,
+          spacing: 6,
+          runSpacing: 4,
           children: <Widget>[
             for (final T option in options)
               ChoiceChip(

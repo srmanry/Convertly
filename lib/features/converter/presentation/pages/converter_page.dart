@@ -28,6 +28,8 @@ import '../controllers/timeline_preview_controller.dart';
 import '../controllers/trim_preview_controller.dart';
 import '../controllers/trim_waveform_controller.dart';
 import '../widgets/clip_timeline_strip.dart';
+import '../widgets/timeline_preview_panel.dart';
+import '../widgets/timeline_export_options.dart';
 import '../widgets/mix_track_list.dart';
 import '../widgets/option_chips.dart';
 import '../widgets/source_summary_card.dart';
@@ -102,10 +104,18 @@ class _FailureView extends StatelessWidget {
   }
 }
 
-class _ConfigurationView extends StatelessWidget {
+class _ConfigurationView extends StatefulWidget {
   const _ConfigurationView({required this.controller});
 
   final ConverterController controller;
+
+  @override
+  State<_ConfigurationView> createState() => _ConfigurationViewState();
+}
+
+class _ConfigurationViewState extends State<_ConfigurationView> {
+  bool _clipsExpanded = true;
+  ConverterController get controller => widget.controller;
 
   @override
   Widget build(BuildContext context) {
@@ -120,9 +130,39 @@ class _ConfigurationView extends StatelessWidget {
 
       return Column(
         children: <Widget>[
+          if (controller.mode.isTimeline)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.pagePadding,
+                AppDimens.pagePadding,
+                AppDimens.pagePadding,
+                AppDimens.spaceLg,
+              ),
+              child: InkWell(
+                key: const ValueKey<String>('timeline-clips-toggle'),
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => setState(() => _clipsExpanded = !_clipsExpanded),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(child: _TimelineHeading(controller: controller)),
+                    Icon(
+                      _clipsExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(AppDimens.pagePadding),
+              padding: EdgeInsets.fromLTRB(
+                AppDimens.pagePadding,
+                controller.mode.isTimeline ? 0 : AppDimens.pagePadding,
+                AppDimens.pagePadding,
+                AppDimens.pagePadding,
+              ),
               children: <Widget>[
                 if (controller.mode.isMix) ...<Widget>[
                   Text(
@@ -143,79 +183,87 @@ class _ConfigurationView extends StatelessWidget {
                   const SizedBox(height: AppDimens.spaceLg),
                 ],
                 if (controller.mode.combinesTracks)
-                  MixTrackList(
-                    sources: sources,
-                    // Copied inside the Obx so a volume change is a read this
-                    // builder registers, and the list rebuilds with it.
-                    volumes: <double>[
-                      for (int i = 0; i < controller.clips.length; i++)
-                        controller.clipAt(i).volume,
-                    ],
-                    starts: <Duration>[
-                      for (int i = 0; i < controller.clips.length; i++)
-                        controller.startOfTrack(i),
-                    ],
-                    // Cutting a clip down to the part being used belongs to
-                    // the timeline; the mixer layers whole tracks.
-                    trimRanges: controller.mode.isTimeline
-                        ? <(Duration, Duration)>[
-                            for (int i = 0; i < controller.sources.length; i++)
-                              controller.trimRangeOf(i),
-                          ]
-                        : null,
-                    onTrimChanged: controller.mode.isTimeline
-                        ? controller.setClipTrim
-                        : null,
-                    onPreviewClip: controller.mode.isTimeline
-                        ? (int index) => _previewClip(controller, index)
-                        : null,
-                    previewingClip: controller.mode.isTimeline
-                        ? _previewingClip(controller)
-                        : null,
-                    previewError: controller.mode.isTimeline
-                        ? _clipPreviewError(controller)?.$2
-                        : null,
-                    previewErrorClip: controller.mode.isTimeline
-                        ? _clipPreviewError(controller)?.$1
-                        : null,
-                    // The two tools show opposite controls: the mixer
-                    // balances clips that all start together, the timeline
-                    // places clips that each play in turn.
-                    onVolumeChanged: controller.mode.isTimeline
-                        ? null
-                        : controller.setTrackVolume,
-                    // Shaping a level over time belongs to the mixer, where
-                    // tracks play at once and have to make room for each
-                    // other; on the timeline they take turns.
-                    envelopes: controller.mode.isMix
-                        ? <VolumeEnvelope>[
-                            for (int i = 0; i < controller.clips.length; i++)
-                              controller.envelopeOf(i),
-                          ]
-                        : null,
-                    onEnvelopeChanged: controller.mode.isMix
-                        ? controller.setEnvelope
-                        : null,
-                    onEnvelopeCleared: controller.mode.isMix
-                        ? controller.clearEnvelope
-                        : null,
-                    playheadOf: controller.mode.isMix
-                        ? Get.find<MixPreviewController>().playheadOf
-                        : null,
-                    onTrackPreview: controller.mode.isMix
-                        ? controller.toggleTrackPreview
-                        : null,
-                    // Read inside the Obx so a track starting or stopping
-                    // moves only its own button.
-                    previewingTrack: controller.mode.isMix
-                        ? Get.find<MixPreviewController>().soloTrack.value
-                        : null,
-                    isPreviewPreparing:
-                        controller.mode.isMix &&
-                        Get.find<MixPreviewController>().isPreparing.value,
-                    showsPositions: controller.mode.isTimeline,
-                    onRemove: controller.removeSourceAt,
-                    onReorder: controller.reorderSources,
+                  Visibility(
+                    visible: !controller.mode.isTimeline || _clipsExpanded,
+                    maintainState: true,
+                    child: MixTrackList(
+                      sources: sources,
+                      // Copied inside the Obx so a volume change is a read this
+                      // builder registers, and the list rebuilds with it.
+                      volumes: <double>[
+                        for (int i = 0; i < controller.clips.length; i++)
+                          controller.clipAt(i).volume,
+                      ],
+                      starts: <Duration>[
+                        for (int i = 0; i < controller.clips.length; i++)
+                          controller.startOfTrack(i),
+                      ],
+                      // Cutting a clip down to the part being used belongs to
+                      // the timeline; the mixer layers whole tracks.
+                      trimRanges: controller.mode.isTimeline
+                          ? <(Duration, Duration)>[
+                              for (
+                                int i = 0;
+                                i < controller.sources.length;
+                                i++
+                              )
+                                controller.trimRangeOf(i),
+                            ]
+                          : null,
+                      onTrimChanged: controller.mode.isTimeline
+                          ? controller.setClipTrim
+                          : null,
+                      onPreviewClip: controller.mode.isTimeline
+                          ? (int index) => _previewClip(controller, index)
+                          : null,
+                      previewingClip: controller.mode.isTimeline
+                          ? _previewingClip(controller)
+                          : null,
+                      previewError: controller.mode.isTimeline
+                          ? _clipPreviewError(controller)?.$2
+                          : null,
+                      previewErrorClip: controller.mode.isTimeline
+                          ? _clipPreviewError(controller)?.$1
+                          : null,
+                      // The two tools show opposite controls: the mixer
+                      // balances clips that all start together, the timeline
+                      // places clips that each play in turn.
+                      onVolumeChanged: controller.mode.isTimeline
+                          ? null
+                          : controller.setTrackVolume,
+                      // Shaping a level over time belongs to the mixer, where
+                      // tracks play at once and have to make room for each
+                      // other; on the timeline they take turns.
+                      envelopes: controller.mode.isMix
+                          ? <VolumeEnvelope>[
+                              for (int i = 0; i < controller.clips.length; i++)
+                                controller.envelopeOf(i),
+                            ]
+                          : null,
+                      onEnvelopeChanged: controller.mode.isMix
+                          ? controller.setEnvelope
+                          : null,
+                      onEnvelopeCleared: controller.mode.isMix
+                          ? controller.clearEnvelope
+                          : null,
+                      playheadOf: controller.mode.isMix
+                          ? Get.find<MixPreviewController>().playheadOf
+                          : null,
+                      onTrackPreview: controller.mode.isMix
+                          ? controller.toggleTrackPreview
+                          : null,
+                      // Read inside the Obx so a track starting or stopping
+                      // moves only its own button.
+                      previewingTrack: controller.mode.isMix
+                          ? Get.find<MixPreviewController>().soloTrack.value
+                          : null,
+                      isPreviewPreparing:
+                          controller.mode.isMix &&
+                          Get.find<MixPreviewController>().isPreparing.value,
+                      showsPositions: controller.mode.isTimeline,
+                      onRemove: controller.removeSourceAt,
+                      onReorder: controller.reorderSources,
+                    ),
                   )
                 else if (controller.mode.picksMultiple)
                   _MergeList(controller: controller)
@@ -226,7 +274,7 @@ class _ConfigurationView extends StatelessWidget {
                   ),
                 if (_offersLibraryPicker(controller)) ...<Widget>[
                   const SizedBox(height: AppDimens.spaceMd),
-                  _SourcePickerActions(controller: controller, compact: true),
+                  _SourcePickerActions(controller: controller),
                 ],
                 if (controller.mode.picksMultiple &&
                     !_offersLibraryPicker(controller)) ...<Widget>[
@@ -257,12 +305,16 @@ class _ConfigurationView extends StatelessWidget {
                   _CleanupSection(controller: controller),
                 ],
                 const SizedBox(height: AppDimens.spaceXl),
-                if (controller.mode.isCompression)
-                  _CompressionSection(controller: controller)
-                else
-                  _FormatSection(controller: controller),
-                const SizedBox(height: AppDimens.spaceXl),
-                _FileNameField(controller: controller),
+                if (controller.mode.isTimeline)
+                  _TimelineExportSettings(controller: controller)
+                else ...<Widget>[
+                  if (controller.mode.isCompression)
+                    _CompressionSection(controller: controller)
+                  else
+                    _FormatSection(controller: controller),
+                  const SizedBox(height: AppDimens.spaceXl),
+                  _FileNameField(controller: controller),
+                ],
                 Obx(() {
                   final String message = controller.errorMessage.value;
                   if (message.isEmpty) {
@@ -281,16 +333,19 @@ class _ConfigurationView extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(AppDimens.pagePadding),
-            child: Obx(
-              () => FilledButton.icon(
-                onPressed: controller.canConvert ? controller.convert : null,
-                icon: Icon(_iconFor(controller.mode)),
-                label: Text(_actionLabel(controller)),
+          if (controller.mode.isTimeline)
+            _TimelineExportBar(controller: controller)
+          else
+            Padding(
+              padding: const EdgeInsets.all(AppDimens.pagePadding),
+              child: Obx(
+                () => FilledButton.icon(
+                  onPressed: controller.canConvert ? controller.convert : null,
+                  icon: Icon(_iconFor(controller.mode)),
+                  label: Text(_actionLabel(controller)),
+                ),
               ),
             ),
-          ),
         ],
       );
     });
@@ -584,10 +639,9 @@ class _PickingProgress extends StatelessWidget {
 }
 
 class _SourcePickerActions extends StatelessWidget {
-  const _SourcePickerActions({required this.controller, this.compact = false});
+  const _SourcePickerActions({required this.controller});
 
   final ConverterController controller;
-  final bool compact;
 
   Future<void> _showLibraryPicker(BuildContext context) async {
     controller.loadLibraryFiles();
@@ -612,70 +666,44 @@ class _SourcePickerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final List<Widget> buttons = <Widget>[
-        FilledButton.icon(
-          onPressed: controller.isPicking.value ? null : controller.pickSource,
-          icon: const Icon(Icons.smartphone_rounded),
-          label: Text(
-            controller.mode.picksMultiple ? K.addFromPhone.tr : K.phoneFiles.tr,
-          ),
-        ),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-          onPressed: controller.isPicking.value
-              ? null
-              : () => _showLibraryPicker(context),
-          icon: const Icon(Icons.audio_file_rounded),
-          label: Text(
-            controller.mode.picksMultiple ? K.addFromApp.tr : K.appFiles.tr,
-          ),
-        ),
-      ];
-
-      if (compact) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _PickingProgress(controller: controller),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: AppDimens.spaceSm,
-                runSpacing: AppDimens.spaceSm,
-                children: buttons,
-              ),
-            ),
-          ],
-        );
-      }
-
+      final ColorScheme colors = Theme.of(context).colorScheme;
+      final ButtonStyle style = OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        backgroundColor: colors.primary.withValues(alpha: 0.10),
+        foregroundColor: colors.onSurface,
+        side: BorderSide(color: colors.primary.withValues(alpha: 0.30)),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        textStyle: Theme.of(context).textTheme.labelMedium,
+      );
       return Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _PickingProgress(controller: controller),
-          buttons.first,
-          const SizedBox(height: AppDimens.spaceSm),
           Row(
             children: <Widget>[
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimens.spaceMd,
-                ),
-                child: Text(
-                  K.orDivider.tr,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: style,
+                  onPressed: controller.isPicking.value
+                      ? null
+                      : controller.pickSource,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: Text(K.addFromPhone.tr, textAlign: TextAlign.center),
                 ),
               ),
-              const Expanded(child: Divider()),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: style,
+                  onPressed: controller.isPicking.value
+                      ? null
+                      : () => _showLibraryPicker(context),
+                  icon: const Icon(Icons.audio_file_outlined, size: 18),
+                  label: Text(K.addFromApp.tr, textAlign: TextAlign.center),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: AppDimens.spaceSm),
-          buttons.last,
         ],
       );
     });
@@ -1021,40 +1049,58 @@ class _TrimSection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          TrimWaveformFrame(
-            child: Obx(() {
-              final bool isPlaying = preview.isPlaying.value;
-
-              return TrimWaveform(
-                peaks: waveform.peaks.value,
-                isLoading: waveform.isLoading.value,
-                total: total,
-                start: start,
-                end: end,
-                // The clip is rebased to zero, so the player's position is an
-                // offset into the selection rather than into the track.
-                playhead: isPlaying ? start + preview.position.value : null,
-                isPlaying: isPlaying,
-                speed: controller.speed.value.value,
-                onChanged: controller.setTrimRange,
-              );
-            }),
-          ),
-          _HandleTimes(start: start, end: end, total: total),
-          const SizedBox(height: AppDimens.spaceSm),
-          // One card, not three. The bounds, the reset and the preview are one
-          // job — choosing a section and hearing it — and boxing each of them
-          // separately was what made the screen read as clutter.
           Card(
+            clipBehavior: Clip.antiAlias,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.spaceLg,
-                vertical: AppDimens.spaceMd,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  _SelectionBounds(controller: controller, total: total),
-                  const Divider(height: AppDimens.spaceXl),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          K.trimSelection.tr,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: start == Duration.zero && end == total
+                            ? null
+                            : () =>
+                                  controller.setTrimRange(Duration.zero, total),
+                        icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                        label: Text(K.reset.tr),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TrimWaveformFrame(
+                    child: Obx(() {
+                      final bool isPlaying = preview.isPlaying.value;
+
+                      return TrimWaveform(
+                        peaks: waveform.peaks.value,
+                        isLoading: waveform.isLoading.value,
+                        total: total,
+                        start: start,
+                        end: end,
+                        // The clip is rebased to zero, so the player's position is an
+                        // offset into the selection rather than into the track.
+                        playhead: isPlaying
+                            ? start + preview.position.value
+                            : null,
+                        isPlaying: isPlaying,
+                        speed: controller.speed.value.value,
+                        onChanged: controller.setTrimRange,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                  _SelectionBounds(controller: controller),
+                  const Divider(height: 24),
                   _PreviewRow(controller: controller, preview: preview),
                 ],
               ),
@@ -1074,101 +1120,21 @@ class _TrimSection extends StatelessWidget {
   }
 }
 
-class _HandleTimes extends StatelessWidget {
-  const _HandleTimes({
-    required this.start,
-    required this.end,
-    required this.total,
-  });
-
-  final Duration start;
-  final Duration end;
-  final Duration total;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextStyle? style = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-    );
-
-    double fractionOf(Duration value) {
-      final int totalMs = total.inMilliseconds;
-      if (totalMs <= 0) {
-        return 0;
-      }
-      return (value.inMilliseconds / totalMs).clamp(0.0, 1.0);
-    }
-
-    return SizedBox(
-      height: 20,
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double width = constraints.maxWidth;
-
-          // The waveform keeps a margin at each end, so a label placed on the
-          // raw fraction would sit beside its handle rather than under it.
-          double alignmentFor(Duration value) {
-            if (width <= 0) {
-              return 0;
-            }
-            final double track = math.max(
-              0,
-              width - TrimWaveform.edgeInset * 2,
-            );
-            final double centre =
-                TrimWaveform.edgeInset + fractionOf(value) * track;
-            // Alignment.x runs -1..1, pulled in from the edges so a label at
-            // either end is not clipped.
-            return (centre / width * 2 - 1).clamp(-0.94, 0.94);
-          }
-
-          return Stack(
-            children: <Widget>[
-              Align(
-                alignment: Alignment(alignmentFor(start), 0),
-                child: Text(Formatters.duration(start), style: style),
-              ),
-              Align(
-                alignment: Alignment(alignmentFor(end), 0),
-                child: Text(Formatters.duration(end), style: style),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// Start and end as read-outs, with the reset between them.
+/// The selected bounds, shown once beneath the waveform.
 class _SelectionBounds extends StatelessWidget {
-  const _SelectionBounds({required this.controller, required this.total});
+  const _SelectionBounds({required this.controller});
 
   final ConverterController controller;
-  final Duration total;
 
   @override
   Widget build(BuildContext context) {
     final Duration start = controller.trimStart.value;
     final Duration end = controller.trimEnd.value;
-    final bool isWholeTrack = start == Duration.zero && end == total;
 
     return Row(
       children: <Widget>[
         _BoundReadout(label: K.startLabel.tr, value: start),
-        Expanded(
-          child: Center(
-            child: TextButton(
-              // Nothing to undo on an untouched track, and an enabled reset
-              // there invites a tap that does nothing.
-              onPressed: isWholeTrack
-                  ? null
-                  : () => controller.setTrimRange(Duration.zero, total),
-              child: Text(K.reset.tr),
-            ),
-          ),
-        ),
+        const Spacer(),
         _BoundReadout(
           label: K.endLabel.tr,
           value: end,
@@ -1207,7 +1173,7 @@ class _BoundReadout extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           Formatters.duration(value),
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.labelLarge?.copyWith(
             // Tabular figures so the numbers do not jitter sideways while a
             // handle is being dragged.
             fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
@@ -1321,8 +1287,8 @@ class _PlayButton extends StatelessWidget {
         : colors.primary;
 
     return SizedBox(
-      width: 48,
-      height: 48,
+      width: 36,
+      height: 36,
       child: Material(
         color: backgroundColor,
         shape: const CircleBorder(),
@@ -1332,8 +1298,8 @@ class _PlayButton extends StatelessWidget {
           child: Center(
             child: isPreparing
                 ? SizedBox(
-                    width: 22,
-                    height: 22,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: Colors.white,
@@ -1342,7 +1308,7 @@ class _PlayButton extends StatelessWidget {
                 : Icon(
                     isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     color: Colors.white,
-                    size: 32,
+                    size: 24,
                   ),
           ),
         ),
@@ -1575,227 +1541,191 @@ class _MixPreviewCard extends StatelessWidget {
   }
 }
 
-/// How the clips are laid out, and how long that makes the finished track.
-class _TimelineSection extends StatelessWidget {
-  const _TimelineSection({required this.controller});
-
+/// A quick orientation before the editable clips.
+class _TimelineHeading extends StatelessWidget {
+  const _TimelineHeading({required this.controller});
   final ConverterController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final ThemeData theme = Theme.of(context);
-      final Duration? total = controller.sourceDuration;
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(K.timelineSection.tr, style: theme.textTheme.titleSmall),
-          const SizedBox(height: AppDimens.spaceMd),
-          _TimelineStrip(controller: controller),
-          const SizedBox(height: AppDimens.spaceLg),
-          Text(
-            total == null
-                ? K.timelineTotalUnknown.tr
-                : K.timelineTotal.trParams(<String, String>{
-                    'duration': Formatters.duration(total),
-                  }),
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: AppDimens.spaceXs),
-          Text(
-            K.timelineOrderNote.tr,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: AppDimens.spaceXl),
-          _TimelinePreviewCard(controller: controller),
-        ],
-      );
-    });
-  }
-}
-
-/// Plays the clips straight through so the finished track can be heard.
-class _TimelinePreviewCard extends StatelessWidget {
-  const _TimelinePreviewCard({required this.controller});
-
-  final ConverterController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final TimelinePreviewController preview =
-        Get.find<TimelinePreviewController>();
-
-    return Obx(() {
-      final ThemeData theme = Theme.of(context);
-      final bool isPlaying = preview.isPlaying.value;
-      final bool hasClips = controller.sources.isNotEmpty;
-
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.spaceLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(K.previewTheTrack.tr, style: theme.textTheme.titleSmall),
-              const SizedBox(height: AppDimens.spaceXs),
-              Text(K.previewTrackHint.tr, style: theme.textTheme.bodyMedium),
-              if (isPlaying) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceXs),
-                Text(
-                  '${Formatters.duration(preview.position.value)}'
-                  '  ·  ${K.clipNumber.trParams(<String, String>{'number': '${preview.currentClip.value + 1}'})}',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ],
-              const SizedBox(height: AppDimens.spaceMd),
-              _TimelinePlayButton(
-                onPressed: !hasClips || preview.isPreparing.value
-                    ? null
-                    : () => preview.toggle(
-                        clips: controller.sources.toList(),
-                        tracks: List<MixTrack>.of(controller.clips),
-                      ),
-                isPlaying: isPlaying,
-                label: isPlaying ? K.stop.tr : K.previewTheTrack.tr,
-              ),
-              if (preview.isPreparing.value) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceMd),
-                const LinearProgressIndicator(),
-              ],
-              if (preview.errorMessage.value.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceMd),
-                Text(
-                  preview.errorMessage.value,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              ],
-            ],
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          K.timelineClips.trParams(<String, String>{
+            'count': '${controller.sources.length}',
+          }),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-      );
-    });
+        const SizedBox(height: 6),
+        Text(
+          K.timelineEditHint.tr,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class _TimelinePlayButton extends StatelessWidget {
-  const _TimelinePlayButton({
-    required this.onPressed,
-    required this.isPlaying,
-    required this.label,
-  });
-
-  final VoidCallback? onPressed;
-  final bool isPlaying;
-  final String label;
+class _TimelineExportSettings extends StatelessWidget {
+  const _TimelineExportSettings({required this.controller});
+  final ConverterController controller;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    final bool enabled = onPressed != null;
-
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: <Color>[
-              colors.primary,
-              Color.alphaBlend(
-                colors.secondary.withValues(alpha: 0.42),
-                colors.primary,
-              ),
-            ],
+    final ThemeData theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('timeline-export-settings'),
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(Icons.tune_rounded, color: theme.colorScheme.primary),
+        title: Text(K.exportSettings.tr, style: theme.textTheme.titleSmall),
+        subtitle: Text(
+          '${controller.format.value.label}${controller.format.value.supportsBitrate ? ' · ${controller.quality.value.label}' : ''}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: colors.primary.withValues(alpha: 0.28),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+        children: <Widget>[
+          Obx(
+            () => TimelineExportOptions(
+              formats: controller.mode.availableFormats,
+              format: controller.format.value,
+              quality: controller.quality.value,
+              onFormatChanged: controller.setFormat,
+              onQualityChanged: controller.setQuality,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // The text field's horizontal scroll offset needs its own storage
+          // identity, separate from ExpansionTile's stored expansion bool.
+          KeyedSubtree(
+            key: const PageStorageKey<String>('timeline-output-name'),
+            child: _FileNameField(controller: controller),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Keeps the track length and final action visible while editing.
+class _TimelineExportBar extends StatelessWidget {
+  const _TimelineExportBar({required this.controller});
+  final ConverterController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              controller.sourceDuration == null
+                  ? K.timelineTotalUnknown.tr
+                  : K.timelineTotal.trParams(<String, String>{
+                      'duration': Formatters.duration(
+                        controller.sourceDuration!,
+                      ),
+                    }),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                foregroundColor: theme.colorScheme.onPrimary,
+              ),
+              onPressed: controller.canConvert ? controller.convert : null,
+              icon: const Icon(Icons.check_rounded),
+              label: Text(
+                K.actionBuildTrack.tr,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
-        ),
-        child: FilledButton.icon(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(AppDimens.buttonHeight),
-            backgroundColor: Colors.transparent,
-            disabledBackgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            disabledForegroundColor: Colors.white,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-            ),
-          ),
-          onPressed: onPressed,
-          icon: Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
-              size: 18,
-            ),
-          ),
-          label: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
         ),
       ),
     );
   }
 }
 
-/// The whole track at a glance: every clip in place, end to end.
-class _TimelineStrip extends StatelessWidget {
-  const _TimelineStrip({required this.controller});
+/// Overview and playback share a single timeline surface.
+class _TimelineSection extends StatelessWidget {
+  const _TimelineSection({required this.controller});
+  final ConverterController controller;
 
+  @override
+  Widget build(BuildContext context) =>
+      _TimelinePreviewCard(controller: controller);
+}
+
+/// Connects the sequence overview to the existing preview player.
+class _TimelinePreviewCard extends StatelessWidget {
+  const _TimelinePreviewCard({required this.controller});
   final ConverterController controller;
 
   @override
   Widget build(BuildContext context) {
     final TimelinePreviewController preview =
         Get.find<TimelinePreviewController>();
-
     return Obx(() {
-      final Duration? total = controller.sourceDuration;
-      if (total == null || total == Duration.zero) {
-        return const SizedBox.shrink();
-      }
-
-      // Numbered by where a clip actually lands in the picture, not by its
-      // place among the sources: a clip whose length could not be read
-      // contributes nothing and is left out here too, and the clips after it
-      // must not jump a number over the gap it leaves.
       final List<TimelineClip> clips = <TimelineClip>[];
+      final List<int> sourceOf = <int>[];
       for (int index = 0; index < controller.sources.length; index++) {
-        // The selected part is what plays, so it is what the block shows.
         if (controller.usedLengthOf(index) case final Duration length) {
           clips.add(
             TimelineClip(
-              label: '${clips.length + 1}',
+              label: '${index + 1}',
+              name: controller.sources[index].name,
               start: controller.startOfTrack(index),
               length: length,
             ),
           );
+          sourceOf.add(index);
         }
       }
-
-      return ClipTimelineStrip(
+      return TimelinePreviewPanel(
         clips: clips,
-        total: total,
-        // The marker only means something while something is playing.
-        playhead: preview.isPlaying.value ? preview.position.value : null,
+        total: controller.sourceDuration,
+        position: preview.position.value,
+        isPlaying: preview.isPlaying.value,
+        isPreparing: preview.isPreparing.value,
+        errorMessage: preview.errorMessage.value,
+        onPreview: controller.sources.isEmpty
+            ? null
+            : () => preview.toggle(
+                clips: controller.sources.toList(),
+                tracks: List<MixTrack>.of(controller.clips),
+              ),
+        onReorder: sourceOf.length < 2
+            ? null
+            : (int from, int to) => controller.reorderSources(
+                sourceOf[from],
+                sourceOf[to.clamp(0, sourceOf.length - 1)],
+              ),
       );
     });
   }

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+
+import '../../../../core/i18n/translation_keys.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../domain/entities/media_info.dart';
@@ -117,7 +119,7 @@ class MixPreviewController extends GetxController {
     }
 
     if (tracks.isEmpty) {
-      errorMessage.value = 'Add a track to hear it.';
+      errorMessage.value = K.previewAddTrack.tr;
       return;
     }
     if (only != null && (only < 0 || only >= tracks.length)) {
@@ -174,7 +176,7 @@ class MixPreviewController extends GetxController {
       }
     } catch (error) {
       await _release();
-      errorMessage.value = 'These tracks could not be played together.';
+      errorMessage.value = K.previewTracksFailed.tr;
     } finally {
       isPreparing.value = false;
     }

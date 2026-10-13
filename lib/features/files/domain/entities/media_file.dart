@@ -11,7 +11,23 @@ enum MediaSourceType {
   compress,
   mix,
   arrange,
-  cleanup,
+  cleanup;
+
+  /// The tool's own name, so a file can say where it came from.
+  ///
+  /// Borrowed from the tool list rather than written again: the two must not
+  /// drift apart, and these are already translated into every language the
+  /// app ships.
+  String get label => switch (this) {
+    MediaSourceType.videoToAudio => K.toolVideoToAudio.tr,
+    MediaSourceType.audioConvert => K.toolAudioConvert.tr,
+    MediaSourceType.cut => K.toolCut.tr,
+    MediaSourceType.merge => K.toolMerge.tr,
+    MediaSourceType.compress => K.toolCompress.tr,
+    MediaSourceType.mix => K.toolMix.tr,
+    MediaSourceType.arrange => K.toolArrange.tr,
+    MediaSourceType.cleanup => K.toolCleanup.tr,
+  };
 }
 
 /// Whether an entry is audio or video.

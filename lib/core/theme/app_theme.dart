@@ -70,6 +70,36 @@ abstract final class AppTheme {
       canvasColor: scheme.surface,
       scaffoldBackgroundColor: Colors.transparent,
       textTheme: AppTextStyles.textTheme(base.textTheme),
+      chipTheme: ChipThemeData(
+        color: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return scheme.primary.withValues(alpha: isDark ? 0.18 : 0.10);
+          }
+          return scheme.onSurface.withValues(alpha: isDark ? 0.035 : 0.025);
+        }),
+        labelStyle: WidgetStateTextStyle.resolveWith((states) {
+          final bool selected = states.contains(WidgetState.selected);
+          return base.textTheme.labelMedium!.copyWith(
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          );
+        }),
+        side: WidgetStateBorderSide.resolveWith(
+          (states) => BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? scheme.primary.withValues(alpha: 0.65)
+                : scheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+        checkmarkColor: scheme.primary,
+        showCheckmark: true,
+        elevation: 0,
+        pressElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: scheme.onSurface,

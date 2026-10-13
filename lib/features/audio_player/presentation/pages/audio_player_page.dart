@@ -63,13 +63,7 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
                             ),
                           ),
                           const SizedBox(height: AppDimens.spaceXl),
-                          Text(
-                            controller.title,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                          _TrackTitle(title: controller.title),
                           if (controller.queue.length > 1) ...<Widget>[
                             const SizedBox(height: AppDimens.spaceXs),
                             Text(
@@ -207,6 +201,46 @@ class _TransportControls extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The track's name, in a space two lines tall whether it needs them or not.
+///
+/// The column is centred, so a title that wrapped onto a second line pushed
+/// the progress bar, the transport controls and the speed chips down by half
+/// a line — and moving to a shorter-named track pulled them back up. Stepping
+/// through a queue made the whole cluster jump about. Holding the height
+/// steady costs one blank line under a short name and keeps everything below
+/// it still.
+class _TrackTitle extends StatelessWidget {
+  const _TrackTitle({required this.title});
+
+  final String title;
+
+  static const int _lines = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle style =
+        Theme.of(context).textTheme.titleMedium ?? const TextStyle();
+    // Scaled the way the text itself will be, so the reserved space still
+    // fits two lines for someone using a larger font size.
+    final double lineHeight = MediaQuery.textScalerOf(
+      context,
+    ).scale((style.fontSize ?? 16) * (style.height ?? 1.3));
+
+    return SizedBox(
+      height: lineHeight * _lines,
+      child: Center(
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: _lines,
+          overflow: TextOverflow.ellipsis,
+          style: style,
+        ),
       ),
     );
   }

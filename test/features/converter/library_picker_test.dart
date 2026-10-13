@@ -1,5 +1,14 @@
+import 'package:convertly/features/converter/presentation/widgets/clip_timeline_strip.dart';
+import 'package:convertly/core/i18n/app_translations.dart';
+import 'package:convertly/core/widgets/neon_backdrop.dart';
+import 'package:convertly/features/converter/domain/entities/mix_track.dart';
+import 'package:convertly/features/converter/presentation/controllers/timeline_preview_controller.dart';
 import 'package:convertly/core/enums/tool_mode.dart';
 import 'package:convertly/core/services/output_directory_service.dart';
+import 'package:convertly/core/services/ffmpeg_service.dart';
+import 'package:convertly/core/services/waveform_service.dart';
+import 'package:convertly/features/converter/presentation/controllers/trim_waveform_controller.dart';
+import 'package:convertly/features/converter/presentation/controllers/trim_preview_controller.dart';
 import 'package:convertly/core/theme/app_theme.dart';
 import 'package:convertly/core/types/result.dart';
 import 'package:convertly/features/converter/domain/entities/conversion_request.dart';
@@ -30,6 +39,13 @@ MediaFile _file(int id, String name) => MediaFile(
   sourceType: MediaSourceType.audioConvert,
   duration: Duration(seconds: id * 10),
 );
+
+class _StaticWaveforms extends WaveformService {
+  _StaticWaveforms() : super(FfmpegService(), OutputDirectoryService());
+
+  @override
+  Future<List<double>?> peaksFor(String source) async => List.filled(80, 0.6);
+}
 
 class _MediaRepository implements MediaRepository {
   @override
@@ -130,6 +146,54 @@ void main() {
     InspectMedia(media),
   );
 
+  testWidgets('cutter shows bounds once and resets from the waveform header', (
+    tester,
+  ) async {
+    final controller = controllerFor(ToolMode.cut);
+    Get.put<ConverterController>(controller);
+    Get.put<TrimPreviewController>(TrimPreviewController());
+    controller.sources.assignAll(<MediaInfo>[
+      const MediaInfo(
+        path: '/music/song.mp3',
+        name: 'Song.mp3',
+        sizeInBytes: 1000,
+        extension: 'mp3',
+        hasAudio: true,
+        hasVideo: false,
+        duration: Duration(seconds: 166),
+      ),
+    ]);
+    controller.setTrimRange(
+      const Duration(seconds: 40),
+      const Duration(seconds: 132),
+    );
+    Get.put<TrimWaveformController>(TrimWaveformController(_StaticWaveforms()));
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en'),
+        theme: AppTheme.dark,
+        home: const ConverterPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('0:40'), findsOneWidget);
+    expect(find.text('2:12'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('Add from phone')).dy,
+      tester.getCenter(find.text('Add from app')).dy,
+    );
+    expect(
+      tester.getTopLeft(find.text('Reset')).dy,
+      lessThan(tester.getTopLeft(find.text('Start')).dy),
+    );
+    await tester.tap(find.text('Reset'));
+    await tester.pumpAndSettle();
+    expect(controller.trimStart.value, Duration.zero);
+    expect(controller.trimEnd.value, const Duration(seconds: 166));
+    expect(tester.takeException(), isNull);
+  });
+
   Future<void> openPicker(
     WidgetTester tester,
     ConverterController controller,
@@ -186,7 +250,7 @@ void main() {
       GetMaterialApp(theme: AppTheme.dark, home: const ConverterPage()),
     );
     await tester.pump();
-    await tester.tap(find.text('App files'));
+    await tester.tap(find.text('Add from app'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Summer song.mp3'));
@@ -210,4 +274,152 @@ void main() {
       'Summer song.mp3',
     ]);
   });
+  testWidgets(
+    'timeline keeps export visible and updates its total after trimming',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final ConverterController controller = controllerFor(ToolMode.arrange);
+      Get.put<ConverterController>(controller);
+      Get.put<TimelinePreviewController>(TimelinePreviewController());
+      controller.fileName.value = 'timeline_audio';
+      controller.sources.assignAll(<MediaInfo>[
+        MediaInfo(
+          path: '/music/timeline_audio.mp3',
+          name: 'timeline_audio.mp3',
+          sizeInBytes: 24600000,
+          extension: 'mp3',
+          hasAudio: true,
+          hasVideo: false,
+          duration: const Duration(minutes: 17, seconds: 55),
+        ),
+        MediaInfo(
+          path: '/music/song.mp3',
+          name: 'SIMMBA_ Tere Bin _ Ranveer Singh.mp3',
+          sizeInBytes: 4900000,
+          extension: 'mp3',
+          hasAudio: true,
+          hasVideo: false,
+          duration: const Duration(minutes: 3, seconds: 35),
+        ),
+      ]);
+      controller.clips.assignAll(const <MixTrack>[
+        MixTrack(length: Duration(minutes: 17, seconds: 55)),
+        MixTrack(
+          start: Duration(minutes: 17, seconds: 55),
+          length: Duration(minutes: 3, seconds: 35),
+        ),
+      ]);
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en'),
+          theme: AppTheme.dark,
+          builder: (context, child) => NeonBackdrop(child: child!),
+          home: const ConverterPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Your clips · 2'), findsOneWidget);
+      final clipsToggle = find.byKey(
+        const ValueKey<String>('timeline-clips-toggle'),
+      );
+      expect(find.byType(ReorderableDragStartListener), findsNWidgets(2));
+      await tester.tap(clipsToggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(ReorderableDragStartListener), findsNothing);
+      expect(find.text('Your clips · 2'), findsOneWidget);
+      expect(find.text('Add from phone').hitTestable(), findsOneWidget);
+      await tester.tap(clipsToggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(ReorderableDragStartListener), findsNWidgets(2));
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Build Track'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(find.text('Total length 21:30'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Build Track').hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      // Exercise the real scrolling page and controller, not just the list callback.
+      final drag = await tester.startGesture(
+        tester.getTopLeft(find.byType(ReorderableDragStartListener).first) +
+            const Offset(100, 3),
+      );
+      for (int step = 0; step < 20; step++) {
+        await drag.moveBy(const Offset(0, 20));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await drag.up();
+      await tester.pumpAndSettle();
+      expect(
+        controller.sources.first.name,
+        'SIMMBA_ Tere Bin _ Ranveer Singh.mp3',
+      );
+      expect(
+        controller.startOfTrack(1),
+        const Duration(minutes: 3, seconds: 35),
+      );
+      expect(find.text('Total length 21:30'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      controller.reorderSources(1, 0);
+      await tester.pumpAndSettle();
+
+      controller.setClipTrim(0, Duration.zero, const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      expect(find.text('Total length 4:05'), findsOneWidget);
+      final ScrollableState pageScroll = tester.state(
+        find.byType(Scrollable).first,
+      );
+      pageScroll.position.jumpTo(0);
+      await tester.pumpAndSettle();
+      // The waveform blocks also reorder the real sources and keep trims.
+      final waveformDrag = await tester.startGesture(
+        tester.getCenter(find.byKey(ClipTimelineStrip.blockKey(1))),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await waveformDrag.moveTo(
+        tester.getCenter(find.byKey(ClipTimelineStrip.blockKey(0))),
+      );
+      await tester.pump();
+      await waveformDrag.up();
+      await tester.pumpAndSettle();
+      expect(
+        controller.sources.first.name,
+        'SIMMBA_ Tere Bin _ Ranveer Singh.mp3',
+      );
+      expect(controller.usedLengthOf(1), const Duration(seconds: 30));
+      expect(
+        controller.startOfTrack(1),
+        const Duration(minutes: 3, seconds: 35),
+      );
+      expect(find.text('Total length 4:05'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      pageScroll.position.jumpTo(pageScroll.position.maxScrollExtent);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Export settings'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('File name'),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('File name'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Build Track').hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

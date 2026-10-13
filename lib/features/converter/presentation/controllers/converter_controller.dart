@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 
+import '../../../../core/i18n/translation_keys.dart';
+
 import '../../../../core/enums/audio_format.dart';
 import '../../../../core/enums/audio_quality.dart';
 import '../../../../core/enums/cleanup_mode.dart';
@@ -34,7 +36,6 @@ import 'cleanup_preview_controller.dart';
 import 'mix_preview_controller.dart';
 import 'timeline_preview_controller.dart';
 import 'trim_preview_controller.dart';
-import '../../../../core/i18n/translation_keys.dart';
 import '../../../../core/services/noise_model_service.dart';
 
 /// Where the user is in the conversion flow.
@@ -671,24 +672,22 @@ class ConverterController extends GetxController {
 
     final String? safeName = FileUtils.sanitizeFileName(fileName.value);
     if (safeName == null) {
-      errorMessage.value = 'Please enter a valid file name.';
+      errorMessage.value = K.errorInvalidFileName.tr;
       return;
     }
 
     if (_mode.supportsTrim && trimEnd.value <= trimStart.value) {
-      errorMessage.value = 'Please select a section longer than zero seconds.';
+      errorMessage.value = K.previewSelectionEmpty.tr;
       return;
     }
 
     if (_mode.needsTwoSources && sources.length < 2) {
-      errorMessage.value = 'Add at least two tracks to mix them together.';
+      errorMessage.value = K.errorNeedTwoTracks.tr;
       return;
     }
 
     if (isCleanupUnsupported) {
-      errorMessage.value =
-          'This track is mono, so there is no separate centre channel to '
-          'remove. Try another cleanup option.';
+      errorMessage.value = K.cleanupMonoWarning.tr;
       return;
     }
 

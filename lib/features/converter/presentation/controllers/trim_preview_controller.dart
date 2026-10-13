@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+
+import '../../../../core/i18n/translation_keys.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/utils/playable_audio_source.dart';
@@ -64,7 +66,7 @@ class TrimPreviewController extends GetxController {
     }
 
     if (end <= start) {
-      errorMessage.value = 'Select a section longer than zero seconds.';
+      errorMessage.value = K.previewSelectionEmpty.tr;
       return;
     }
 
@@ -93,13 +95,13 @@ class TrimPreviewController extends GetxController {
       // already running — and could not be pressed to stop it.
       unawaited(
         _player.play().catchError((Object _) {
-          errorMessage.value = 'This section could not be played.';
+          errorMessage.value = K.previewSectionFailed.tr;
           errorTag.value = tag;
         }),
       );
     } catch (error) {
       _loadedSource = null;
-      errorMessage.value = 'This section could not be played.';
+      errorMessage.value = K.previewSectionFailed.tr;
       errorTag.value = tag;
       playingTag.value = '';
     } finally {

@@ -13,35 +13,49 @@ class NeonBackdrop extends StatelessWidget {
     final Brightness brightness = Theme.of(context).brightness;
     final bool isDark = brightness == Brightness.dark;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.backgroundGradient(brightness),
-          stops: const <double>[0, 0.52, 1],
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        // Four full-screen gradients, painted once and kept.
+        //
+        // They never change while a page is open, but without a boundary of
+        // their own they were repainted on every frame of every animation —
+        // and during a push two pages are on screen, so that was eight
+        // full-screen gradients a frame. Behind a boundary they become one
+        // cached layer that the transition simply moves.
+        RepaintBoundary(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.backgroundGradient(brightness),
+                stops: const <double>[0, 0.52, 1],
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                _Glow(
+                  alignment: const Alignment(1.35, -1.25),
+                  color: AppColors.accentVideo,
+                  opacity: isDark ? 0.2 : 0.12,
+                ),
+                _Glow(
+                  alignment: const Alignment(-1.4, 0.7),
+                  color: AppColors.accentAudio,
+                  opacity: isDark ? 0.14 : 0.1,
+                ),
+                // Vignette. Darkening the corners pushes the background
+                // further behind the raised cards, which is what gives the
+                // stack its sense of a foreground and a distance.
+                const _Vignette(),
+              ],
+            ),
+          ),
         ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          _Glow(
-            alignment: const Alignment(1.35, -1.25),
-            color: AppColors.accentVideo,
-            opacity: isDark ? 0.2 : 0.12,
-          ),
-          _Glow(
-            alignment: const Alignment(-1.4, 0.7),
-            color: AppColors.accentAudio,
-            opacity: isDark ? 0.14 : 0.1,
-          ),
-          // Vignette. Darkening the corners pushes the background further
-          // behind the raised cards, which is what gives the stack its sense
-          // of a foreground and a distance.
-          const _Vignette(),
-          child,
-        ],
-      ),
+        child,
+      ],
     );
   }
 }

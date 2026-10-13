@@ -38,7 +38,20 @@ class ConversionResultPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(K.conversionComplete.tr)),
+      appBar: AppBar(
+        title: Text(K.conversionComplete.tr),
+        actions: <Widget>[
+          TextButton.icon(
+            onPressed: () => _share(context, result),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: Text(K.share.tr),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -130,15 +143,6 @@ class ConversionResultPage extends StatelessWidget {
                             ),
                             icon: const Icon(Icons.download_rounded),
                             label: Text(K.saveToPhone.tr),
-                          ),
-                          const SizedBox(height: AppDimens.spaceMd),
-                          OutlinedButton.icon(
-                            onPressed: () => _share(context, result),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                            ),
-                            icon: const Icon(Icons.share_rounded),
-                            label: Text(K.share.tr),
                           ),
                           const SizedBox(height: AppDimens.spaceMd),
                           // The moment a file is ready is when more files are on the

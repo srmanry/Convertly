@@ -9,6 +9,7 @@ import '../../domain/entities/media_info.dart';
 import '../../domain/entities/volume_envelope.dart';
 import 'mixer_track_card.dart';
 import 'source_summary_card.dart';
+import 'timeline_clip_card.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
 /// The mixer's track list: every clip with its own start point and volume.
@@ -149,9 +150,8 @@ class MixTrackList extends StatelessWidget {
         final MediaInfo media = sources[index];
         final Key key = ValueKey<String>('${media.path}#$index');
 
-        // The mixer gets one unified, coloured card per track; the timeline
-        // keeps its own plainer row, built for stepping clips one after
-        // another rather than balancing them against each other.
+        // Both tools use a single surface per clip, with controls suited to
+        // either volume shaping or sequential trimming.
         if (onEnvelopeChanged
             case final void Function(int, VolumeEnvelope) change) {
           return Padding(
@@ -186,6 +186,31 @@ class MixTrackList extends StatelessWidget {
           );
         }
 
+        if (showsPositions) {
+          return Padding(
+            key: key,
+            padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
+            child: TimelineClipCard(
+              index: index,
+              media: media,
+              range: _rangeFor(index, media),
+              start: index < starts.length ? starts[index] : Duration.zero,
+              onRemove: () => onRemove(index),
+              onTrimChanged: onTrimChanged == null
+                  ? null
+                  : (Duration start, Duration end) =>
+                        onTrimChanged!(index, start, end),
+              onPreview: onPreviewClip == null
+                  ? null
+                  : () => onPreviewClip!(index),
+              isPlaying: previewingClip == index,
+              errorMessage: previewErrorClip == index
+                  ? (previewError ?? '')
+                  : '',
+            ),
+          );
+        }
+
         return Padding(
           key: key,
           padding: const EdgeInsets.only(bottom: AppDimens.spaceMd),
@@ -199,16 +224,8 @@ class MixTrackList extends StatelessWidget {
                 index: index,
                 child: SourceSummaryCard(
                   media: media,
-                  titleMaxLines: showsPositions ? 1 : 2,
+                  titleMaxLines: 2,
                   onRemove: () => onRemove(index),
-                  leading: showsPositions
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppDimens.spaceSm,
-                          ),
-                          child: _ClipNumber(index: index),
-                        )
-                      : null,
                 ),
               ),
               if (onTrimChanged
@@ -226,49 +243,10 @@ class MixTrackList extends StatelessWidget {
                       ? null
                       : () => onPreviewClip!(index),
                 ),
-              if (showsPositions)
-                _PlaysRow(
-                  start: index < starts.length ? starts[index] : Duration.zero,
-                  clipLength: index < starts.length
-                      ? _rangeFor(index, media).$2 - _rangeFor(index, media).$1
-                      : media.duration,
-                ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-/// The clip's position in the sequence, coloured to match its block.
-class _ClipNumber extends StatelessWidget {
-  const _ClipNumber({required this.index});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    final bool isEven = index.isEven;
-    final Color accent = isEven ? colors.primary : colors.tertiary;
-
-    return Container(
-      width: 26,
-      height: 26,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(Colors.black.withValues(alpha: 0.14), accent),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        '${index + 1}',
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 }
@@ -364,46 +342,6 @@ class _TrimRow extends StatelessWidget {
                 color: theme.colorScheme.error,
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-/// When this clip plays within the finished track.
-class _PlaysRow extends StatelessWidget {
-  const _PlaysRow({required this.start, required this.clipLength});
-
-  final Duration start;
-  final Duration? clipLength;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Duration? end = clipLength == null ? null : start + clipLength!;
-    if (end == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimens.spaceSm,
-        vertical: AppDimens.spaceXs,
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(
-            Icons.schedule_rounded,
-            size: AppDimens.iconSm,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: AppDimens.spaceSm),
-          Text(
-            '${K.playsAt.trParams(<String, String>{'time': Formatters.duration(start)})} – ${Formatters.duration(end)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
         ],
       ),
     );

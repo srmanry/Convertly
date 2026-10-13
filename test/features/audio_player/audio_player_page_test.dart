@@ -11,6 +11,16 @@ List<PlayerTrack> tracks(int count) => <PlayerTrack>[
     PlayerTrack(path: '/music/track_$i.mp3', title: 'Song number $i'),
 ];
 
+/// Alternating short and very long names, so moving through the queue swings
+/// the title between one line and two.
+List<PlayerTrack> unevenlyNamedTracks() => <PlayerTrack>[
+  const PlayerTrack(path: '/music/a.mp3', title: 'Short.mp3'),
+  const PlayerTrack(
+    path: '/music/b.mp3',
+    title: 'A recording with a name long enough to wrap onto a second line.mp3',
+  ),
+];
+
 void main() {
   tearDown(Get.reset);
 
@@ -44,6 +54,43 @@ void main() {
   }
 
   group('layout', () {
+    testWidgets('the controls sit at the same height whatever the title', (
+      WidgetTester tester,
+    ) async {
+      // The reported bug: stepping through a queue made the progress bar,
+      // the transport controls and the speed chips jump up and down, because
+      // the centred column shifted whenever a title wrapped onto a second
+      // line.
+      //
+      // Each track is opened on its own rather than stepped into, so the
+      // check is about layout and not about a queue move that would try to
+      // decode a file this test does not have.
+      Future<Offset> sliderTopFor(int startIndex) async {
+        tester.view.physicalSize =
+            const Size(360, 640) * tester.view.devicePixelRatio;
+        addTearDown(tester.view.reset);
+
+        Get.put<AudioPlayerController>(
+          AudioPlayerController(
+            queue: unevenlyNamedTracks(),
+            startIndex: startIndex,
+          ),
+        );
+        await tester.pumpWidget(
+          GetMaterialApp(theme: AppTheme.dark, home: const AudioPlayerPage()),
+        );
+        await tester.pump();
+        final Offset top = tester.getTopLeft(find.byType(Slider));
+        Get.reset();
+        return top;
+      }
+
+      final Offset shortName = await sliderTopFor(0);
+      final Offset longName = await sliderTopFor(1);
+
+      expect(longName, shortName);
+    });
+
     testWidgets('does not overflow on a small phone', (
       WidgetTester tester,
     ) async {

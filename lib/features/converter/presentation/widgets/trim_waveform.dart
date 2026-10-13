@@ -438,9 +438,12 @@ class _WaveformPainter extends CustomPainter {
 
     // The selected stretch gets a tinted bed, so the choice is legible even
     // where the track is near silent and the bars themselves are hairlines.
-    canvas.drawRect(
-      Rect.fromLTRB(startX, 0, endX, size.height),
-      Paint()..color = accent.withValues(alpha: 0.1),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(startX, 0, endX, size.height),
+        const Radius.circular(8),
+      ),
+      Paint()..color = playheadColor.withValues(alpha: 0.10),
     );
 
     final double? headX = playheadFraction == null
@@ -451,7 +454,7 @@ class _WaveformPainter extends CustomPainter {
     if (headX != null && headX > startX) {
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, headX, size.height),
-        Paint()..color = accent.withValues(alpha: 0.16),
+        Paint()..color = playheadColor.withValues(alpha: 0.06),
       );
     }
 
@@ -495,14 +498,13 @@ class _WaveformPainter extends CustomPainter {
       math.min(peaks.length, trackWidth ~/ _barSlot),
     );
     final double step = trackWidth / bars;
-    final double barWidth = math.max(1.5, step * 0.6);
-    final double usable = centre - 4;
+    final double barWidth = math.max(1.5, math.min(2, step * 0.45));
+    final double usable = math.max(1, centre - 10);
 
     // Heard already is the solid colour; still to come is faded. The other
     // way round reads as the preview undoing itself as it plays.
-    final Paint played = Paint()..color = accent;
-    final Paint ahead = Paint()..color = accent.withValues(alpha: 0.4);
-    final Paint outside = Paint()..color = muted.withValues(alpha: 0.38);
+    final Paint outside = Paint()
+      ..color = playheadColor.withValues(alpha: 0.40);
     final Color glowColor = Color.lerp(accent, playheadColor, 0.55)!;
 
     // Bars keep their true heights while playing; the life comes from a band
@@ -517,12 +519,20 @@ class _WaveformPainter extends CustomPainter {
       // and a gap in the drawing reads as missing data instead of as quiet.
       final double half = math.max(1, _heightAt(i, bars) * usable);
       final bool selected = x >= startX && x <= endX;
+      final Color barColor = Color.lerp(
+        accent,
+        const Color(0xFF7C9CFF),
+        i / math.max(1, bars - 1) * 0.65,
+      )!;
 
       // With nothing playing there is no "already heard", so the whole
       // selection stays solid rather than half of it looking spent.
       Paint paint = !selected
           ? outside
-          : (headX == null || x <= headX ? played : ahead);
+          : (Paint()
+              ..color = barColor.withValues(
+                alpha: headX == null || x <= headX ? 0.9 : 0.4,
+              ));
 
       if (selected && headX != null) {
         final double nearness = 1 - ((x - headX).abs() / glowSpan);
@@ -627,7 +637,7 @@ class _WaveformPainter extends CustomPainter {
   }
 
   void _paintHandle(Canvas canvas, Size size, double x) {
-    const double width = 3;
+    const double width = 2;
     final Paint paint = Paint()..color = accent;
 
     canvas.drawRRect(
@@ -640,7 +650,7 @@ class _WaveformPainter extends CustomPainter {
 
     // Caps at both ends, which is what makes the line read as a grabbable
     // handle rather than as a marker drawn on the track.
-    final double radius = dragging ? 6 : 5;
+    final double radius = dragging ? 5 : 4;
     canvas.drawCircle(Offset(x, radius), radius, paint);
     canvas.drawCircle(Offset(x, size.height - radius), radius, paint);
   }
