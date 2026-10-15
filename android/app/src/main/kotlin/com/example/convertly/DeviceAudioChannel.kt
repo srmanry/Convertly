@@ -74,6 +74,7 @@ class DeviceAudioChannel(private val activity: Activity) :
             "hasPermission" -> result.success(hasPermission())
             "requestPermission" -> requestPermission(result)
             "saveToMusic" -> saveToMusic(call, result)
+            "copyProjectInput" -> copyProjectInput(call, result)
             "renameSong", "deleteSong" -> editSong(call, result)
             "querySongs" ->
                 if (hasPermission()) {
@@ -85,6 +86,35 @@ class DeviceAudioChannel(private val activity: Activity) :
                 }
             else -> result.notImplemented()
         }
+    }
+
+    /** Stream a picked document into app-owned storage so drafts survive restarts. */
+    private fun copyProjectInput(call: MethodCall, result: MethodChannel.Result) {
+        val source = call.argument<String>("uri")
+        val path = call.argument<String>("path")
+        if (source == null || path == null) {
+            result.error("bad_args", "uri and path are required", null)
+            return
+        }
+        val target = File(path)
+        val roots = listOfNotNull(activity.filesDir, activity.getExternalFilesDir(null))
+        if (roots.none { target.canonicalPath.startsWith(it.canonicalPath + File.separator) }) {
+            result.error("bad_path", "Project inputs must stay in app storage", null)
+            return
+        }
+        Thread {
+            try {
+                activity.contentResolver.openInputStream(Uri.parse(source))?.use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw java.io.IOException("Could not open project input")
+                activity.runOnUiThread { result.success(null) }
+            } catch (error: Exception) {
+                target.delete()
+                activity.runOnUiThread {
+                    result.error("copy_failed", "Could not save project input", null)
+                }
+            }
+        }.start()
     }
 
     private fun hasPermission(): Boolean =

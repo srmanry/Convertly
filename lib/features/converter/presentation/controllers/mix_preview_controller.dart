@@ -28,6 +28,11 @@ import '../../../../core/utils/playable_audio_source.dart';
 /// is heard at 1:12, and moving a point while the preview runs is heard at
 /// once.
 class MixPreviewController extends GetxController {
+  MixPreviewController({AudioPlayer Function()? createPlayer})
+    : _createPlayer = createPlayer ?? AudioPlayer.new;
+
+  final AudioPlayer Function() _createPlayer;
+
   /// How often levels and playheads are brought up to date. Fine enough that
   /// a fade sounds smooth rather than stepped.
   static const Duration tick = Duration(milliseconds: 50);
@@ -190,7 +195,7 @@ class MixPreviewController extends GetxController {
     await _release();
 
     for (final int index in chosen) {
-      final AudioPlayer player = AudioPlayer();
+      final AudioPlayer player = _createPlayer();
       _players.add(player);
       _slotTrack.add(index);
 
@@ -402,16 +407,21 @@ class MixPreviewController extends GetxController {
     }
     _scheduledStarts.clear();
 
-    for (final StreamSubscription<Object?> subscription in _subscriptions) {
-      await subscription.cancel();
-    }
+    // Detach before awaiting: stop() and route disposal can overlap.
+    final List<StreamSubscription<Object?>> subscriptions =
+        List<StreamSubscription<Object?>>.of(_subscriptions);
+    final List<AudioPlayer> players = List<AudioPlayer>.of(_players);
     _subscriptions.clear();
-
-    for (final AudioPlayer player in _players) {
-      await player.dispose();
-    }
     _players.clear();
     _slotTrack.clear();
+
+    for (final StreamSubscription<Object?> subscription in subscriptions) {
+      await subscription.cancel();
+    }
+
+    for (final AudioPlayer player in players) {
+      await player.dispose();
+    }
   }
 
   @override

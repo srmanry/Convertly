@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_dimens.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/media_info.dart';
 import '../../domain/entities/volume_envelope.dart';
@@ -128,12 +127,6 @@ class MixTrackList extends StatelessWidget {
         : K.layerNumber.trParams(<String, String>{'number': '${index + 1}'});
   }
 
-  /// This track's own colour, cycled from the same accents the home screen
-  /// uses for its tools — so a stack of tracks reads as separate voices
-  /// without the mixer inventing a palette of its own.
-  Color _accentFor(int index) =>
-      AppColors.mixTrackAccents[index % AppColors.mixTrackAccents.length];
-
   @override
   Widget build(BuildContext context) {
     return ReorderableListView.builder(
@@ -161,7 +154,7 @@ class MixTrackList extends StatelessWidget {
               index: index,
               media: media,
               label: trackLabel(index),
-              accent: _accentFor(index),
+              accent: Theme.of(context).colorScheme.primary,
               envelope: _envelopeFor(index),
               onEnvelopeChanged: (VolumeEnvelope envelope) =>
                   change(index, envelope),

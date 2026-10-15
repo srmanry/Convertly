@@ -2,6 +2,21 @@ import 'translation_keys.dart';
 
 /// Indonesian.
 const Map<String, String> stringsId = <String, String>{
+  K.projectDraft: 'Sedang dikerjakan',
+  K.projectCompleted: 'Selesai',
+  K.projectCancelled: 'Dibatalkan',
+  K.projectSaving: 'Menyimpan…',
+  K.projectAutoSaved: 'Tersimpan di perangkat ini',
+  K.projectNotSaved: 'Belum tersimpan',
+  K.projectSaveLater: 'Simpan untuk nanti',
+  K.projectCancel: 'Batalkan proyek',
+  K.projectSavedProjects: 'Proyek tersimpan',
+  K.projectNew: 'Proyek baru',
+  K.projectNone: 'Belum ada proyek dengan status ini.',
+  K.projectClipCount: '@count klip',
+  K.projectSaveFailed:
+      'Proyek tidak dapat disimpan. Biarkan layar ini terbuka dan coba lagi.',
+  K.projectLoadFailed: 'Proyek tersimpan tidak dapat dimuat.',
   K.navHome: 'Beranda',
   K.navFiles: 'File',
   K.navPlayer: 'Pemutar',
@@ -200,7 +215,7 @@ const Map<String, String> stringsId = <String, String>{
       'Pratinjau untuk menyeimbangkan. Hasil akhir dibuat saat ekspor.',
   K.timelineClips: 'Klip Anda · @count',
   K.timelineEditHint:
-      'Seret bagian atas kartu untuk mengurutkan. Geser penggeser untuk memangkas.',
+      'Seret ikon tangan untuk mengurutkan. Geser penggeser untuk memangkas.',
   K.reorderClip: 'Seret untuk mengurutkan klip',
   K.exportSettings: 'Pengaturan ekspor',
   K.timelineScrollLabel: 'Gulir linimasa',

@@ -2,6 +2,21 @@ import 'translation_keys.dart';
 
 /// Hindi.
 const Map<String, String> stringsHi = <String, String>{
+  K.projectDraft: 'जारी है',
+  K.projectCompleted: 'पूरा हुआ',
+  K.projectCancelled: 'रद्द किया गया',
+  K.projectSaving: 'सहेजा जा रहा है…',
+  K.projectAutoSaved: 'इस डिवाइस पर सहेजा गया',
+  K.projectNotSaved: 'सहेजा नहीं गया',
+  K.projectSaveLater: 'बाद के लिए सहेजें',
+  K.projectCancel: 'प्रोजेक्ट रद्द करें',
+  K.projectSavedProjects: 'सहेजे गए प्रोजेक्ट',
+  K.projectNew: 'नया प्रोजेक्ट',
+  K.projectNone: 'इस स्थिति में अभी कोई प्रोजेक्ट नहीं है।',
+  K.projectClipCount: '@count क्लिप',
+  K.projectSaveFailed:
+      'प्रोजेक्ट सहेजा नहीं जा सका। इस स्क्रीन को खुला रखें और फिर कोशिश करें।',
+  K.projectLoadFailed: 'सहेजे गए प्रोजेक्ट लोड नहीं हो सके।',
   K.navHome: 'होम',
   K.navFiles: 'फ़ाइलें',
   K.navPlayer: 'प्लेयर',
@@ -196,7 +211,7 @@ const Map<String, String> stringsHi = <String, String>{
       'यह सिर्फ़ संतुलन देखने के लिए है। पूरा मिक्स एक्सपोर्ट में बनेगा।',
   K.timelineClips: 'आपकी क्लिप · @count',
   K.timelineEditHint:
-      'क्रम बदलने के लिए कार्ड का ऊपरी हिस्सा खींचें। काटने के लिए स्लाइडर खिसकाएँ।',
+      'क्रम बदलने के लिए हाथ का आइकन खींचें। काटने के लिए स्लाइडर खिसकाएँ।',
   K.reorderClip: 'क्लिप का क्रम बदलने के लिए खींचें',
   K.exportSettings: 'एक्सपोर्ट सेटिंग',
   K.timelineScrollLabel: 'टाइमलाइन स्क्रॉल करें',

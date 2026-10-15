@@ -1,4 +1,3 @@
-import 'package:convertly/core/theme/app_colors.dart';
 import 'package:convertly/core/theme/app_theme.dart';
 import 'package:convertly/core/i18n/app_translations.dart';
 import 'package:convertly/features/converter/domain/entities/media_info.dart';
@@ -163,8 +162,9 @@ void main() {
     expect(find.byTooltip('Quieter'), findsOneWidget);
   });
 
-  testWidgets('each track reads as its own colour, cycled from the app '
-      "palette", (WidgetTester tester) async {
+  testWidgets('mixer tracks use the selected theme colour', (
+    WidgetTester tester,
+  ) async {
     await pumpMixer(tester);
 
     final List<Color> colors = tester
@@ -174,9 +174,7 @@ void main() {
         .toList();
 
     expect(colors, hasLength(2));
-    expect(colors[0], AppColors.mixTrackAccents[0]);
-    expect(colors[1], AppColors.mixTrackAccents[1]);
-    expect(colors[0], isNot(colors[1]));
+    expect(colors, everyElement(AppTheme.dark.colorScheme.primary));
   });
 
   testWidgets('timeline rows are compact and use a clear play control', (
@@ -213,7 +211,8 @@ void main() {
     expect(title.maxLines, 1);
     expect(find.byType(TimelineClipCard), findsOneWidget);
     expect(find.byType(ReorderableDragStartListener), findsOneWidget);
-    expect(find.byType(ReorderableDelayedDragStartListener), findsOneWidget);
+    expect(find.byType(ReorderableDelayedDragStartListener), findsNothing);
+    expect(find.byIcon(Icons.back_hand_outlined), findsOneWidget);
     expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
     expect(find.text('01'), findsOneWidget);
     expect(find.byTooltip('Play'), findsOneWidget);

@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 import '../../domain/entities/player_track.dart';
 
 import '../../../../core/utils/playable_audio_source.dart';
+import '../../../../core/services/output_directory_service.dart';
 
 /// Playback speeds offered in the player.
 const List<double> kPlaybackSpeeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -25,7 +26,10 @@ class AudioPlayerController extends GetxController {
     required List<PlayerTrack> queue,
     int startIndex = 0,
     AudioPlayer? player,
+    Future<String> Function(String)? resolvePath,
   }) : queue = List<PlayerTrack>.unmodifiable(queue),
+       _resolvePath =
+           resolvePath ?? OutputDirectoryService().resolveExistingPath,
        _player = player ?? AudioPlayer() {
     index.value = queue.isEmpty ? 0 : startIndex.clamp(0, queue.length - 1);
   }
@@ -47,8 +51,11 @@ class AudioPlayerController extends GetxController {
   bool get hasNext => queue.length > 1 && index.value < queue.length - 1;
 
   final AudioPlayer _player;
+  final Future<String> Function(String) _resolvePath;
   bool _switchingTracks = false;
   bool _handlingCompletion = false;
+  Future<void>? _seekTask;
+  Duration? _pendingSeek;
 
   final Rx<Duration> position = Duration.zero.obs;
   final Rx<Duration> duration = Duration.zero.obs;
@@ -70,7 +77,12 @@ class AudioPlayerController extends GetxController {
 
   void _listen() {
     _subscriptions.addAll(<StreamSubscription<Object?>>[
-      _player.positionStream.listen((Duration value) => position.value = value),
+      _player.positionStream.listen((Duration value) {
+        // Native events can still describe the old position during a seek.
+        if (_seekTask == null && _pendingSeek == null) {
+          position.value = value;
+        }
+      }),
       _player.durationStream.listen((Duration? value) {
         if (value != null) {
           duration.value = value;
@@ -112,8 +124,10 @@ class AudioPlayerController extends GetxController {
       // Not setFilePath: songs from the phone's music index arrive as
       // content:// URIs, and handing one of those to setFilePath looks for a
       // file literally named "content://..." and fails.
+      final String source = await _resolvePath(path);
+      if (isClosed) return;
       final Duration? loaded = await _player.setAudioSource(
-        playableAudioSource(path),
+        playableAudioSource(source),
       );
       if (loaded != null) {
         duration.value = loaded;
@@ -168,6 +182,7 @@ class AudioPlayerController extends GetxController {
     final bool wasPlaying = autoPlay ?? isPlaying.value;
     _switchingTracks = true;
     try {
+      await _seekTask;
       await _player.pause();
       if (isClosed) {
         return;
@@ -186,12 +201,31 @@ class AudioPlayerController extends GetxController {
     }
   }
 
-  Future<void> seek(Duration target) async {
+  Future<void> seek(Duration target) {
+    if (isClosed || _switchingTracks || isLoading.value) {
+      return Future<void>.value();
+    }
     final Duration total = duration.value;
     final Duration clamped = target < Duration.zero
         ? Duration.zero
         : (total > Duration.zero && target > total ? total : target);
-    await _player.seek(clamped);
+    position.value = clamped;
+    _pendingSeek = clamped;
+    return _seekTask ??= _flushSeeks();
+  }
+
+  Future<void> _flushSeeks() async {
+    try {
+      while (_pendingSeek != null && !isClosed && !_switchingTracks) {
+        final Duration target = _pendingSeek!;
+        // Only one native seek at a time; newer taps replace the waiting one.
+        await _player.seek(target);
+        if (_pendingSeek == target) _pendingSeek = null;
+      }
+    } finally {
+      _pendingSeek = null;
+      _seekTask = null;
+    }
   }
 
   Future<void> skip(Duration offset) => seek(position.value + offset);

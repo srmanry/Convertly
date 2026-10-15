@@ -95,19 +95,27 @@ class AudioPlayerPage extends GetView<AudioPlayerController> {
   }
 }
 
-class _ProgressBar extends StatelessWidget {
+class _ProgressBar extends StatefulWidget {
   const _ProgressBar({required this.controller});
 
   final AudioPlayerController controller;
 
   @override
+  State<_ProgressBar> createState() => _ProgressBarState();
+}
+
+class _ProgressBarState extends State<_ProgressBar> {
+  double? _scrubMs;
+
+  @override
   Widget build(BuildContext context) {
+    final AudioPlayerController controller = widget.controller;
     return Obx(() {
       final double totalMs = controller.duration.value.inMilliseconds
           .toDouble();
-      final double positionMs = controller.position.value.inMilliseconds
-          .toDouble()
-          .clamp(0, totalMs == 0 ? 1 : totalMs);
+      final double positionMs =
+          (_scrubMs ?? controller.position.value.inMilliseconds.toDouble())
+              .clamp(0, totalMs == 0 ? 1 : totalMs);
 
       return Column(
         children: <Widget>[
@@ -115,17 +123,29 @@ class _ProgressBar extends StatelessWidget {
             min: 0,
             max: totalMs == 0 ? 1 : totalMs,
             value: positionMs,
+            onChangeStart: totalMs == 0
+                ? null
+                : (double value) => setState(() => _scrubMs = value),
             onChanged: totalMs == 0
                 ? null
-                : (double value) =>
-                      controller.seek(Duration(milliseconds: value.round())),
+                : (double value) => setState(() => _scrubMs = value),
+            onChangeEnd: totalMs == 0
+                ? null
+                : (double value) {
+                    controller.seek(Duration(milliseconds: value.round()));
+                    setState(() => _scrubMs = null);
+                  },
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceSm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text(Formatters.duration(controller.position.value)),
+                Text(
+                  Formatters.duration(
+                    Duration(milliseconds: positionMs.round()),
+                  ),
+                ),
                 Text(Formatters.duration(controller.duration.value)),
               ],
             ),

@@ -5,6 +5,21 @@ import 'translation_keys.dart';
 /// Also the fallback: a key missing from another language falls back to this
 /// one, so a half-finished translation shows English rather than a raw key.
 const Map<String, String> stringsEn = <String, String>{
+  K.projectDraft: 'In progress',
+  K.projectCompleted: 'Completed',
+  K.projectCancelled: 'Cancelled',
+  K.projectSaving: 'Saving…',
+  K.projectAutoSaved: 'Saved on this device',
+  K.projectNotSaved: 'Not saved',
+  K.projectSaveLater: 'Save for later',
+  K.projectCancel: 'Cancel project',
+  K.projectSavedProjects: 'Saved projects',
+  K.projectNew: 'New project',
+  K.projectNone: 'No projects with this status yet.',
+  K.projectClipCount: '@count clips',
+  K.projectSaveFailed:
+      'Could not save this project. Keep this screen open and try again.',
+  K.projectLoadFailed: 'Could not load saved projects.',
   K.navHome: 'Home',
   K.navFiles: 'Files',
   K.navPlayer: 'Player',
@@ -199,7 +214,7 @@ const Map<String, String> stringsEn = <String, String>{
       'A preview for balance. The export renders the finished mix.',
   K.timelineClips: 'Your clips · @count',
   K.timelineEditHint:
-      'Drag the top of a card to reorder. Move the sliders to trim.',
+      'Drag the hand icon to reorder. Move the sliders to trim.',
   K.reorderClip: 'Drag to reorder clip',
   K.exportSettings: 'Export settings',
   K.timelineScrollLabel: 'Scroll timeline',

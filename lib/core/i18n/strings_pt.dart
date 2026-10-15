@@ -2,6 +2,21 @@ import 'translation_keys.dart';
 
 /// Portuguese, written the way it is spoken in Brazil.
 const Map<String, String> stringsPt = <String, String>{
+  K.projectDraft: 'Em andamento',
+  K.projectCompleted: 'Concluído',
+  K.projectCancelled: 'Cancelado',
+  K.projectSaving: 'Salvando…',
+  K.projectAutoSaved: 'Salvo neste dispositivo',
+  K.projectNotSaved: 'Não salvo',
+  K.projectSaveLater: 'Salvar para depois',
+  K.projectCancel: 'Cancelar projeto',
+  K.projectSavedProjects: 'Projetos salvos',
+  K.projectNew: 'Novo projeto',
+  K.projectNone: 'Ainda não há projetos com este status.',
+  K.projectClipCount: '@count clipes',
+  K.projectSaveFailed:
+      'Não foi possível salvar o projeto. Mantenha esta tela aberta e tente novamente.',
+  K.projectLoadFailed: 'Não foi possível carregar os projetos salvos.',
   K.navHome: 'Início',
   K.navFiles: 'Arquivos',
   K.navPlayer: 'Player',
@@ -199,7 +214,7 @@ const Map<String, String> stringsPt = <String, String>{
       'Uma prévia para equilibrar. A mixagem final é feita na exportação.',
   K.timelineClips: 'Seus clipes · @count',
   K.timelineEditHint:
-      'Arraste a parte superior do cartão para reordenar. Mova os controles para cortar.',
+      'Arraste o ícone da mão para reordenar. Mova os controles para cortar.',
   K.reorderClip: 'Arraste para reordenar o clipe',
   K.exportSettings: 'Configurações de exportação',
   K.timelineScrollLabel: 'Rolar a linha do tempo',

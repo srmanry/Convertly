@@ -2,6 +2,21 @@ import 'translation_keys.dart';
 
 /// Bengali.
 const Map<String, String> stringsBn = <String, String>{
+  K.projectDraft: 'চলমান',
+  K.projectCompleted: 'সম্পন্ন',
+  K.projectCancelled: 'বাতিল',
+  K.projectSaving: 'সংরক্ষণ হচ্ছে…',
+  K.projectAutoSaved: 'এই ডিভাইসে সংরক্ষিত',
+  K.projectNotSaved: 'সংরক্ষিত হয়নি',
+  K.projectSaveLater: 'পরে করার জন্য রাখুন',
+  K.projectCancel: 'কাজ বাতিল করুন',
+  K.projectSavedProjects: 'সংরক্ষিত কাজ',
+  K.projectNew: 'নতুন কাজ',
+  K.projectNone: 'এই অবস্থায় কোনো কাজ নেই।',
+  K.projectClipCount: '@countটি ক্লিপ',
+  K.projectSaveFailed:
+      'কাজটি সংরক্ষণ করা যায়নি। এই স্ক্রিন খোলা রেখে আবার চেষ্টা করুন।',
+  K.projectLoadFailed: 'সংরক্ষিত কাজগুলো খোলা যায়নি।',
   K.navHome: 'হোম',
   K.navFiles: 'ফাইল',
   K.navPlayer: 'প্লেয়ার',
@@ -193,7 +208,7 @@ const Map<String, String> stringsBn = <String, String>{
   K.previewBalanceNote:
       'এটি শুধু ভারসাম্য দেখার জন্য। পুরো মিক্স এক্সপোর্টে তৈরি হবে।',
   K.timelineClips: 'আপনার ক্লিপ · @count',
-  K.timelineEditHint: 'সাজাতে কার্ডের ওপরের অংশ টানুন। কাটতে স্লাইডার সরান।',
+  K.timelineEditHint: 'সাজাতে হাতের আইকন ধরে টানুন। কাটতে স্লাইডার সরান।',
   K.reorderClip: 'ক্লিপ সাজাতে টানুন',
   K.exportSettings: 'এক্সপোর্ট সেটিংস',
   K.timelineScrollLabel: 'টাইমলাইন স্ক্রল করুন',

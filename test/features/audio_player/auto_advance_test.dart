@@ -212,4 +212,33 @@ void main() {
     expect(controller.isPlaying.value, isFalse);
     expect(player.playCount, 1);
   });
+
+  testWidgets(
+    'a recent file loads its current path after iOS moves the container',
+    (WidgetTester tester) async {
+      player = _FakePlayer();
+      const String oldPath =
+          '/var/mobile/Containers/Data/Application/OLD/Documents/AudioForge/merged_audio.mp3';
+      const String currentPath =
+          '/var/mobile/Containers/Data/Application/NEW/Documents/AudioForge/merged_audio.mp3';
+      final List<String> requested = <String>[];
+      controller = AudioPlayerController(
+        queue: const <PlayerTrack>[
+          PlayerTrack(path: oldPath, title: 'merged_audio.mp3'),
+        ],
+        player: player,
+        resolvePath: (String path) async {
+          requested.add(path);
+          return currentPath;
+        },
+      );
+      controller.onInit();
+      addTearDown(controller.onClose);
+      await tester.pump();
+      expect(requested, <String>[oldPath]);
+      expect(player.loaded.single.toFilePath(), currentPath);
+      expect(controller.errorMessage.value, isEmpty);
+      expect(controller.title, 'merged_audio.mp3');
+    },
+  );
 }

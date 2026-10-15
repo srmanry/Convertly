@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/i18n/translation_keys.dart';
@@ -16,6 +17,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/services/ads_service.dart';
 import '../../../../core/services/output_directory_service.dart';
+import '../../../../core/services/storage_service.dart';
 import '../../../../core/types/result.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/file_utils.dart';
@@ -24,6 +26,8 @@ import '../../../files/domain/entities/media_file.dart';
 import '../../../files/domain/usecases/media_library_usecases.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/entities/cleanup_settings.dart';
+import '../../data/audio_project_store.dart';
+import '../../domain/entities/audio_project.dart';
 import '../../domain/entities/conversion_request.dart';
 import '../../domain/entities/conversion_result.dart';
 import '../../domain/entities/media_info.dart';
@@ -45,7 +49,7 @@ enum ConverterStage { configuring, converting, completed, failed }
 ///
 /// The tool only changes what is configured, so one controller serves all of
 /// them and there is a single implementation of the conversion flow.
-class ConverterController extends GetxController {
+class ConverterController extends GetxController with WidgetsBindingObserver {
   ConverterController(
     this._mode,
     this._pickVideo,
@@ -105,12 +109,44 @@ class ConverterController extends GetxController {
   final RxString errorMessage = ''.obs;
   final Rxn<ConversionResult> result = Rxn<ConversionResult>();
 
+  final Rx<AudioProjectStatus> projectStatus = AudioProjectStatus.draft.obs;
+  final RxBool isSavingProject = false.obs;
+  final RxString projectError = ''.obs;
+  final RxBool projectNeedsSave = false.obs;
+  final RxBool allowProjectExit = false.obs;
+  final RxBool isLeavingProject = false.obs;
+  String? _projectId;
+  Timer? _projectSaveTimer;
+  Worker? _projectWorker;
+  bool _restoringProject = false;
+  int _projectRevision = 0;
+  int _savedProjectRevision = -1;
+  int _pendingProjectSaves = 0;
+
+  bool get supportsProjects => _mode.combinesTracks;
+  bool get hasProject => sources.isNotEmpty || _projectId != null;
+  AudioProjectStore? get projectStore {
+    if (!supportsProjects) return null;
+    if (Get.isRegistered<AudioProjectStore>()) {
+      return Get.find<AudioProjectStore>();
+    }
+    if (!Get.isRegistered<StorageService>()) return null;
+    // A running debug session may predate the startup registration. Resolve
+    // the store from the storage service that is already available there.
+    return Get.put<AudioProjectStore>(
+      AudioProjectStore(Get.find<StorageService>()),
+      permanent: true,
+    );
+  }
+
   /// True once there is enough input to start.
   bool get canConvert =>
       sources.isNotEmpty &&
       (!_mode.needsTwoSources || sources.length >= 2) &&
       !isCleanupUnsupported &&
       fileName.value.trim().isNotEmpty &&
+      !isSavingProject.value &&
+      !isLeavingProject.value &&
       stage.value != ConverterStage.converting;
 
   MediaInfo? get primarySource => sources.isEmpty ? null : sources.first;
@@ -197,6 +233,194 @@ class ConverterController extends GetxController {
   void onInit() {
     super.onInit();
     _applyDefaultsFromSettings();
+    initializeProjects(restoreLatest: true);
+  }
+
+  /// Also called by the editor after hot reload, when onInit does not rerun.
+  void initializeProjects({bool restoreLatest = false}) {
+    if (_projectWorker != null || projectStore == null) return;
+    if (restoreLatest && sources.isEmpty) {
+      final AudioProject? previous = projectStore!.projects.firstWhereOrNull(
+        (AudioProject project) =>
+            project.mode == mode && project.status == AudioProjectStatus.draft,
+      );
+      if (previous != null) _restoreProject(previous);
+    }
+    WidgetsBinding.instance.addObserver(this);
+    _projectWorker = everAll(
+      <RxInterface>[
+        sources,
+        clips,
+        fileName,
+        format,
+        quality,
+        speed,
+        mixLength,
+        loopShorterTracks,
+      ],
+      (_) {
+        if (_restoringProject) return;
+        _projectRevision++;
+        projectNeedsSave.value = true;
+        projectStatus.value = AudioProjectStatus.draft;
+        _projectSaveTimer?.cancel();
+        _projectSaveTimer = Timer(const Duration(milliseconds: 600), () {
+          unawaited(saveProject());
+        });
+      },
+    );
+    // Preserve selections made before project support became available.
+    // Wait until the editor has built before updating its saving indicators.
+    if (!restoreLatest && hasProject) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!isClosed) unawaited(saveProject());
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      unawaited(saveProject());
+    }
+  }
+
+  /// A save succeeds only after both the input copies and editor state persist.
+  Future<bool> saveProject({
+    AudioProjectStatus? status,
+    String? outputPath,
+  }) async {
+    _projectSaveTimer?.cancel();
+    final AudioProjectStore? store = projectStore;
+    if (store == null || !hasProject) return true;
+    if (status == null &&
+        _projectRevision == _savedProjectRevision &&
+        projectError.value.isEmpty) {
+      return true;
+    }
+    _projectId ??= DateTime.now().microsecondsSinceEpoch.toString();
+    final int revision = _projectRevision;
+    final AudioProjectStatus nextStatus = status ?? projectStatus.value;
+    final AudioProject project = AudioProject(
+      id: _projectId!,
+      mode: mode,
+      status: nextStatus,
+      updatedAt: DateTime.now(),
+      sources: List<MediaInfo>.of(sources),
+      clips: List<MixTrack>.of(clips),
+      fileName: fileName.value,
+      format: format.value,
+      quality: quality.value,
+      speed: speed.value,
+      mixLength: mixLength.value,
+      loopShorterTracks: loopShorterTracks.value,
+      outputPath:
+          outputPath ??
+          (nextStatus == AudioProjectStatus.completed
+              ? result.value?.outputPath
+              : null),
+    );
+    _pendingProjectSaves++;
+    isSavingProject.value = true;
+    try {
+      await store.save(project);
+      if (_projectId == project.id && revision == _projectRevision) {
+        projectStatus.value = nextStatus;
+        _savedProjectRevision = revision;
+        projectNeedsSave.value = false;
+        projectError.value = '';
+      }
+      return true;
+    } catch (_) {
+      projectError.value = K.projectSaveFailed.tr;
+      return false;
+    } finally {
+      _pendingProjectSaves--;
+      isSavingProject.value = _pendingProjectSaves > 0;
+    }
+  }
+
+  Future<bool> cancelProject() async {
+    if (!supportsProjects || stage.value == ConverterStage.converting) {
+      return false;
+    }
+    _stopPreviewIfPresent();
+    return saveProject(status: AudioProjectStatus.cancelled);
+  }
+
+  Future<bool> openProject(AudioProject project) async {
+    if (project.mode != mode || stage.value == ConverterStage.converting) {
+      return false;
+    }
+    if (!await saveProject()) return false;
+    _stopPreviewIfPresent();
+    _restoreProject(project);
+    return true;
+  }
+
+  void _restoreProject(AudioProject project) {
+    _restoringProject = true;
+    _projectSaveTimer?.cancel();
+    _projectId = project.id;
+    sources.assignAll(project.sources);
+    clips.assignAll(project.clips);
+    fileName.value = project.fileName;
+    format.value = project.format;
+    quality.value = project.quality;
+    speed.value = project.speed;
+    mixLength.value = project.mixLength;
+    loopShorterTracks.value = project.loopShorterTracks;
+    projectStatus.value = project.status;
+    errorMessage.value = '';
+    projectError.value = '';
+    projectNeedsSave.value = false;
+    result.value = null;
+    stage.value = ConverterStage.configuring;
+    progress.value = 0;
+    _projectRevision++;
+    _savedProjectRevision = _projectRevision;
+    _restoringProject = false;
+  }
+
+  Future<bool> newProject() async {
+    if (stage.value == ConverterStage.converting || !await saveProject()) {
+      return false;
+    }
+    _stopPreviewIfPresent();
+    _restoringProject = true;
+    _projectSaveTimer?.cancel();
+    _projectId = null;
+    sources.clear();
+    clips.clear();
+    fileName.value = '';
+    speed.value = ExportSpeed.normal;
+    mixLength.value = MixLengthMode.longestTrack;
+    loopShorterTracks.value = false;
+    projectStatus.value = AudioProjectStatus.draft;
+    projectError.value = '';
+    projectNeedsSave.value = false;
+    errorMessage.value = '';
+    result.value = null;
+    stage.value = ConverterStage.configuring;
+    progress.value = 0;
+    _applyDefaultsFromSettings();
+    _projectRevision++;
+    _savedProjectRevision = _projectRevision;
+    _restoringProject = false;
+    return true;
+  }
+
+  @override
+  void onClose() {
+    _projectSaveTimer?.cancel();
+    _projectWorker?.dispose();
+    if (_projectWorker != null) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
+    unawaited(saveProject());
+    _stopPreviewIfPresent();
+    super.onClose();
   }
 
   void _applyDefaultsFromSettings() {
@@ -691,6 +915,11 @@ class ConverterController extends GetxController {
       return;
     }
 
+    if (supportsProjects &&
+        !await saveProject(status: AudioProjectStatus.draft)) {
+      return;
+    }
+
     stage.value = ConverterStage.converting;
     progress.value = 0;
     errorMessage.value = '';
@@ -762,6 +991,9 @@ class ConverterController extends GetxController {
         ? ConverterStage.configuring
         : ConverterStage.failed;
     progress.value = 0;
+    if (failure is ConversionCancelled && supportsProjects) {
+      await saveProject(status: AudioProjectStatus.cancelled);
+    }
   }
 
   Future<void> _onConversionSucceeded(ConversionResult conversion) async {
@@ -775,6 +1007,12 @@ class ConverterController extends GetxController {
     _conversionAd = null;
 
     stage.value = ConverterStage.completed;
+    if (supportsProjects) {
+      await saveProject(
+        status: AudioProjectStatus.completed,
+        outputPath: conversion.outputPath,
+      );
+    }
 
     await _addMediaFile(
       MediaFile(

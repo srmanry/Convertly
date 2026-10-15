@@ -2,6 +2,20 @@ import 'translation_keys.dart';
 
 /// Arabic. Reads right to left, which Flutter handles from the locale.
 const Map<String, String> stringsAr = <String, String>{
+  K.projectDraft: 'قيد العمل',
+  K.projectCompleted: 'مكتمل',
+  K.projectCancelled: 'ملغى',
+  K.projectSaving: 'جارٍ الحفظ…',
+  K.projectAutoSaved: 'محفوظ على هذا الجهاز',
+  K.projectNotSaved: 'غير محفوظ',
+  K.projectSaveLater: 'حفظ لوقت لاحق',
+  K.projectCancel: 'إلغاء المشروع',
+  K.projectSavedProjects: 'المشاريع المحفوظة',
+  K.projectNew: 'مشروع جديد',
+  K.projectNone: 'لا توجد مشاريع بهذه الحالة بعد.',
+  K.projectClipCount: '@count مقاطع',
+  K.projectSaveFailed: 'تعذر حفظ المشروع. أبقِ هذه الشاشة مفتوحة وحاول مجدداً.',
+  K.projectLoadFailed: 'تعذر تحميل المشاريع المحفوظة.',
   K.navHome: 'الرئيسية',
   K.navFiles: 'الملفات',
   K.navPlayer: 'المشغل',
@@ -191,7 +205,7 @@ const Map<String, String> stringsAr = <String, String>{
       'استماع لضبط التوازن. المزيج النهائي يُنشأ عند التصدير.',
   K.timelineClips: 'مقاطعك · @count',
   K.timelineEditHint:
-      'اسحب الجزء العلوي من البطاقة لإعادة الترتيب. حرّك أشرطة التمرير للقص.',
+      'اسحب أيقونة اليد لإعادة الترتيب. حرّك أشرطة التمرير للقص.',
   K.reorderClip: 'اسحب لإعادة ترتيب المقطع',
   K.exportSettings: 'إعدادات التصدير',
   K.timelineScrollLabel: 'تمرير المخطط الزمني',

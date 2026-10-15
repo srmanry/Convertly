@@ -3,20 +3,38 @@ import 'dart:io';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/types/result.dart';
 import '../../../../core/utils/file_utils.dart';
+import '../../../../core/services/output_directory_service.dart';
 import '../../domain/entities/media_file.dart';
 import '../../domain/repositories/media_library_repository.dart';
 import '../datasources/media_library_local_datasource.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
 class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
-  const MediaLibraryRepositoryImpl(this._localDataSource);
+  const MediaLibraryRepositoryImpl(this._localDataSource, {this.directories});
 
   final MediaLibraryLocalDataSource _localDataSource;
+  final OutputDirectoryService? directories;
+
+  Future<List<MediaFile>> _readResolvedFiles() async {
+    final List<MediaFile> files = await _localDataSource.readAll();
+    final OutputDirectoryService resolver =
+        directories ?? OutputDirectoryService();
+    final List<MediaFile> resolved = <MediaFile>[];
+    for (final MediaFile file in files) {
+      final String path = await resolver.resolveExistingPath(file.path);
+      final MediaFile current = path == file.path
+          ? file
+          : file.copyWith(path: path);
+      if (path != file.path) await _localDataSource.updateFile(current);
+      resolved.add(current);
+    }
+    return resolved;
+  }
 
   @override
   Future<Result<List<MediaFile>>> getAll() async {
     try {
-      return Result<List<MediaFile>>.success(await _localDataSource.readAll());
+      return Result<List<MediaFile>>.success(await _readResolvedFiles());
     } catch (error) {
       return Result<List<MediaFile>>.failure(
         CacheFailure(
@@ -166,7 +184,7 @@ class MediaLibraryRepositoryImpl implements MediaLibraryRepository {
   @override
   Future<Result<int>> pruneMissing() async {
     try {
-      final List<MediaFile> all = await _localDataSource.readAll();
+      final List<MediaFile> all = await _readResolvedFiles();
       int removed = 0;
 
       for (final MediaFile file in all) {

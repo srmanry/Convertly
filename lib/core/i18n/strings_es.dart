@@ -2,6 +2,21 @@ import 'translation_keys.dart';
 
 /// Spanish.
 const Map<String, String> stringsEs = <String, String>{
+  K.projectDraft: 'En curso',
+  K.projectCompleted: 'Completado',
+  K.projectCancelled: 'Cancelado',
+  K.projectSaving: 'Guardando…',
+  K.projectAutoSaved: 'Guardado en este dispositivo',
+  K.projectNotSaved: 'Sin guardar',
+  K.projectSaveLater: 'Guardar para después',
+  K.projectCancel: 'Cancelar proyecto',
+  K.projectSavedProjects: 'Proyectos guardados',
+  K.projectNew: 'Nuevo proyecto',
+  K.projectNone: 'Aún no hay proyectos con este estado.',
+  K.projectClipCount: '@count clips',
+  K.projectSaveFailed:
+      'No se pudo guardar el proyecto. Mantén esta pantalla abierta e inténtalo de nuevo.',
+  K.projectLoadFailed: 'No se pudieron cargar los proyectos guardados.',
   K.navHome: 'Inicio',
   K.navFiles: 'Archivos',
   K.navPlayer: 'Reproductor',
@@ -201,7 +216,7 @@ const Map<String, String> stringsEs = <String, String>{
       'Una escucha para equilibrar. La mezcla final se crea al exportar.',
   K.timelineClips: 'Tus clips · @count',
   K.timelineEditHint:
-      'Arrastra la parte superior de una tarjeta para reordenar. Mueve los deslizadores para recortar.',
+      'Arrastra el icono de la mano para reordenar. Mueve los deslizadores para recortar.',
   K.reorderClip: 'Arrastra para reordenar el clip',
   K.exportSettings: 'Ajustes de exportación',
   K.timelineScrollLabel: 'Desplazar la línea de tiempo',

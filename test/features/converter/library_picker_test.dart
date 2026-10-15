@@ -351,8 +351,7 @@ void main() {
 
       // Exercise the real scrolling page and controller, not just the list callback.
       final drag = await tester.startGesture(
-        tester.getTopLeft(find.byType(ReorderableDragStartListener).first) +
-            const Offset(100, 3),
+        tester.getCenter(find.byIcon(Icons.back_hand_outlined).first),
       );
       for (int step = 0; step < 20; step++) {
         await drag.moveBy(const Offset(0, 20));

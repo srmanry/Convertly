@@ -90,10 +90,13 @@ class AppTranslations extends Translations {
   /// anything that reads text outside a running app, such as a widget test
   /// that pumps a single screen.
   static void install({Locale locale = fallbackLocale}) {
-    Get.addTranslations(AppTranslations().keys);
+    refresh();
     Get.locale = locale;
     Get.fallbackLocale = fallbackLocale;
   }
+
+  /// Updates a running session's strings without changing its chosen language.
+  static void refresh() => Get.addTranslations(AppTranslations().keys);
 
   @override
   Map<String, Map<String, String>> get keys => <String, Map<String, String>>{

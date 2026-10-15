@@ -6,6 +6,20 @@
 ///
 /// Placeholders are written `@name` and filled with `trParams`.
 abstract final class K {
+  static const String projectDraft = 'project_draft';
+  static const String projectCompleted = 'project_completed';
+  static const String projectCancelled = 'project_cancelled';
+  static const String projectSaving = 'project_saving';
+  static const String projectAutoSaved = 'project_auto_saved';
+  static const String projectNotSaved = 'project_not_saved';
+  static const String projectSaveLater = 'project_save_later';
+  static const String projectCancel = 'project_cancel';
+  static const String projectSavedProjects = 'project_saved_projects';
+  static const String projectNew = 'project_new';
+  static const String projectNone = 'project_none';
+  static const String projectClipCount = 'project_clip_count';
+  static const String projectSaveFailed = 'project_save_failed';
+  static const String projectLoadFailed = 'project_load_failed';
   // Bottom navigation and page titles.
   static const String navHome = 'nav_home';
   static const String navFiles = 'nav_files';

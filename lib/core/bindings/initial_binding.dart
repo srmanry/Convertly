@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../features/converter/data/audio_project_store.dart';
 import '../../features/files/data/datasources/media_library_database.dart';
 import '../../features/files/data/datasources/media_library_local_datasource.dart';
 import '../../features/files/data/repositories/media_library_repository_impl.dart';
@@ -30,6 +31,7 @@ class InitialBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<StorageService>(_storage, permanent: true);
+    Get.put<AudioProjectStore>(AudioProjectStore(_storage), permanent: true);
     Get.put<FfmpegService>(FfmpegService(), permanent: true);
     Get.put<OutputDirectoryService>(OutputDirectoryService(), permanent: true);
     Get.put<ShareService>(ShareService(), permanent: true);
@@ -56,6 +58,7 @@ class InitialBinding extends Bindings {
     final MediaLibraryRepository mediaLibraryRepository =
         MediaLibraryRepositoryImpl(
           MediaLibraryLocalDataSourceImpl(Get.find<MediaLibraryDatabase>()),
+          directories: Get.find<OutputDirectoryService>(),
         );
     Get.put<MediaLibraryRepository>(mediaLibraryRepository, permanent: true);
 

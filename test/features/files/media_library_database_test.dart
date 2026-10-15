@@ -5,8 +5,16 @@ import 'package:convertly/features/files/data/datasources/media_library_local_da
 import 'package:convertly/features/files/data/repositories/media_library_repository_impl.dart';
 import 'package:convertly/features/files/domain/entities/media_file.dart';
 import 'package:convertly/core/types/result.dart';
+import 'package:convertly/core/services/output_directory_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _CurrentOutputDirectory extends OutputDirectoryService {
+  _CurrentOutputDirectory(this.directory);
+  final Directory directory;
+  @override
+  Future<Directory> resolve() async => directory;
+}
 
 /// Exercises the real SQLite engine, so persistence is verified rather than
 /// assumed.
@@ -89,6 +97,39 @@ void main() {
     expect(loaded.sourceType, MediaSourceType.videoToAudio);
     expect(loaded.createdAt, DateTime(2026, 8, 26));
   });
+
+  for (final bool pruneFirst in <bool>[false, true]) {
+    test(
+      'relocated library paths are repaired ${pruneFirst ? 'before pruning' : 'when read'}',
+      () async {
+        final Directory output = await Directory(
+          '${tempDir.path}/AudioForge',
+        ).create();
+        final File current = await File(
+          '${output.path}/merged_audio.mp3',
+        ).writeAsString('audio-bytes');
+        final MediaFile saved = await insertWithFile('merged_audio.mp3');
+        await dataSource.updateFile(
+          saved.copyWith(
+            path:
+                '/var/mobile/Containers/Data/Application/OLD/Documents/AudioForge/merged_audio.mp3',
+          ),
+        );
+        final MediaLibraryRepositoryImpl repository =
+            MediaLibraryRepositoryImpl(
+              dataSource,
+              directories: _CurrentOutputDirectory(output),
+            );
+        if (pruneFirst) {
+          expect((await repository.pruneMissing()).valueOrNull, 0);
+        }
+        final List<MediaFile> files = (await repository.getAll()).valueOrNull!;
+        expect(files.single.path, current.path);
+        expect(files.single.id, saved.id);
+        expect((await dataSource.readAll()).single.path, current.path);
+      },
+    );
+  }
 
   test('deleting one row leaves the others', () async {
     final MediaFile first = await insertWithFile('one.mp3');

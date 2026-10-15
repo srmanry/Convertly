@@ -99,36 +99,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'dragging header padding reorders immediately without changing trim',
-    (tester) async {
-      await pump(tester, twoClips: true);
-      expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
-      final gesture = await tester.startGesture(
-        tester.getTopLeft(find.byType(ReorderableDragStartListener).first) +
-            const Offset(100, 3),
+  for (final bool header in <bool>[true, false]) {
+    for (final int holdMs in <int>[0, 600]) {
+      testWidgets(
+        'dragging ${header ? 'header' : 'body'} after ${holdMs}ms does not reorder',
+        (tester) async {
+          await pump(tester, twoClips: true);
+          final Rect card = tester.getRect(find.byType(Card).first);
+          final gesture = await tester.startGesture(
+            Offset(card.left + 100, header ? card.top + 12 : card.bottom - 20),
+          );
+          await tester.pump(Duration(milliseconds: holdMs));
+          for (int step = 0; step < 20; step++) {
+            await gesture.moveBy(const Offset(0, 20));
+            await tester.pump(const Duration(milliseconds: 20));
+          }
+          await gesture.up();
+          await tester.pumpAndSettle();
+          expect(reordered, isNull);
+          expect(trimmed, isNull);
+          expect(previewed, isNull);
+          expect(tester.takeException(), isNull);
+        },
       );
-      for (int step = 0; step < 20; step++) {
-        await gesture.moveBy(const Offset(0, 20));
-        await tester.pump(const Duration(milliseconds: 20));
-      }
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(reordered, (0, 1));
-      expect(trimmed, isNull);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    }
+  }
 
-  testWidgets('holding the card body reorders without an icon', (tester) async {
+  testWidgets('dragging the hand reorders without playing or trimming', (
+    tester,
+  ) async {
     await pump(tester, twoClips: true);
     final gesture = await tester.startGesture(
-      tester.getTopLeft(
-            find.byType(ReorderableDelayedDragStartListener).first,
-          ) +
-          const Offset(100, 2),
+      tester.getCenter(find.byIcon(Icons.back_hand_outlined).first),
     );
-    await tester.pump(const Duration(milliseconds: 600));
     for (int step = 0; step < 20; step++) {
       await gesture.moveBy(const Offset(0, 20));
       await tester.pump(const Duration(milliseconds: 20));
@@ -136,6 +139,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(reordered, (0, 1));
+    expect(previewed, isNull);
     expect(trimmed, isNull);
     expect(tester.takeException(), isNull);
   });

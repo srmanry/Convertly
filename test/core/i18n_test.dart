@@ -1,10 +1,30 @@
 import 'package:convertly/core/i18n/app_translations.dart';
 import 'package:convertly/core/i18n/strings_en.dart';
+import 'package:convertly/core/i18n/translation_keys.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 
 void main() {
   final AppTranslations translations = AppTranslations();
+
+  test(
+    'refresh replaces stale session strings without changing the language',
+    () {
+      Get.locale = const Locale('bn');
+      Get.fallbackLocale = AppTranslations.fallbackLocale;
+      Get.clearTranslations();
+      Get.addTranslations(<String, Map<String, String>>{
+        'bn': <String, String>{},
+      });
+      expect(K.projectDraft.tr, K.projectDraft);
+      AppTranslations.refresh();
+      expect(Get.locale, const Locale('bn'));
+      expect(K.projectDraft.tr, 'চলমান');
+      expect(K.projectSaveLater.tr, 'পরে করার জন্য রাখুন');
+      Get.reset();
+    },
+  );
 
   test('only English, Bengali, and Hindi are offered', () {
     expect(

@@ -13,6 +13,24 @@ import '../constants/app_constants.dart';
 class OutputDirectoryService {
   Directory? _cached;
 
+  /// iOS may move the app's container while keeping its Documents directory.
+  /// Recover only our own output files, preserving all other source URIs.
+  Future<String> resolveExistingPath(String source) async {
+    final Uri? uri = Uri.tryParse(source);
+    if (uri != null && uri.hasScheme && uri.scheme != 'file') return source;
+    final String path = uri?.scheme == 'file' ? uri!.toFilePath() : source;
+    final RegExpMatch? output = RegExp(
+      '/Containers/Data/Application/[^/]+/Documents/'
+      '${RegExp.escape(AppConstants.outputFolderName)}/([^/]+)\$',
+    ).firstMatch(path);
+    if (output == null || File(path).existsSync()) return source;
+
+    final String name = output.group(1)!;
+    if (name == '.' || name == '..') return source;
+    final File relocated = File('${(await resolve()).path}/$name');
+    return relocated.existsSync() ? relocated.path : source;
+  }
+
   /// Directory for finished output, created if it does not exist.
   Future<Directory> resolve() async {
     final Directory? cached = _cached;

@@ -18,13 +18,6 @@ import 'features/settings/presentation/controllers/settings_controller.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Started here rather than inside the initializer, so the wait for storage
-  // overlaps building the first frame instead of beginning after it. This is
-  // the longest single step in startup: it is the first call across to the
-  // platform, which is what pays for loading every plugin's native code.
-  //
-  // The error is caught so a failure here is not an unhandled one before the
-  // app is even built; the initializer below sees it and asks again.
   final Future<StorageService?> storage = StorageService.init().then(
     (StorageService value) => value,
     onError: (Object _) => null,
@@ -58,6 +51,12 @@ class AudioForgeApp extends StatefulWidget {
 }
 
 class _AudioForgeAppState extends State<AudioForgeApp> {
+  @override
+  void reassemble() {
+    super.reassemble();
+    AppTranslations.refresh();
+  }
+
   @override
   void initState() {
     super.initState();

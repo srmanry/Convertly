@@ -72,4 +72,61 @@ void main() {
       expect((await service.resolve()).path, (await service.resolve()).path);
     });
   });
+
+  group('relocated iOS output files', () {
+    const String oldRoot =
+        '/var/mobile/Containers/Data/Application/OLD/Documents/AudioForge';
+
+    test('a stale container path resolves to the existing output', () async {
+      final OutputDirectoryService service = OutputDirectoryService();
+      final Directory output = await service.resolve();
+      final File current = File('${output.path}/merged_audio.mp3')
+        ..writeAsStringSync('audio');
+      expect(
+        await service.resolveExistingPath('$oldRoot/merged_audio.mp3'),
+        current.path,
+      );
+    });
+
+    test(
+      'file URIs and names with Unicode and spaces survive relocation',
+      () async {
+        final OutputDirectoryService service = OutputDirectoryService();
+        final Directory output = await service.resolve();
+        const String name = 'Sapna Dance मिस इंडिया.mp3';
+        final File current = File('${output.path}/$name')
+          ..writeAsStringSync('audio');
+        expect(
+          await service.resolveExistingPath(
+            Uri.file('$oldRoot/$name').toString(),
+          ),
+          current.path,
+        );
+      },
+    );
+
+    test(
+      'a genuinely missing output is not replaced with another file',
+      () async {
+        final OutputDirectoryService service = OutputDirectoryService();
+        expect(
+          await service.resolveExistingPath('$oldRoot/gone.mp3'),
+          '$oldRoot/gone.mp3',
+        );
+      },
+    );
+
+    test('device URIs and unrelated file paths stay unchanged', () async {
+      final OutputDirectoryService service = OutputDirectoryService();
+      final Directory output = await service.resolve();
+      File('${output.path}/song.mp3').writeAsStringSync('different song');
+      for (final String path in <String>[
+        'content://media/external/audio/media/1',
+        'https://example.com/song.mp3',
+        '/other/Music/song.mp3',
+      ]) {
+        expect(await service.resolveExistingPath(path), path);
+      }
+    });
+  });
 }

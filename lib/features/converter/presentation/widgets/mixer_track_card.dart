@@ -9,9 +9,8 @@ import '../../domain/entities/volume_envelope.dart';
 import 'volume_lane.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
-/// One mixer track, as a single card: who it is, its shape over time, and
-/// its base level, all in a colour that is this track's own — so a stack of
-/// them reads as separate voices rather than a wall of identical rows.
+/// One mixer track's identity, volume shape and base level in the app's
+/// selected accent colour.
 class MixerTrackCard extends StatelessWidget {
   const MixerTrackCard({
     required this.index,
@@ -38,8 +37,7 @@ class MixerTrackCard extends StatelessWidget {
   /// "Main track" or "Layer N": which role this track plays in the mix.
   final String label;
 
-  /// This track's own colour, threaded through its chart and its controls
-  /// so it reads as one voice among the others in the list.
+  /// The selected theme colour, shared by the chart and its controls.
   final Color accent;
 
   final VolumeEnvelope envelope;
@@ -205,8 +203,7 @@ class _CornerRemoveButton extends StatelessWidget {
   }
 }
 
-/// Plays or stops the whole mix, tinted to this one track's colour so it
-/// reads as belonging to this card rather than as a stray control.
+/// Plays or stops a track using the same accent as its volume controls.
 class _PreviewPill extends StatelessWidget {
   const _PreviewPill({
     required this.accent,

@@ -31,9 +31,11 @@ import '../widgets/clip_timeline_strip.dart';
 import '../widgets/timeline_preview_panel.dart';
 import '../widgets/timeline_export_options.dart';
 import '../widgets/mix_track_list.dart';
+import '../widgets/mix_preview_panel.dart';
 import '../widgets/option_chips.dart';
 import '../widgets/source_summary_card.dart';
 import '../widgets/trim_waveform.dart';
+import '../widgets/audio_project_panel.dart';
 import 'conversion_progress_view.dart';
 import '../../../../core/i18n/translation_keys.dart';
 
@@ -43,8 +45,33 @@ class ConverterPage extends GetView<ConverterController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(controller.mode.title)),
+    controller.initializeProjects();
+    final bool projectsEnabled = controller.projectStore != null;
+    final Widget page = Scaffold(
+      appBar: AppBar(
+        title: Text(controller.mode.title),
+        leading: projectsEnabled
+            ? IconButton(
+                tooltip: K.goBack.tr,
+                onPressed: () => _leaveEditor(context, controller),
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            : null,
+        actions: <Widget>[
+          if (projectsEnabled)
+            Obx(
+              () => IconButton(
+                tooltip: K.projectSavedProjects.tr,
+                onPressed:
+                    controller.stage.value == ConverterStage.converting ||
+                        controller.isSavingProject.value
+                    ? null
+                    : () => showAudioProjects(context, controller),
+                icon: const Icon(Icons.folder_copy_outlined),
+              ),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -62,7 +89,46 @@ class ConverterPage extends GetView<ConverterController> {
         ),
       ),
     );
+    if (!projectsEnabled) return page;
+    return Obx(
+      () => PopScope(
+        canPop:
+            controller.allowProjectExit.value ||
+            (!controller.hasProject &&
+                !controller.isSavingProject.value &&
+                controller.stage.value != ConverterStage.converting),
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (!didPop) unawaited(_leaveEditor(context, controller));
+        },
+        child: IgnorePointer(
+          ignoring: controller.isLeavingProject.value,
+          child: page,
+        ),
+      ),
+    );
   }
+}
+
+Future<void> _leaveEditor(
+  BuildContext context,
+  ConverterController controller, {
+  bool cancelProject = false,
+}) async {
+  if (controller.stage.value == ConverterStage.converting ||
+      controller.isLeavingProject.value) {
+    return;
+  }
+  controller.isLeavingProject.value = true;
+  final bool saved = cancelProject
+      ? await controller.cancelProject()
+      : await controller.saveProject();
+  if (!saved || !context.mounted) {
+    controller.isLeavingProject.value = false;
+    return;
+  }
+  controller.allowProjectExit.value = true;
+  await WidgetsBinding.instance.endOfFrame;
+  if (context.mounted) Navigator.of(context).pop();
 }
 
 /// Shown when FFmpeg could not produce an output file.
@@ -123,6 +189,19 @@ class _ConfigurationViewState extends State<_ConfigurationView> {
       final List<MediaInfo> sources = controller.sources;
 
       if (sources.isEmpty) {
+        if (controller.projectStore != null && controller.hasProject) {
+          return Column(
+            children: <Widget>[
+              AudioProjectPanel(
+                controller: controller,
+                onSaveLater: () => _leaveEditor(context, controller),
+                onCancel: () =>
+                    _leaveEditor(context, controller, cancelProject: true),
+              ),
+              Expanded(child: _EmptySelection(controller: controller)),
+            ],
+          );
+        }
         return _EmptySelection(controller: controller);
       }
 
@@ -130,6 +209,13 @@ class _ConfigurationViewState extends State<_ConfigurationView> {
 
       return Column(
         children: <Widget>[
+          if (controller.projectStore != null)
+            AudioProjectPanel(
+              controller: controller,
+              onSaveLater: () => _leaveEditor(context, controller),
+              onCancel: () =>
+                  _leaveEditor(context, controller, cancelProject: true),
+            ),
           if (controller.mode.isTimeline)
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -1381,161 +1467,17 @@ class _MixPreviewCard extends StatelessWidget {
     final MixPreviewController preview = Get.find<MixPreviewController>();
 
     return Obx(() {
-      final ThemeData theme = Theme.of(context);
-      final ColorScheme colors = theme.colorScheme;
-      final bool hasEnoughTracks = controller.sources.isNotEmpty;
-      // Only when the whole mix is running. A single track being auditioned
-      // from its own card must not turn this button into Stop, or the two
-      // controls would look like one.
-      final bool isPlaying =
-          preview.isPlaying.value && preview.soloTrack.value == null;
-      final bool isPreparing =
-          preview.isPreparing.value && preview.soloTrack.value == null;
-      final Duration? total = controller.longestClipLength;
-      final Duration position = preview.position.value;
-      final double fraction = total == null || total <= Duration.zero
-          ? 0
-          : (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
-
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.spaceLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: colors.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.graphic_eq_rounded,
-                      color: colors.onPrimaryContainer,
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.spaceMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          K.previewAll.tr,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          hasEnoughTracks
-                              ? 'All tracks play together, following the '
-                                    'volume shaping you set.'
-                              : 'Add a track to hear it.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppDimens.spaceSm),
-                  FilledButton.icon(
-                    // The theme makes filled buttons full width, which a
-                    // button sharing a row with a title cannot be.
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 40),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.spaceMd,
-                      ),
-                    ),
-                    onPressed: !hasEnoughTracks || isPreparing
-                        ? null
-                        : () => controller.toggleMixPreview(),
-                    icon: isPreparing
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            isPlaying
-                                ? Icons.stop_rounded
-                                : Icons.play_arrow_rounded,
-                          ),
-                    label: Text(isPlaying ? K.stop.tr : K.preview.tr),
-                  ),
-                ],
-              ),
-              if (total != null) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceMd),
-                Row(
-                  children: <Widget>[
-                    Text(
-                      Formatters.duration(position),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimens.spaceSm,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            AppDimens.radiusPill,
-                          ),
-                          child: LinearProgressIndicator(
-                            value: fraction,
-                            minHeight: 6,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      Formatters.duration(total),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (preview.errorMessage.value.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppDimens.spaceMd),
-                Text(
-                  preview.errorMessage.value,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.error,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppDimens.spaceSm),
-              // The preview starts the tracks together but does not lock them
-              // to each other, so this is worth saying rather than letting a
-              // small drift read as a bug in the export.
-              Text(
-                K.previewBalanceNote.tr,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
+      // Solo playback belongs to its own track card, not this transport.
+      final bool wholeMix = preview.soloTrack.value == null;
+      return MixPreviewPanel(
+        total: controller.longestClipLength,
+        position: wholeMix ? preview.position.value : Duration.zero,
+        isPlaying: wholeMix && preview.isPlaying.value,
+        isPreparing: wholeMix && preview.isPreparing.value,
+        errorMessage: preview.errorMessage.value,
+        onPreview: controller.sources.isEmpty
+            ? null
+            : () => controller.toggleMixPreview(),
       );
     });
   }
